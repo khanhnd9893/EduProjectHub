@@ -1,13 +1,6 @@
 <?php
 
-$host = "localhost";
-$dbname = "eduprojecthub";
-$username = "eduproject";
-$password = "your_password";
+require_once __DIR__ . '/../../database/database.php';
 
-$conn = new PDO(
-    "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
-    $username,
-    $password
-);
+echo 'Database connection successful.';
 ?>
