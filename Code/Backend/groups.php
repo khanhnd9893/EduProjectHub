@@ -89,9 +89,50 @@ function requireGroupManager(array $group, array $actor): void
 {
     requireValue(
         $actor['role'] === 'admin'
-            || (int) $group['leader_user_id'] === (int) $actor['id'],
+            || (
+                $actor['role'] === 'student'
+                && (int) $group['leader_user_id'] === (int) $actor['id']
+            ),
         403,
         'Chỉ trưởng nhóm hoặc quản trị viên mới được thực hiện thao tác này.'
+    );
+}
+
+function requireGroupViewer(PDO $pdo, array $group, array $actor): void
+{
+    if ($actor['role'] === 'admin') {
+        return;
+    }
+
+    if ($actor['role'] === 'lecturer') {
+        $sql = 'SELECT 1 FROM group_lecturers gl
+                WHERE gl.group_id = ? AND gl.lecturer_user_id = ?
+                  AND (
+                    SELECT COUNT(*) FROM group_lecturers workload
+                    WHERE workload.lecturer_user_id = gl.lecturer_user_id
+                  ) >= 2';
+    } else {
+        $sql = "SELECT 1 FROM student_groups sg_access
+                WHERE sg_access.id = ?
+                  AND (
+                    sg_access.leader_user_id = ?
+                    OR EXISTS (
+                        SELECT 1 FROM group_members gm_access
+                        WHERE gm_access.group_id = sg_access.id
+                          AND gm_access.user_id = ?
+                          AND gm_access.status = 'active'
+                    )
+                  )";
+    }
+    $statement = $pdo->prepare($sql);
+    $params = $actor['role'] === 'lecturer'
+        ? [$group['id'], $actor['id']]
+        : [$group['id'], $actor['id'], $actor['id']];
+    $statement->execute($params);
+    requireValue(
+        $statement->fetchColumn() !== false,
+        403,
+        'Bạn không có quyền xem thông tin nhóm này.'
     );
 }
 
@@ -153,6 +194,28 @@ try {
         $where = [];
         $params = [];
 
+        if ($actor['role'] === 'student') {
+            $where[] = '(sg.leader_user_id = ? OR EXISTS (
+                SELECT 1 FROM group_members gm_access
+                WHERE gm_access.group_id = sg.id
+                  AND gm_access.user_id = ?
+                  AND gm_access.status = \'active\'
+            ))';
+            $params[] = $actor['id'];
+            $params[] = $actor['id'];
+        } elseif ($actor['role'] === 'lecturer') {
+            $where[] = 'EXISTS (
+                SELECT 1 FROM group_lecturers gl_access
+                WHERE gl_access.group_id = sg.id
+                  AND gl_access.lecturer_user_id = ?
+                  AND (
+                    SELECT COUNT(*) FROM group_lecturers gl_workload
+                    WHERE gl_workload.lecturer_user_id = gl_access.lecturer_user_id
+                  ) >= 2
+            )';
+            $params[] = $actor['id'];
+        }
+
         if (isset($_GET['round_id'])) {
             $where[] = 'sg.project_round_id = ?';
             $params[] = positiveId($_GET['round_id'], 'round_id');
@@ -186,6 +249,7 @@ try {
     if ($method === 'GET' && $action === 'group') {
         $groupId = positiveId($_GET['id'] ?? null, 'id');
         $group = getGroup($pdo, $groupId);
+        requireGroupViewer($pdo, $group, $actor);
         $statement = $pdo->prepare(
             "SELECT gm.id AS group_member_id, u.id AS user_id,
                     u.full_name, gm.member_role, gm.status,
@@ -198,6 +262,60 @@ try {
         $statement->execute([$groupId]);
         $group['members'] = $statement->fetchAll();
         respond(200, ['data' => $group]);
+    }
+
+    if ($method === 'POST' && $action === 'assign_lecturer') {
+        requireValue($actor['role'] === 'admin', 403, 'Chỉ quản trị viên mới được phân công giảng viên.');
+
+        $lecturerId = positiveId($body['lecturer_user_id'] ?? null, 'lecturer_user_id');
+        requireValue(
+            isset($body['group_ids'])
+                && is_array($body['group_ids'])
+                && array_is_list($body['group_ids']),
+            400,
+            'group_ids phải là danh sách ID nhóm.'
+        );
+        requireValue(count($body['group_ids']) >= 2, 400, 'Mỗi giảng viên phải được phân công ít nhất 2 nhóm.');
+
+        $groupIds = [];
+        foreach ($body['group_ids'] as $value) {
+            $groupIds[] = positiveId($value, 'group_ids');
+        }
+        $groupIds = array_values(array_unique($groupIds));
+        requireValue(count($groupIds) >= 2, 400, 'Cần ít nhất 2 nhóm khác nhau cho mỗi giảng viên.');
+
+        $pdo->beginTransaction();
+        $statement = $pdo->prepare(
+            "SELECT id FROM users WHERE id = ? AND role = 'lecturer' AND account_status = 'active' FOR UPDATE"
+        );
+        $statement->execute([$lecturerId]);
+        requireValue($statement->fetch() !== false, 404, 'Không tìm thấy tài khoản giảng viên đang hoạt động.');
+
+        $placeholders = implode(', ', array_fill(0, count($groupIds), '?'));
+        $statement = $pdo->prepare(
+            "SELECT id FROM student_groups WHERE id IN ($placeholders) ORDER BY id FOR UPDATE"
+        );
+        $statement->execute($groupIds);
+        requireValue(
+            count($statement->fetchAll(PDO::FETCH_COLUMN)) === count($groupIds),
+            400,
+            'Một hoặc nhiều nhóm không tồn tại.'
+        );
+
+        $statement = $pdo->prepare('DELETE FROM group_lecturers WHERE lecturer_user_id = ?');
+        $statement->execute([$lecturerId]);
+        $statement = $pdo->prepare(
+            'INSERT INTO group_lecturers (group_id, lecturer_user_id, assigned_by)
+             VALUES (?, ?, ?)'
+        );
+        foreach ($groupIds as $assignedGroupId) {
+            $statement->execute([$assignedGroupId, $lecturerId, $actor['id']]);
+        }
+        $pdo->commit();
+        respond(200, [
+            'message' => 'Cập nhật phân công giảng viên thành công.',
+            'data' => ['lecturer_user_id' => $lecturerId, 'group_ids' => $groupIds],
+        ]);
     }
 
     if ($method === 'POST' && $action === 'create') {
@@ -406,6 +524,9 @@ try {
     $sqlState = (string) $exception->getCode();
     if ($sqlState === '23000' || $sqlState === '45000') {
         respond(409, ['error' => 'Dữ liệu vi phạm ràng buộc hoặc quy tắc nghiệp vụ của cơ sở dữ liệu.']);
+    }
+    if ($sqlState === '42S02') {
+        respond(500, ['error' => 'Thiếu bảng phân công giảng viên. Hãy import phan_cong_giang_vien.sql trước.']);
     }
     respond(500, ['error' => 'Lỗi cơ sở dữ liệu. Vui lòng thử lại sau.']);
 } catch (Throwable $exception) {

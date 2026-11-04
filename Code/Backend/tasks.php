@@ -125,10 +125,34 @@ function taskIsMember(PDO $pdo, int $groupId, int $userId): bool
 
 function taskRequireViewer(PDO $pdo, array $group, array $actor): void
 {
+    if ($actor['role'] === 'admin') {
+        return;
+    }
+
+    if ($actor['role'] === 'lecturer') {
+        $statement = $pdo->prepare(
+            'SELECT 1 FROM group_lecturers gl
+             WHERE gl.group_id = ? AND gl.lecturer_user_id = ?
+               AND (
+                 SELECT COUNT(*) FROM group_lecturers workload
+                 WHERE workload.lecturer_user_id = gl.lecturer_user_id
+               ) >= 2'
+        );
+        $statement->execute([$group['id'], $actor['id']]);
+        taskRequire(
+            $statement->fetchColumn() !== false,
+            403,
+            'Bạn không có quyền xem nhiệm vụ của nhóm này.'
+        );
+        return;
+    }
+
     taskRequire(
-        $actor['role'] === 'admin'
-            || (int) $group['leader_user_id'] === (int) $actor['id']
-            || taskIsMember($pdo, (int) $group['id'], (int) $actor['id']),
+        $actor['role'] === 'student'
+            && (
+                (int) $group['leader_user_id'] === (int) $actor['id']
+                || taskIsMember($pdo, (int) $group['id'], (int) $actor['id'])
+            ),
         403,
         'Bạn không có quyền truy cập nhiệm vụ của nhóm này.'
     );
@@ -138,7 +162,10 @@ function taskRequireManager(array $group, array $actor): void
 {
     taskRequire(
         $actor['role'] === 'admin'
-            || (int) $group['leader_user_id'] === (int) $actor['id'],
+            || (
+                $actor['role'] === 'student'
+                && (int) $group['leader_user_id'] === (int) $actor['id']
+            ),
         403,
         'Chỉ trưởng nhóm hoặc quản trị viên mới được quản lý nhiệm vụ.'
     );
@@ -324,11 +351,18 @@ try {
         } else {
             taskRequire(
                 $actor['role'] === 'admin'
-                    || (int) $group['leader_user_id'] === (int) $actor['id']
-                    || $task['assigned_to'] === null
-                    || (int) $task['assigned_to'] === (int) $actor['id'],
+                    || (
+                        $actor['role'] === 'student'
+                        && (int) $group['leader_user_id'] === (int) $actor['id']
+                    )
+                    || (
+                        $actor['role'] === 'student'
+                        && taskIsMember($pdo, (int) $group['id'], (int) $actor['id'])
+                        && $task['assigned_to'] !== null
+                        && (int) $task['assigned_to'] === (int) $actor['id']
+                    ),
                 403,
-                'Chỉ người được giao nhiệm vụ, trưởng nhóm hoặc quản trị viên mới được cập nhật trạng thái.'
+                'Chỉ sinh viên được giao nhiệm vụ, trưởng nhóm hoặc quản trị viên mới được cập nhật trạng thái.'
             );
         }
 
@@ -365,6 +399,9 @@ try {
     error_log($exception->getMessage());
     if ((string) $exception->getCode() === '23000') {
         taskRespond(409, ['error' => 'Dữ liệu vi phạm ràng buộc cơ sở dữ liệu.']);
+    }
+    if ((string) $exception->getCode() === '42S02') {
+        taskRespond(500, ['error' => 'Thiếu bảng phân công giảng viên hoặc nhiệm vụ. Hãy import phan_cong_giang_vien.sql và quan_ly_nhiem_vu.sql trước.']);
     }
     taskRespond(500, ['error' => 'Lỗi cơ sở dữ liệu. Vui lòng thử lại sau.']);
 } catch (Throwable $exception) {

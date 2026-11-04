@@ -16,7 +16,7 @@ SPMS hỗ trợ quản lý đề tài/đồ án theo học kỳ, phân công hư
 - FR-05: Admin tạo đề tài, thiết lập trạng thái và thời hạn.
 - FR-06: Admin phân công giảng viên hướng dẫn và quản lý thành viên đồ án.
 - FR-07: Giảng viên chỉ xem/chỉnh sửa đồ án được phân công, trừ quyền Admin được cấp.
-- FR-08: Giảng viên tạo nhiệm vụ, thời hạn và tiêu chí hoàn thành.
+- FR-08: Giảng viên được phân công xem nhiệm vụ, thời hạn, tiêu chí hoàn thành và tiến độ nhóm; quyền tạo/cập nhật nhiệm vụ do trưởng nhóm hoặc quản trị viên thực hiện.
 - FR-09: Sinh viên xem đồ án, nhiệm vụ và thời hạn mà mình được phép truy cập.
 - FR-10: Sinh viên nộp phiên bản báo cáo; hệ thống lưu thời điểm và thông tin tệp.
 - FR-11: Giảng viên gửi nhận xét, điểm (nếu áp dụng) và yêu cầu chỉnh sửa.
@@ -48,6 +48,7 @@ SPMS hỗ trợ quản lý đề tài/đồ án theo học kỳ, phân công hư
 - BR-06: Điểm nếu có phải nằm trong khoảng 0–100.
 - BR-07: Chatbot FAQ chỉ sử dụng nguồn nội dung được duyệt; câu hỏi ngoài phạm vi phải nói rõ giới hạn.
 - BR-08: Ngày kết thúc học kỳ không trước ngày bắt đầu.
+- BR-09: Mỗi giảng viên phải được phân công quản lý ít nhất hai nhóm; chỉ nhóm được phân công mới hiển thị với giảng viên.
 
 ## 6. Ngoài phạm vi phiên bản đầu
 - Chấm điểm tự động bằng AI.

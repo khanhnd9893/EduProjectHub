@@ -12,10 +12,11 @@ Các file cài đặt bên dưới tạo schema nhóm đồ án trong database `
    3. `quan_ly_thanh_vien.sql`
    4. `quan_ly_loi_moi.sql`
    5. `quan_ly_yeu_cau.sql`
-   6. `quan_ly_nhiem_vu.sql`
-   7. `kiem_tra_tien_do.sql`
-   8. `tao_view.sql`
-4. Mở tab **Structure**; cần thấy các bảng `users`, `project_rounds`, `student_groups`, `group_members`, `group_invitations`, `group_requests`, `tasks` và hai view `vw_group_list`, `vw_group_member_details`.
+   6. `phan_cong_giang_vien.sql`
+   7. `quan_ly_nhiem_vu.sql`
+   8. `kiem_tra_tien_do.sql`
+   9. `tao_view.sql`
+4. Mở tab **Structure**; cần thấy các bảng `users`, `project_rounds`, `student_groups`, `group_members`, `group_invitations`, `group_requests`, `group_lecturers`, `tasks` và hai view `vw_group_list`, `vw_group_member_details`.
 
 phpMyAdmin hỗ trợ `DELIMITER` trong file trigger `kiem_tra_tien_do.sql`; hãy import nguyên file, không xóa các dòng `DELIMITER`.
 
@@ -27,9 +28,10 @@ Nếu phpMyAdmin báo `#1146 - Table 'eduprojecthub.student_groups' doesn't exis
 2. `quan_ly_thanh_vien.sql`
 3. `quan_ly_loi_moi.sql`
 4. `quan_ly_yeu_cau.sql`
-5. `quan_ly_nhiem_vu.sql`
-6. `kiem_tra_tien_do.sql`
-7. `tao_view.sql`
+5. `phan_cong_giang_vien.sql`
+6. `quan_ly_nhiem_vu.sql`
+7. `kiem_tra_tien_do.sql`
+8. `tao_view.sql`
 
 Không cần chạy lại `Tai_khoan.sql` hoặc `quan_ly_do_an.sql` nếu bảng `users` và `project_rounds` đã có. Không xóa database để khắc phục lỗi này.
 
@@ -58,4 +60,24 @@ Import `quan_ly_nhiem_vu.sql` sau khi tạo `student_groups` và trước khi g�
 | PATCH | `tasks.php?action=status` | `id`, `status` |
 | DELETE | `tasks.php?action=delete` | `id` |
 
-Gửi JSON cho thao tác ghi cùng header `X-CSRF-Token`. `due_at` nhận `YYYY-MM-DD HH:MM:SS` hoặc `null`. Quản trị viên/trưởng nhóm được quản lý nhiệm vụ; thành viên đang hoạt động được xem và cập nhật trạng thái nhiệm vụ được giao cho mình (hoặc nhiệm vụ chưa gán). Schema m5 chưa có quan hệ phân công giảng viên với nhóm, do đó API này chưa thể xác minh phạm vi giảng viên.
+Gửi JSON cho thao tác ghi cùng header `X-CSRF-Token`. `due_at` nhận `YYYY-MM-DD HH:MM:SS` hoặc `null`. Quản trị viên/trưởng nhóm được quản lý nhiệm vụ; thành viên đang hoạt động được xem nhiệm vụ của nhóm và chỉ cập nhật trạng thái nhiệm vụ được giao cho mình. Giảng viên được phân công chỉ xem danh sách/chi tiết, không được thay đổi nhiệm vụ.
+
+## API tiến độ
+
+`GET /Code/Backend/progress.php?action=group&group_id=1` trả về thông tin nhóm, số nhiệm vụ theo trạng thái, số nhiệm vụ quá hạn/chưa giao, tỷ lệ hoàn thành và thống kê nhiệm vụ được giao cho từng thành viên. Tỷ lệ hoàn thành tính bằng `completed / (total - cancelled)`; nếu không có nhiệm vụ hợp lệ thì trả `0`. Thành viên đang hoạt động, giảng viên có ít nhất 2 nhóm được phân công và quản trị viên được xem. Tiến độ được tổng hợp từ bảng `tasks`, không lưu thêm dữ liệu trùng lặp; cần import `quan_ly_nhiem_vu.sql` trước khi sử dụng.
+
+## Phân quyền giảng viên, sinh viên
+
+- Sinh viên chỉ xem danh sách/chi tiết nhóm mình đang tham gia; thành viên chỉ cập nhật trạng thái nhiệm vụ được giao cho chính mình. Trưởng nhóm được quản lý nhóm và nhiệm vụ.
+- Giảng viên phải được phân công ít nhất 2 nhóm mới xem được danh sách, nhiệm vụ và tiến độ; chỉ đọc, không được thay đổi nhóm/nhiệm vụ/trạng thái.
+- Admin có quyền đọc toàn bộ dữ liệu và quản lý theo quy tắc hiện hành.
+- `group_lecturers` lưu phân công giảng viên–nhóm. Chỉ admin được cập nhật phân công qua `POST /Code/Backend/groups.php?action=assign_lecturer`. Gửi CSRF token trong header `X-CSRF-Token` và danh sách đầy đủ các nhóm mới của giảng viên (tối thiểu 2 nhóm khác nhau):
+
+```json
+{
+  "lecturer_user_id": 5,
+  "group_ids": [1, 2]
+}
+```
+
+API thay thế toàn bộ phân công của giảng viên trong một transaction. Để bỏ một nhóm, gửi lại danh sách đầy đủ còn lại; danh sách vẫn phải có ít nhất 2 nhóm. Cấu hình nào ít hơn 2 nhóm sẽ bị từ chối, và giảng viên có dữ liệu phân công cũ dưới ngưỡng sẽ không có quyền truy cập cho đến khi admin cập nhật đủ nhóm.
