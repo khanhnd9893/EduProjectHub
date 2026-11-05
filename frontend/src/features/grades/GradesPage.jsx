@@ -4,7 +4,6 @@ function GradesPage() {
   return (
     <section className="dashboard-page">
       <PageHeading
-        eyebrow="FR06"
         title="Điểm số"
         description="Xem điểm tổng kết đồ án đã được công bố."
         status="Đang xây dựng"
