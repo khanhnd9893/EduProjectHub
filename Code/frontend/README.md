@@ -1,5 +1,29 @@
 # React + Vite
 
+## Run the demo with XAMPP
+
+The source `index.html` is an entry point for Vite; Apache cannot execute the
+React JSX source directly. To serve the built demo from this project directory:
+
+1. Start **Apache** in the XAMPP Control Panel.
+2. From `Code/frontend`, install dependencies and build the demo:
+
+   ```powershell
+   npm ci
+   Copy-Item .env.example .env.production
+   npm run build
+   ```
+
+   The production build uses mock data (`VITE_USE_MOCK=true` in
+   `.env.production`) and is written to `Code/frontend/dist`. The local
+   `.env.production` file is ignored by Git.
+3. Open `http://localhost/EduProjectHub/Code/frontend/dist/`.
+4. Sign in with `sv`, `gv`, or `admin`; the mock password is `123456`.
+
+Apache must allow `.htaccess` overrides (`AllowOverride All`) and have
+`mod_rewrite` enabled so React routes work when refreshed. The included
+`public/.htaccess` is copied into `dist` during the build.
+
 ## PHP API configuration
 
 The frontend calls the PHP endpoints in `../Backend`. By default, API requests
