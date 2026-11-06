@@ -1,0 +1,1 @@
+add file .sql vào xampp để chạy toàn bộ database của project.

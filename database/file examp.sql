@@ -29,7 +29,7 @@ VALUES
 INSERT INTO group_members (group_id, user_id, member_role, status) VALUES
 (1, 1, 'leader', 'active'),
 (1, 5, 'member', 'active'),
-(1, 7, 'member', 'active'),
+(1, 4, 'member', 'active'),
 (2, 6, 'leader', 'active'),
 (2, 7, 'member', 'active');
 
