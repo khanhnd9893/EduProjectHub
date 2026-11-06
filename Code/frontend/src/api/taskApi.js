@@ -39,6 +39,16 @@ function mapTask(task) {
 }
 
 function formatDueAt(value) {
+  if (/[zZ]|[+-]\d{2}:\d{2}$/.test(value)) {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      throw new Error('dueAt không phải ngày giờ hợp lệ.')
+    }
+
+    const pad = (part) => String(part).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  }
+
   const formatted = value.replace('T', ' ')
   return formatted.length === 16 ? `${formatted}:00` : formatted.slice(0, 19)
 }

@@ -1,53 +1,23 @@
-# React + Vite
+# Frontend
 
-## Run the demo with XAMPP
+## Run with XAMPP
 
-The source `index.html` is an entry point for Vite; Apache cannot execute the
-React JSX source directly. To serve the built demo from this project directory:
+React's JSX source cannot be served directly by Apache. Start Apache in XAMPP, then from `Code/frontend` install and build:
 
-1. Start **Apache** in the XAMPP Control Panel.
-2. From `Code/frontend`, install dependencies and build the demo:
+```powershell
+npm ci
+Copy-Item .env.example .env.production
+npm run build
+```
 
-   ```powershell
-   npm ci
-   Copy-Item .env.example .env.production
-   npm run build
-   ```
+`.env.example` enables mock mode for a frontend-only demo. The build output is served at `http://localhost/EduProjectHub/Code/frontend/dist/`. Sign in with `sv`, `gv`, or `admin` and password `123456`.
 
-   The production build uses mock data (`VITE_USE_MOCK=true` in
-   `.env.production`) and is written to `Code/frontend/dist`. The local
-   `.env.production` file is ignored by Git.
-3. Open `http://localhost/EduProjectHub/Code/frontend/dist/`.
-4. Sign in with `sv`, `gv`, or `admin`; the mock password is `123456`.
+To use PHP and MySQL, set `VITE_USE_MOCK=false` in `.env.production` before building. Import the database files in the order documented in `../../database/README.md`. The default API URL is `/EduProjectHub/Code/Backend`; configure `VITE_API_URL` if the project is hosted at a different path. Rebuild after changing Vite environment variables.
 
-Apache must allow `.htaccess` overrides (`AllowOverride All`) and have
-`mod_rewrite` enabled so React routes work when refreshed. The included
-`public/.htaccess` is copied into `dist` during the build.
+Apache must allow `.htaccess` overrides and enable `mod_rewrite` so frontend routes work after refresh. The `public/.htaccess` file is copied into `dist`.
 
-## PHP API configuration
+## API contract
 
-The frontend calls the PHP endpoints in `../Backend`. By default, API requests
-use `/EduProjectHub/Code/Backend`; when running Vite, that path is proxied to
-Apache on `http://localhost`. Set `VITE_API_URL` to the backend URL if the
-project is hosted under a different path or Apache uses a different host/port.
+Frontend feature pages call their service in `src/api`. JavaScript models use camelCase; PHP and MySQL use snake_case, with conversion handled by the service layer. PHP responses use `{ "data": ... }` and `{ "error": ... }`. Authenticated mutations use the PHP session cookie and a CSRF token. `auth.php`, `groups.php`, `tasks.php`, `progress.php`, `semesters.php`, `reports.php`, and `chatbot.php` use the shared database connection in `../../database/database.php`.
 
-The groups and tasks APIs use PHP sessions and CSRF tokens. Authentication,
-reports, grades, join requests, invitations, and chatbot endpoints do not yet
-exist in the PHP backend; those live-mode calls report that limitation rather
-than sending requests to unimplemented routes. Set `VITE_USE_MOCK=true` to use
-the frontend's mock data while those endpoints are being implemented.
-
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+The login identity is `users.username`; PHP keeps the authenticated user ID in the session. A stored browser user object is only a display cache and is validated against `auth.php?action=me` on page load.

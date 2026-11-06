@@ -1,8 +1,19 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth.js'
 
 function MainLayout() {
   const { user, role, logout } = useAuth()
+  const [error, setError] = useState('')
+
+  async function handleLogout() {
+    setError('')
+    try {
+      await logout()
+    } catch (logoutError) {
+      setError(logoutError.message || 'Không thể đăng xuất khỏi backend.')
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -29,12 +40,13 @@ function MainLayout() {
         <div className="account-actions">
           <span>{user?.fullName}</span>
           <span className="role-label">{role}</span>
-          <button type="button" onClick={logout}>
+          <button type="button" onClick={handleLogout}>
             Đăng xuất
           </button>
         </div>
       </header>
       <main className="page-content">
+        {error && <p className="alert-error" role="alert">{error}</p>}
         <Outlet />
       </main>
     </div>

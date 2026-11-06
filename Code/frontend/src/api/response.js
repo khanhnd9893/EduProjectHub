@@ -25,7 +25,3 @@ export async function unwrap(request) {
 
   return body
 }
-
-export function backendNotImplemented(feature) {
-  throw new Error(`Backend PHP hiện chưa hỗ trợ API ${feature}.`)
-}

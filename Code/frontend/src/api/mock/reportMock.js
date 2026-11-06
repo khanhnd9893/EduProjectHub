@@ -1,11 +1,10 @@
 import { daysFromNow } from './helpers.js'
 
-// Tên trường theo database/schema-reports.sql.
-// lecturerName, submittedByName, studentName, projectTitle là trường join, không có trong bảng.
+// groupId and studentId match the canonical database keys; names are joined display fields.
 export const mockReports = [
   {
     id: 1,
-    projectId: 1,
+    groupId: 1,
     title: 'Báo cáo tuần 1',
     reportType: 'weekly',
     description: 'Tổng kết phân tích yêu cầu.',
@@ -17,7 +16,7 @@ export const mockReports = [
   },
   {
     id: 2,
-    projectId: 1,
+    groupId: 1,
     title: 'Báo cáo giữa kỳ',
     reportType: 'midterm',
     description: 'Nộp tiến độ và các màn hình chính đã hoàn thành.',
@@ -29,7 +28,7 @@ export const mockReports = [
   },
   {
     id: 3,
-    projectId: 1,
+    groupId: 1,
     title: 'Báo cáo cuối kỳ',
     reportType: 'final',
     description: 'Báo cáo hoàn chỉnh kèm phụ lục minh chứng.',
@@ -93,8 +92,8 @@ export const mockReportFeedback = [
 
 export const mockFinalGrades = [
   {
-    projectId: 1,
-    projectTitle: 'Hệ thống quản lý đồ án sinh viên',
+    groupId: 1,
+    groupName: 'Nhóm EduProjectHub',
     studentId: 1,
     studentName: 'Nguyễn Văn A',
     totalScore: 8.75,
@@ -104,9 +103,9 @@ export const mockFinalGrades = [
     updatedAt: daysFromNow(-1),
   },
   {
-    projectId: 1,
-    projectTitle: 'Hệ thống quản lý đồ án sinh viên',
-    studentId: 11,
+    groupId: 1,
+    groupName: 'Nhóm EduProjectHub',
+    studentId: 4,
     studentName: 'Lê Thị Cúc',
     totalScore: 8.25,
     status: 'published',
@@ -115,9 +114,9 @@ export const mockFinalGrades = [
     updatedAt: daysFromNow(-1),
   },
   {
-    projectId: 1,
-    projectTitle: 'Hệ thống quản lý đồ án sinh viên',
-    studentId: 12,
+    groupId: 1,
+    groupName: 'Nhóm EduProjectHub',
+    studentId: 5,
     studentName: 'Phạm Minh Đức',
     totalScore: 7.5,
     status: 'draft',

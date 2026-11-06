@@ -10,7 +10,9 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -181,6 +183,490 @@ h2 {
   padding: 28px;
 }
 
+.teams-layout {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.5fr);
+  margin-top: 32px;
+}
+
+.teams-list {
+  display: grid;
+  gap: 12px;
+}
+
+.team-option {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  text-align: left;
+}
+
+.team-option.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.team-option-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.team-option-heading .status-chip {
+  font-size: 0.7rem;
+  padding: 6px 9px;
+}
+
+.team-details h2 {
+  margin-bottom: 12px;
+}
+
+.team-metadata {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 24px 0;
+  padding: 18px 0;
+}
+
+.team-metadata dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+}
+
+.team-metadata dd {
+  color: var(--ink);
+  font-weight: 700;
+  margin: 0;
+}
+
+.team-details h3 {
+  color: var(--ink);
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.team-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.team-members li {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+}
+
+.teams-message {
+  margin-top: 32px;
+}
+
+.teams-create-toggle {
+  background: var(--accent);
+  border: 0;
+  border-radius: 7px;
+  color: white;
+  font-weight: 700;
+  margin-top: 20px;
+  padding: 10px 16px;
+}
+
+.field-control {
+  color: var(--ink);
+  display: grid;
+  font-size: 0.9rem;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.field-control input,
+.field-control select,
+.field-control textarea,
+.task-card-heading select {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  min-width: 0;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.data-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.data-form h2,
+.data-form h3 {
+  margin-bottom: 0;
+}
+
+.data-form button,
+.chat-form button {
+  background: var(--accent);
+  border: 0;
+  border-radius: 7px;
+  color: white;
+  font-weight: 700;
+  justify-self: start;
+  padding: 10px 16px;
+}
+
+.data-form button:disabled,
+.chat-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.button-secondary {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--accent-dark);
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+.task-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.task-card-heading,
+.task-meta,
+.progress-heading,
+.member-progress-heading {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.task-card-heading h2 {
+  margin-bottom: 0;
+}
+
+.task-card-heading select {
+  max-width: 180px;
+}
+
+.task-meta {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  margin-top: 18px;
+  padding-top: 14px;
+}
+
+.task-overdue {
+  color: #a63c2e;
+  font-weight: 700;
+}
+
+.form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.progress-team-select {
+  margin-top: 24px;
+  max-width: 400px;
+}
+
+.progress-panel,
+.member-progress-panel {
+  margin-top: 20px;
+}
+
+.progress-heading strong {
+  color: var(--accent-dark);
+  font-size: 2rem;
+}
+
+.progress-heading h2 {
+  margin-bottom: 0;
+}
+
+.progress-track {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.progress-track span {
+  background: var(--accent);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transition: width 180ms ease;
+}
+
+.member-progress-list,
+.report-version-list,
+.chat-session-list,
+.faq-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.member-progress-list {
+  display: grid;
+  gap: 20px;
+}
+
+.member-progress-list li {
+  display: grid;
+  gap: 8px;
+}
+
+.member-progress-heading {
+  font-size: 0.9rem;
+}
+
+.semester-grid,
+.grade-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-top: 28px;
+}
+
+.semester-card,
+.grade-card {
+  display: grid;
+  gap: 12px;
+}
+
+.semester-card h2,
+.grade-card h2 {
+  margin-bottom: 0;
+}
+
+.semester-metadata {
+  display: grid;
+  gap: 12px;
+  margin: 8px 0 0;
+}
+
+.semester-metadata dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.semester-metadata dd {
+  color: var(--ink);
+  margin: 4px 0 0;
+}
+
+.grade-score {
+  color: var(--accent-dark);
+  font-size: 2rem;
+}
+
+.reports-layout {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.5fr);
+  margin-top: 28px;
+}
+
+.report-list {
+  display: grid;
+  gap: 12px;
+}
+
+.report-option {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  text-align: left;
+}
+
+.report-option.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.report-details h2 {
+  margin-top: 8px;
+}
+
+.report-details h3 {
+  color: var(--ink);
+  font-size: 1rem;
+  margin: 24px 0 12px;
+}
+
+.report-version-list li {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  padding: 14px 0;
+}
+
+.report-version-list p {
+  margin-bottom: 0;
+}
+
+.feedback-note {
+  background: var(--accent-soft);
+  border-radius: 7px;
+  color: var(--accent-dark);
+  line-height: 1.5;
+  padding: 10px 12px;
+}
+
+.success-message {
+  background: #e9f7ef;
+  border: 1px solid #a7d8ba;
+  border-radius: 6px;
+  color: #236b3c;
+  margin-top: 12px;
+  padding: 10px 12px;
+}
+
+.chatbot-layout {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.5fr);
+  margin-top: 28px;
+}
+
+.chatbot-sidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.chatbot-sidebar h2,
+.chatbot-sidebar h3 {
+  color: var(--ink);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.chatbot-sidebar > .button-secondary {
+  justify-self: start;
+}
+
+.chat-session-list,
+.faq-list {
+  display: grid;
+  gap: 6px;
+}
+
+.chat-session-list button,
+.faq-list button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  line-height: 1.4;
+  padding: 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.chat-session-list button.is-selected,
+.chat-session-list button:hover,
+.faq-list button:hover {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.chat-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.chat-messages {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+  min-height: 280px;
+}
+
+.chat-message {
+  border-radius: 10px;
+  max-width: 85%;
+  padding: 12px 14px;
+}
+
+.chat-message p {
+  line-height: 1.5;
+  margin-bottom: 6px;
+  white-space: pre-wrap;
+}
+
+.chat-message small {
+  opacity: 0.7;
+}
+
+.chat-message.from-user {
+  background: var(--accent);
+  color: white;
+  justify-self: end;
+}
+
+.chat-message.from-assistant {
+  background: var(--accent-soft);
+  color: var(--ink);
+  justify-self: start;
+}
+
+.chat-form {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.dashboard-workspace {
+  margin-top: 24px;
+}
+
+.dashboard-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.dashboard-links a {
+  background: var(--accent-soft);
+  border-radius: 7px;
+  color: var(--accent-dark);
+  font-weight: 700;
+  padding: 10px 14px;
+  text-decoration: none;
+}
+
 .auth-page {
   align-items: center;
   display: flex;
@@ -265,5 +751,20 @@ h2 {
   .stats-grid {
     grid-template-columns: 1fr;
     margin-top: 32px;
+  }
+
+  .teams-layout,
+  .team-metadata,
+  .reports-layout,
+  .chatbot-layout,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-card-heading,
+  .task-meta,
+  .member-progress-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

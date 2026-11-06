@@ -27,7 +27,7 @@ Kiểm thử đăng nhập, phân quyền, quản lý đồ án, nhiệm vụ, n
 | TC-13 | Tệp bị cấm | Tải lên script hoặc tệp vượt giới hạn | Từ chối, không thực thi tệp | Chưa chạy |
 | TC-14 | Lịch sử nộp | Nộp lại một nhiệm vụ | Tạo bản ghi phiên bản mới | Chưa chạy |
 | TC-15 | Nhận xét | Giảng viên phụ trách nhận xét | Sinh viên liên quan xem được nhận xét | Chưa chạy |
-| TC-16 | Điểm ngoài phạm vi | Gửi điểm nhỏ hơn 0 hoặc lớn hơn 100 | Từ chối dữ liệu | Chưa chạy |
+| TC-16 | Điểm ngoài phạm vi | Gửi điểm nhỏ hơn 0 hoặc lớn hơn 10 | Từ chối dữ liệu | Chưa chạy |
 | TC-17 | Thông báo | Có sự kiện cần thông báo | Đúng người nhận thấy thông báo | Chưa chạy |
 | TC-18 | FAQ chatbot | Hỏi câu nằm trong FAQ | Trả lời dựa trên nội dung đã duyệt | Chưa chạy |
 | TC-19 | Chatbot ngoài phạm vi | Hỏi thông tin không có nguồn | Nêu giới hạn, không bịa quy định | Chưa chạy |

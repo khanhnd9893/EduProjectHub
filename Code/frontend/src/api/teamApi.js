@@ -1,5 +1,5 @@
 import apiClient from './client.js'
-import { backendNotImplemented, unwrap } from './response.js'
+import { unwrap } from './response.js'
 import {
   findOrThrow,
   getMockUser,
@@ -28,7 +28,9 @@ function mapTeam(team) {
     leaderName: team.leader_name,
     createdBy: team.created_by == null ? null : Number(team.created_by),
     status: team.status,
-    activeMemberCount: Number(team.active_member_count),
+    activeMemberCount: Number(
+      team.active_member_count ?? team.members?.length ?? 0,
+    ),
     createdAt: team.created_at,
     updatedAt: team.updated_at,
     dissolvedAt: team.dissolved_at ?? null,
@@ -41,6 +43,78 @@ function mapTeam(team) {
       joinedAt: member.joined_at,
       leftAt: member.left_at,
     })),
+  }
+}
+
+function mapRequest(request) {
+  return {
+    id: Number(request.id),
+    groupId: Number(request.group_id),
+    userId: Number(request.user_id),
+    fullName: request.full_name,
+    message: request.message,
+    status: request.status,
+    requestedAt: request.requested_at,
+    reviewedBy:
+      request.reviewed_by == null ? null : Number(request.reviewed_by),
+    reviewedAt: request.reviewed_at,
+    reviewNote: request.review_note,
+  }
+}
+
+function mapInvitation(invitation) {
+  return {
+    id: Number(invitation.id),
+    groupId: Number(invitation.group_id),
+    groupName: invitation.group_name,
+    invitedUserId: Number(invitation.invited_user_id),
+    invitedBy: Number(invitation.invited_by),
+    message: invitation.message,
+    status: invitation.status,
+    sentAt: invitation.sent_at,
+    respondedAt: invitation.responded_at,
+    expiresAt: invitation.expires_at,
+  }
+}
+
+function findMockTeam(teamId) {
+  return findOrThrow(mockTeams, teamId, 'Không tìm thấy nhóm')
+}
+
+function assertCanAddMockMember(groupId, userId) {
+  const team = findMockTeam(groupId)
+  if (!['forming', 'active'].includes(team.status)) {
+    throw new Error('Nhóm không còn nhận thành viên.')
+  }
+
+  const membership = mockMembers.find(
+    (member) =>
+      member.groupId === team.id &&
+      member.userId === Number(userId) &&
+      member.status === 'active',
+  )
+  if (membership) {
+    throw new Error('Sinh viên này đã là thành viên của nhóm.')
+  }
+
+  const otherMembership = mockMembers.find((member) => {
+    const memberTeam = mockTeams.find((entry) => entry.id === member.groupId)
+    return (
+      member.userId === Number(userId) &&
+      member.status === 'active' &&
+      memberTeam?.projectRoundId === team.projectRoundId &&
+      ['forming', 'active'].includes(memberTeam.status)
+    )
+  })
+  if (otherMembership) {
+    throw new Error('Sinh viên đã thuộc một nhóm khác trong đợt đồ án này.')
+  }
+
+  const memberCount = mockMembers.filter(
+    (member) => member.groupId === team.id && member.status === 'active',
+  ).length
+  if (memberCount >= 5) {
+    throw new Error('Nhóm đã đạt số lượng thành viên tối đa.')
   }
 }
 
@@ -68,6 +142,15 @@ function addMockMember(groupId, userId, fullName) {
     note: null,
   })
 }
+
+const mockStudents = [
+  { id: 1, studentCode: 'SV001', fullName: 'Nguyễn Văn A' },
+  { id: 4, studentCode: 'SV002', fullName: 'Lê Thị Cúc' },
+  { id: 5, studentCode: 'SV003', fullName: 'Phạm Minh Đức' },
+  { id: 6, studentCode: 'SV004', fullName: 'Võ Thanh Hà' },
+  { id: 7, studentCode: 'SV005', fullName: 'Trần Minh Phúc' },
+  { id: 8, studentCode: 'SV006', fullName: 'Hoàng Gia Bảo' },
+]
 
 const teamApi = {
   async listTeams({ roundId, status } = {}) {
@@ -111,6 +194,22 @@ const teamApi = {
   async createTeam({ groupCode, groupName, description, projectRoundId }) {
     if (useMock) {
       const user = getMockUser()
+      if (user.role !== 'STUDENT') {
+        throw new Error('Chỉ sinh viên mới được tạo nhóm.')
+      }
+      if (
+        mockMembers.some((member) => {
+          const team = mockTeams.find((entry) => entry.id === member.groupId)
+          return (
+            member.userId === user.id &&
+            member.status === 'active' &&
+            team?.projectRoundId === Number(projectRoundId ?? 1) &&
+            ['forming', 'active'].includes(team.status)
+          )
+        })
+      ) {
+        throw new Error('Bạn đã thuộc một nhóm khác trong đợt đồ án này.')
+      }
       const team = {
         id: nextId(mockTeams),
         groupCode,
@@ -134,12 +233,82 @@ const teamApi = {
       throw new Error('projectRoundId là bắt buộc khi tạo nhóm bằng backend PHP.')
     }
 
-    return unwrap(
+    const result = await unwrap(
       apiClient.post('/groups.php?action=create', {
         group_code: groupCode,
         group_name: groupName,
         description,
         project_round_id: projectRoundId,
+      }),
+    )
+    return teamApi.getTeam(result.id)
+  },
+
+  async listAvailableStudents(teamId) {
+    if (useMock) {
+      const team = findMockTeam(teamId)
+      const currentUser = getMockUser()
+      if (currentUser.role !== 'ADMIN' && currentUser.id !== team.leaderUserId) {
+        throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được thêm thành viên.')
+      }
+
+      const activeMembers = mockMembers.filter(
+        (member) => member.groupId === team.id && member.status === 'active',
+      ).length
+      if (activeMembers >= 5 || !['forming', 'active'].includes(team.status)) {
+        return []
+      }
+
+      return mockResolve(
+        mockStudents.filter((student) => {
+          const activeMembership = mockMembers.find((member) => {
+            const memberTeam = mockTeams.find(
+              (entry) => entry.id === member.groupId,
+            )
+            return (
+              member.userId === student.id &&
+              member.status === 'active' &&
+              ['forming', 'active'].includes(memberTeam?.status) &&
+              memberTeam?.projectRoundId === team.projectRoundId
+            )
+          })
+          return !activeMembership
+        }),
+      )
+    }
+
+    const students = await unwrap(
+      apiClient.get('/groups.php', {
+        params: { action: 'available_students', group_id: teamId },
+      }),
+    )
+    return students.map((student) => ({
+      id: Number(student.id),
+      studentCode: student.student_code,
+      fullName: student.full_name,
+    }))
+  },
+
+  async addMember(teamId, userId) {
+    if (useMock) {
+      const team = findMockTeam(teamId)
+      const currentUser = getMockUser()
+      if (currentUser.role !== 'ADMIN' && currentUser.id !== team.leaderUserId) {
+        throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được thêm thành viên.')
+      }
+      const student = mockStudents.find((entry) => entry.id === Number(userId))
+      if (!student) {
+        throw new Error('Không tìm thấy sinh viên.')
+      }
+      assertCanAddMockMember(teamId, student.id)
+      addMockMember(Number(teamId), student.id, student.fullName)
+      return mockResolve(student)
+    }
+
+    return unwrap(
+      apiClient.post('/groups.php?action=add_member', {
+        group_id: teamId,
+        user_id: userId,
       }),
     )
   },
@@ -151,8 +320,19 @@ const teamApi = {
           entry.groupId === Number(teamId) && entry.userId === Number(userId),
       )
 
+      const team = findMockTeam(teamId)
+      const currentUser = getMockUser()
+      if (
+        currentUser.role !== 'ADMIN' &&
+        currentUser.id !== team.leaderUserId
+      ) {
+        throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được xóa thành viên.')
+      }
       if (!member) {
         throw new Error('Không tìm thấy thành viên')
+      }
+      if (Number(userId) === team.leaderUserId) {
+        throw new Error('Hãy chuyển trưởng nhóm trước khi xóa thành viên này.')
       }
 
       member.status = 'removed'
@@ -174,12 +354,36 @@ const teamApi = {
       )
     }
 
-    return backendNotImplemented('yêu cầu tham gia nhóm')
+    return (
+      await unwrap(
+        apiClient.get('/groups.php', {
+          params: { action: 'requests', group_id: teamId },
+        }),
+      )
+    ).map(mapRequest)
   },
 
   async sendJoinRequest(teamId, { message }) {
     if (useMock) {
       const user = getMockUser()
+      const team = findMockTeam(teamId)
+      if (user.role !== 'STUDENT') {
+        throw new Error('Chỉ sinh viên mới được gửi yêu cầu tham gia nhóm.')
+      }
+      if (!['forming', 'active'].includes(team.status)) {
+        throw new Error('Nhóm không còn nhận thành viên.')
+      }
+      assertCanAddMockMember(teamId, user.id)
+      if (
+        mockRequests.some(
+          (entry) =>
+            entry.groupId === Number(teamId) &&
+            entry.userId === user.id &&
+            entry.status === 'pending',
+        )
+      ) {
+        throw new Error('Bạn đã có yêu cầu đang chờ duyệt.')
+      }
       const request = {
         id: nextId(mockRequests),
         groupId: Number(teamId),
@@ -196,7 +400,13 @@ const teamApi = {
       return mockResolve(request)
     }
 
-    return backendNotImplemented('gửi yêu cầu tham gia nhóm')
+    const request = await unwrap(
+      apiClient.post('/groups.php?action=request', {
+        group_id: teamId,
+        message,
+      }),
+    )
+    return { id: Number(request.id), groupId: Number(teamId) }
   },
 
   async reviewRequest(requestId, { status, reviewNote }) {
@@ -206,19 +416,37 @@ const teamApi = {
         requestId,
         'Không tìm thấy yêu cầu',
       )
-      request.status = status
-      request.reviewNote = reviewNote
-      request.reviewedBy = getMockUser().id
-      request.reviewedAt = nowIso()
-
+      const team = findMockTeam(request.groupId)
+      const user = getMockUser()
+      if (user.role !== 'ADMIN' && user.id !== team.leaderUserId) {
+        throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được duyệt yêu cầu.')
+      }
+      if (request.status !== 'pending') {
+        throw new Error('Yêu cầu này đã được xử lý.')
+      }
+      if (!['approved', 'rejected'].includes(status)) {
+        throw new Error('Trạng thái duyệt yêu cầu không hợp lệ.')
+      }
       if (status === 'approved') {
+        assertCanAddMockMember(request.groupId, request.userId)
         addMockMember(request.groupId, request.userId, request.fullName)
       }
+      request.status = status
+      request.reviewNote = reviewNote
+      request.reviewedBy = user.id
+      request.reviewedAt = nowIso()
 
       return mockResolve(request)
     }
 
-    return backendNotImplemented('duyệt yêu cầu tham gia nhóm')
+    await unwrap(
+      apiClient.patch('/groups.php?action=review_request', {
+        request_id: requestId,
+        status,
+        review_note: reviewNote,
+      }),
+    )
+    return { id: Number(requestId), status, reviewNote }
   },
 
   async listInvitations() {
@@ -229,12 +457,23 @@ const teamApi = {
       )
     }
 
-    return backendNotImplemented('lời mời nhóm')
+    return (
+      await unwrap(
+        apiClient.get('/groups.php', {
+          params: { action: 'invitations' },
+        }),
+      )
+    ).map(mapInvitation)
   },
 
   async sendInvitation(teamId, { invitedUserId, message }) {
     if (useMock) {
       const team = findOrThrow(mockTeams, teamId, 'Không tìm thấy nhóm')
+      const user = getMockUser()
+      if (user.role !== 'ADMIN' && user.id !== team.leaderUserId) {
+        throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được mời thành viên.')
+      }
+      assertCanAddMockMember(teamId, invitedUserId)
       const invitation = {
         id: nextId(mockInvitations),
         groupId: team.id,
@@ -251,7 +490,14 @@ const teamApi = {
       return mockResolve(invitation)
     }
 
-    return backendNotImplemented('gửi lời mời nhóm')
+    const invitation = await unwrap(
+      apiClient.post('/groups.php?action=invite', {
+        group_id: teamId,
+        invited_user_id: invitedUserId,
+        message,
+      }),
+    )
+    return { id: Number(invitation.id), groupId: Number(teamId) }
   },
 
   async respondInvitation(invitationId, { status }) {
@@ -261,18 +507,33 @@ const teamApi = {
         invitationId,
         'Không tìm thấy lời mời',
       )
-      invitation.status = status
-      invitation.respondedAt = nowIso()
-
+      const user = getMockUser()
+      if (user.id !== invitation.invitedUserId) {
+        throw new Error('Bạn không có quyền phản hồi lời mời này.')
+      }
+      if (invitation.status !== 'pending') {
+        throw new Error('Lời mời này đã được phản hồi.')
+      }
+      if (!['accepted', 'rejected'].includes(status)) {
+        throw new Error('Trạng thái phản hồi lời mời không hợp lệ.')
+      }
       if (status === 'accepted') {
-        const user = getMockUser()
+        assertCanAddMockMember(invitation.groupId, user.id)
         addMockMember(invitation.groupId, user.id, user.fullName)
       }
+      invitation.status = status
+      invitation.respondedAt = nowIso()
 
       return mockResolve(invitation)
     }
 
-    return backendNotImplemented('phản hồi lời mời nhóm')
+    await unwrap(
+      apiClient.patch('/groups.php?action=respond_invitation', {
+        invitation_id: invitationId,
+        status,
+      }),
+    )
+    return { id: Number(invitationId), status }
   },
 }
 

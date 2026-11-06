@@ -1,48 +1,43 @@
+-- Du lieu demo cho schema eduprojecthub. Chi import mot lan tren database moi.
 USE eduprojecthub;
-
--- =========================================================
--- DU LIEU MAU DE KIEM THU
--- Chi chay mot lan tren database moi.
--- =========================================================
+SET NAMES utf8mb4;
 
 INSERT INTO users
-(student_code, full_name, email, password_hash, role)
+(id, username, student_code, full_name, email, password_hash, role, account_status)
 VALUES
-('SV001', 'Nguyen Van An', 'sv001@example.com', '$2y$example_hash_001', 'student'),
-('SV002', 'Tran Thi Binh', 'sv002@example.com', '$2y$example_hash_002', 'student'),
-('SV003', 'Le Van Cuong', 'sv003@example.com', '$2y$example_hash_003', 'student'),
-('SV004', 'Pham Thi Dung', 'sv004@example.com', '$2y$example_hash_004', 'student'),
-('GV001', 'Nguyen Van Giang', 'gv001@example.com', '$2y$example_hash_005', 'lecturer'),
-('AD001', 'Quan tri he thong', 'admin@example.com', '$2y$example_hash_006', 'admin');
+(1, 'sv', 'SV001', 'Nguyễn Văn A', 'sv@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active'),
+(2, 'gv', NULL, 'TS. Trần Thị B', 'gv@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'lecturer', 'active'),
+(3, 'admin', NULL, 'Quản trị viên', 'admin@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'admin', 'active'),
+(4, 'sv2', 'SV002', 'Lê Thị Cúc', 'sv2@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active'),
+(5, 'sv3', 'SV003', 'Phạm Minh Đức', 'sv3@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active'),
+(6, 'sv4', 'SV004', 'Võ Thanh Hà', 'sv4@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active'),
+(7, 'sv5', 'SV005', 'Trần Minh Phúc', 'sv5@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active'),
+(8, 'sv6', 'SV006', 'Hoàng Gia Bảo', 'sv6@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active');
 
 INSERT INTO project_rounds
-(round_code, round_name, semester, academic_year, start_date, end_date, min_members, max_members, status)
+(id, round_code, round_name, semester, academic_year, start_date, end_date, min_members, max_members, status)
 VALUES
-('DA_HK1_2026', 'Do an hoc ky 1 nam 2026', 'Hoc ky 1', '2026-2027',
- '2026-09-01', '2027-01-31', 2, 5, 'open');
+(1, 'DA_HK1_2026', 'Đồ án học kỳ 1 năm 2026', 'Học kỳ 1', '2026-2027',
+ '2026-09-01', '2027-01-31', 2, 7, 'open');
 
--- Tao nhom: leader_user_id tam thoi la SV001.
 INSERT INTO student_groups
-(group_code, group_name, description, project_round_id, leader_user_id, created_by, status)
+(id, group_code, group_name, description, project_round_id, leader_user_id, created_by, status)
 VALUES
-('GR001', 'Nhom EduProjectHub', 'Nhom phat trien he thong quan ly do an sinh vien',
- 1, 1, 1, 'active');
+(1, 'N01', 'Nhóm EduProjectHub', 'Xây dựng hệ thống quản lý đồ án sinh viên.', 1, 1, 1, 'active'),
+(2, 'N02', 'Nhóm Thư viện số', 'Ứng dụng tra cứu tài liệu.', 1, 6, 6, 'forming');
 
--- Them truong nhom va thanh vien.
-INSERT INTO group_members (group_id, user_id, member_role, status)
-VALUES
+INSERT INTO group_members (group_id, user_id, member_role, status) VALUES
 (1, 1, 'leader', 'active'),
-(1, 2, 'member', 'active'),
-(1, 3, 'member', 'active');
+(1, 5, 'member', 'active'),
+(1, 7, 'member', 'active'),
+(2, 6, 'leader', 'active'),
+(2, 7, 'member', 'active');
 
--- Loi moi mau: moi SV004 vao nhom.
-INSERT INTO group_invitations
-(group_id, invited_user_id, invited_by, message, status)
-VALUES
-(1, 4, 1, 'Moi ban tham gia nhom do an', 'pending');
+INSERT INTO group_lecturers (group_id, lecturer_user_id, assigned_by) VALUES
+(1, 2, 3),
+(2, 2, 3);
 
--- Yeu cau tham gia mau (minh hoa trang thai).
-INSERT INTO group_requests
-(group_id, user_id, message, status)
+INSERT INTO tasks
+(id, group_id, title, description, assigned_to, created_by, priority, status, due_at, completed_at)
 VALUES
-(1, 4, 'Toi muon tham gia nhom', 'pending');
+(1, 1, 'Phân tích yêu cầu', 'Tổng hợp yêu cầu hệ thống.', 1, 1, 'high', 'in_progress', DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 7 DAY), NULL);

@@ -19,6 +19,10 @@ apiClient.interceptors.request.use(async (config) => {
     return config
   }
 
+  if (config.url?.includes('/auth.php?action=login')) {
+    return config
+  }
+
   const { data } = await axios.get(`${baseURL}/groups.php`, {
     params: { action: 'csrf' },
     withCredentials: true,

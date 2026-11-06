@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/useAuth.js'
 
 function LoginPage() {
-  const { isAuthenticated, login } = useAuth()
+  const { isAuthenticated, isLoading: isCheckingSession, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [username, setUsername] = useState('')
@@ -15,6 +15,10 @@ function LoginPage() {
     return (
       <Navigate to={location.state?.from?.pathname || '/dashboard'} replace />
     )
+  }
+
+  if (isCheckingSession) {
+    return <p role="status">Đang kiểm tra phiên đăng nhập...</p>
   }
 
   async function handleSubmit(event) {

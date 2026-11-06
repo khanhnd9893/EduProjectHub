@@ -1,4 +1,5 @@
-import { backendNotImplemented } from './response.js'
+import apiClient from './client.js'
+import { unwrap } from './response.js'
 import {
   getMockUser,
   mockResolve,
@@ -57,13 +58,32 @@ function addMockMessage(sessionId, sender, content) {
   return message
 }
 
+function mapMessage(message) {
+  return {
+    id: Number(message.id),
+    sessionId: Number(message.sessionId ?? message.session_id),
+    sender: message.sender,
+    content: message.content,
+    createdAt: message.createdAt ?? message.created_at,
+  }
+}
+
 const chatbotApi = {
   async listFaqs() {
     if (useMock) {
       return mockResolve(mockFaqs.filter((faq) => faq.status === 'published'))
     }
 
-    return backendNotImplemented('FAQ chatbot')
+    const faqs = await unwrap(
+      apiClient.get('/chatbot.php', { params: { action: 'faqs' } }),
+    )
+    return faqs.map((faq) => ({
+      id: Number(faq.id),
+      question: faq.question,
+      answer: faq.answer,
+      category: faq.category,
+      status: faq.status,
+    }))
   },
 
   async listSessions() {
@@ -74,7 +94,16 @@ const chatbotApi = {
       )
     }
 
-    return backendNotImplemented('phiên chatbot')
+    const sessions = await unwrap(
+      apiClient.get('/chatbot.php', { params: { action: 'sessions' } }),
+    )
+    return sessions.map((session) => ({
+      id: Number(session.id),
+      userId: Number(session.user_id),
+      title: session.title,
+      createdAt: session.created_at,
+      updatedAt: session.updated_at,
+    }))
   },
 
   async listMessages(sessionId) {
@@ -86,7 +115,13 @@ const chatbotApi = {
       )
     }
 
-    return backendNotImplemented('tin nhắn chatbot')
+    return (
+      await unwrap(
+        apiClient.get('/chatbot.php', {
+          params: { action: 'messages', session_id: sessionId },
+        }),
+      )
+    ).map(mapMessage)
   },
 
   // Không truyền sessionId thì tạo phiên hội thoại mới.
@@ -119,7 +154,17 @@ const chatbotApi = {
       })
     }
 
-    return backendNotImplemented('gửi tin nhắn chatbot')
+    const result = await unwrap(
+      apiClient.post('/chatbot.php?action=send', {
+        session_id: sessionId,
+        content,
+      }),
+    )
+    return {
+      sessionId: Number(result.sessionId),
+      userMessage: mapMessage(result.userMessage),
+      assistantMessage: mapMessage(result.assistantMessage),
+    }
   },
 }
 

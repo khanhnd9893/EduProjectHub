@@ -48,7 +48,7 @@ Hệ thống cung cấp giao diện riêng cho quản trị viên, giảng viên
 | Loại dự án | Ứng dụng web |
 | Lĩnh vực | Giáo dục, quản lý đào tạo |
 | Backend | PHP 8.x |
-| Frontend | HTML5, CSS3, JavaScript, Bootstrap 5 |
+| Frontend | React, JavaScript/JSX, CSS, Vite |
 | Cơ sở dữ liệu | MySQL |
 | Môi trường phát triển | Visual Studio Code, XAMPP |
 | Quản lý mã nguồn | Git và GitHub |
@@ -347,10 +347,10 @@ Các chỉ số có thể được thống kê:
 |---|---|
 | PHP 8.x | Xử lý nghiệp vụ phía máy chủ |
 | MySQL | Lưu trữ dữ liệu |
-| HTML5 | Xây dựng cấu trúc giao diện |
-| CSS3 | Thiết kế và định dạng giao diện |
-| JavaScript | Xử lý tương tác phía trình duyệt |
-| Bootstrap 5 | Xây dựng giao diện responsive |
+| React | Xây dựng giao diện component |
+| JavaScript/JSX | Xử lý tương tác phía trình duyệt |
+| CSS | Thiết kế và định dạng giao diện |
+| Vite | Phát triển và build frontend |
 | Apache | Máy chủ web trong môi trường phát triển |
 | XAMPP | Môi trường PHP, Apache và MySQL cục bộ |
 | Visual Studio Code | Trình soạn thảo mã nguồn |
@@ -380,12 +380,11 @@ Hệ thống được định hướng theo mô hình phân tầng để tách b
 
 Chịu trách nhiệm hiển thị thông tin và tiếp nhận thao tác của người dùng.
 
-Công nghệ dự kiến:
+Frontend hiện tại sử dụng:
 
-- HTML5.
-- CSS3.
-- JavaScript.
-- Bootstrap 5.
+- React và JSX.
+- CSS.
+- Vite.
 
 **Application Layer — Tầng xử lý nghiệp vụ**
 
@@ -438,72 +437,20 @@ Ban đầu, dịch vụ có thể sử dụng dữ liệu FAQ nội bộ. Việc
 
  📁 9. CẤU TRÚC THƯ MỤC
 
-Cấu trúc mục tiêu của dự án:
+Cấu trúc mã nguồn hiện tại:
 
 ```text
-student-project-management-chatbot/
+EduProjectHub/
 │
-├── app/
-│   ├── Controllers/
-│   │   ├── AuthController.php
-│   │   ├── DashboardController.php
-│   │   ├── ProjectController.php
-│   │   ├── TaskController.php
-│   │   ├── SubmissionController.php
-│   │   └── ChatbotController.php
-│   │
-│   ├── Models/
-│   │   ├── User.php
-│   │   ├── Project.php
-│   │   ├── Task.php
-│   │   ├── Submission.php
-│   │   └── ChatMessage.php
-│   │
-│   ├── Services/
-│   │   ├── AuthService.php
-│   │   ├── ProjectService.php
-│   │   └── ChatbotService.php
-│   │
-│   └── Middleware/
-│       ├── AuthMiddleware.php
-│       └── RoleMiddleware.php
-│
-├── config/
-│   ├── app.php
-│   └── database.php
-│
+├── Code/
+│   ├── Backend/       # PHP JSON APIs
+│   └── frontend/      # React/Vite application
 ├── database/
-│   ├── schema.sql
-│   └── seed.sql
-│
+│   ├── Tai_khoan.sql
+│   ├── quan_ly_*.sql
+│   └── schema-*.sql
 ├── docs/
-│   ├── requirements.md
-│   ├── database-design.md
-│   ├── system-architecture.md
-│   └── user-manual.md
-│
-├── public/
-│   ├── index.php
-│   ├── assets/
-│   │   ├── css/
-│   │   ├── js/
-│   │   └── images/
-│   └── uploads/
-│
-├── views/
-│   ├── layouts/
-│   ├── auth/
-│   ├── admin/
-│   ├── lecturer/
-│   ├── student/
-│   ├── projects/
-│   └── chatbot/
-│
 ├── tests/
-│   └── test-cases.md
-│
-├── .gitignore
-├── LICENSE
 └── README.md
 ```
 
@@ -516,31 +463,28 @@ Cơ sở dữ liệu được thiết kế để quản lý người dùng, đ�
 | Bảng | Mục đích |
 |---|---|
 | `users` | Lưu thông tin tài khoản và vai trò |
-| `students` | Lưu thông tin bổ sung của sinh viên |
-| `lecturers` | Lưu thông tin bổ sung của giảng viên |
-| `semesters` | Quản lý học kỳ |
-| `projects` | Lưu thông tin đề tài đồ án |
-| `project_members` | Liên kết sinh viên với đề tài hoặc nhóm |
-| `supervisions` | Quản lý phân công giảng viên hướng dẫn |
-| `tasks` | Quản lý nhiệm vụ và tiến độ |
-| `submissions` | Lưu thông tin các lần nộp tài liệu |
-| `feedback` | Lưu nhận xét và đánh giá |
-| `notifications` | Lưu thông báo gửi đến người dùng |
+| `users` | Tài khoản, username và vai trò |
+| `project_rounds` | Học kỳ/đợt đồ án |
+| `student_groups`, `group_members` | Nhóm đồ án và thành viên |
+| `group_invitations`, `group_requests` | Lời mời và yêu cầu tham gia nhóm |
+| `group_lecturers` | Phân công giảng viên theo nhóm |
+| `tasks` | Nhiệm vụ và tiến độ |
+| `reports`, `report_versions`, `report_feedback` | Đợt báo cáo, phiên bản và phản hồi |
+| `defense_*`, `final_grades` | Hội đồng, lịch bảo vệ và điểm |
+| `chatbot_faqs` | Câu hỏi thường gặp |
 | `chat_sessions` | Quản lý phiên hội thoại chatbot |
 | `chat_messages` | Lưu nội dung tin nhắn hội thoại |
 
-Danh sách và cấu trúc chính xác của các bảng sẽ được điều chỉnh theo yêu cầu nghiệp vụ và phiên bản cơ sở dữ liệu thực tế.
+Các tệp SQL tạo toàn bộ bảng trong một database `eduprojecthub`; xem thứ tự cài đặt chính xác tại `database/README.md`.
 
  10.2. Quan hệ dữ liệu tổng quát
 
-- Một tài khoản có thể liên kết với hồ sơ sinh viên hoặc giảng viên.
-- Một học kỳ có thể có nhiều đề tài.
-- Một đề tài có thể có nhiều thành viên.
-- Một đề tài có thể được phân công giảng viên hướng dẫn.
-- Một đề tài có thể có nhiều nhiệm vụ.
+- `project_rounds` liên kết với nhiều nhóm qua `student_groups.project_round_id`.
+- Nhóm liên kết với tài khoản qua `group_members` và với giảng viên qua `group_lecturers`.
+- Một nhóm có thể có nhiều nhiệm vụ và đợt báo cáo.
 - Một nhiệm vụ có thể có nhiều lần cập nhật trạng thái.
-- Một đồ án có thể có nhiều lần nộp tài liệu.
-- Một lần nộp có thể nhận được nhận xét từ giảng viên.
+- Một báo cáo có nhiều phiên bản; mỗi phiên bản có thể có phản hồi.
+- Điểm và lịch bảo vệ dùng `users.id` cùng `student_groups.id`.
 - Một người dùng có thể nhận nhiều thông báo.
 - Một phiên chatbot có thể chứa nhiều tin nhắn.
 
@@ -647,7 +591,7 @@ Bảo mật là một yêu cầu quan trọng do hệ thống lưu trữ thông 
 
  💻 13. CÀI ĐẶT VÀ CHẠY DỰ ÁN
 
-Phần này mô tả quy trình triển khai dự kiến khi mã nguồn ứng dụng và các tệp cơ sở dữ liệu đã được tạo đầy đủ.
+Phần này mô tả cách chạy mã nguồn hiện có qua XAMPP.
 
  13.1. Yêu cầu môi trường
 
@@ -681,63 +625,26 @@ cd student-project-management-chatbot
  13.3. Cấu hình cơ sở dữ liệu
 
 1. Khởi động Apache và MySQL trong XAMPP.
-2. Mở phpMyAdmin.
-3. Tạo cơ sở dữ liệu cho dự án.
-4. Chọn bộ mã ký tự `utf8mb4`.
-5. Nhập tệp `database/schema.sql` nếu tệp này đã được tạo.
-6. Nhập tệp `database/seed.sql` nếu cần dữ liệu mẫu.
-7. Cập nhật thông tin kết nối cơ sở dữ liệu trong tệp cấu hình của ứng dụng.
+2. Import schema và dữ liệu theo `database/README.md`.
+3. Mặc định PDO kết nối database `eduprojecthub` bằng `root` không mật khẩu trên máy local.
+4. Chạy frontend mock hoặc PHP/MySQL theo hướng dẫn tại `Code/frontend/README.md`.
 
-Tên cơ sở dữ liệu, cấu trúc bảng và dữ liệu mẫu cần khớp với phiên bản mã nguồn đang sử dụng.
+ 13.4. Build frontend
 
- 13.4. Cấu hình kết nối MySQL
-
-Ví dụ cấu hình PDO trong PHP:
-
-```php
-<?php
-
-$host = '127.0.0.1';
-$dbname = 'student_project_management';
-$username = 'root';
-$password = '';
-
-$dsn = "mysql:host={$host};dbname={$dbname};charset=utf8mb4";
-
-$options = [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES => false,
-];
-
-$pdo = new PDO($dsn, $username, $password, $options);
+```bash
+npm ci
+npm run build
 ```
 
-> Đây chỉ là ví dụ cấu hình cho môi trường phát triển cục bộ. Tên cơ sở dữ liệu và tài khoản cần được điều chỉnh theo môi trường thực tế. Khi triển khai trên máy chủ, không sử dụng cấu hình mặc định thiếu bảo mật.
+Trên PowerShell Windows nếu lệnh `npm` bị chặn bởi Execution Policy, dùng `npm.cmd ci` và `npm.cmd run build`.
 
  13.5. Chạy ứng dụng
 
-Khi đã có tệp điểm vào của ứng dụng, có thể chạy qua Apache hoặc dùng máy chủ phát triển PHP.
-
-Ví dụ nếu ứng dụng đã được thiết kế để chạy trực tiếp từ thư mục `public`:
-
-```bash
-php -S localhost:8000 -t public
-```
-
-Sau đó mở trình duyệt và truy cập:
-
-```text
-http://localhost:8000
-```
-
-Lệnh trên chỉ phù hợp với môi trường phát triển. Khi triển khai thực tế, cần cấu hình máy chủ web, quyền truy cập và các biện pháp bảo mật phù hợp.
+Mở `http://localhost/EduProjectHub/Code/frontend/dist/`. Chế độ mock phục vụ demo không cần database; để chạy dữ liệu PHP/MySQL, đặt `VITE_USE_MOCK=false`, import schema, rồi build lại frontend.
 
  13.6. Lưu ý về trạng thái triển khai
 
-Repository mới tạo có thể chỉ chứa tài liệu và tệp cơ sở dữ liệu. Không thể đăng nhập hoặc sử dụng các chức năng nghiệp vụ cho đến khi mã nguồn tương ứng được triển khai.
-
-Hướng dẫn cài đặt sẽ được cập nhật theo cấu trúc và yêu cầu thực tế của từng phiên bản.
+Các tính năng được cung cấp qua PHP JSON APIs; một số nghiệp vụ quản trị nâng cao chưa có giao diện ghi dữ liệu. Không dùng tài khoản demo trong môi trường triển khai.
 
 ---
 

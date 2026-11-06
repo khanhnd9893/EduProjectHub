@@ -1,17 +1,18 @@
--- Du lieu demo FAQ chatbot (FR07).
--- Chay SAU khi import database/seed.sql va database/schema-m6.sql.
--- Use only in local development.
-USE spms;
+-- Du lieu FAQ mau; import sau file examp.sql va schema-chatbot-faqs.sql.
+USE eduprojecthub;
 SET NAMES utf8mb4;
 
--- FAQ chatbot: 2 cau da duyet, 1 cau ban nhap
 INSERT INTO chatbot_faqs (question, answer, category, status, created_by) VALUES
-('Khi nao het han dang ky de tai?',
- 'Thoi han dang ky de tai duoc cong bo theo tung dot trong hoc ky. Ban xem chi tiet tai muc De tai sau khi dang nhap.',
- 'De tai', 'published', 1),
-('Toi nop bao cao o dau?',
- 'Vao muc Bao cao cua do an, chon dot bao cao dang mo va tai tep len. He thong luu lai tung phien ban da nop.',
- 'Bao cao', 'published', 1),
-('Diem bao ve duoc tinh the nao?',
- 'Cau tra loi dang duoc bien soan boi giang vien phu trach.',
- 'Diem so', 'draft', 1);
+('Khi nào hết hạn đăng ký đề tài?',
+ 'Thời hạn đăng ký được công bố theo từng đợt trong học kỳ. Hãy xem mục Học kỳ để biết hạn cụ thể.',
+ 'Học kỳ', 'published', 3),
+('Tôi nộp báo cáo ở đâu?',
+ 'Vào mục Báo cáo, chọn đợt đang mở và tải tệp PDF hoặc Word lên.',
+ 'Báo cáo', 'published', 3),
+('Làm sao để xem điểm đồ án?',
+ 'Vào mục Điểm số để xem điểm tổng kết sau khi giảng viên công bố.',
+ 'Điểm số', 'published', 3),
+('Làm sao để tham gia nhóm đồ án?',
+ 'Liên hệ trưởng nhóm hoặc giảng viên để được thêm vào nhóm đồ án.',
+ 'Nhóm', 'published', 3)
+ON DUPLICATE KEY UPDATE answer = VALUES(answer);

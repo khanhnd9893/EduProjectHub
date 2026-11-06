@@ -5,6 +5,11 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'samesite' => 'Lax',
+]);
 session_start();
 
 class ApiException extends RuntimeException
@@ -228,11 +233,11 @@ try {
         }
 
         $sql = 'SELECT sg.id, sg.group_code, sg.group_name, sg.description,
-                       sg.project_round_id, pr.round_name, sg.leader_user_id,
+                       sg.project_round_id, pr.round_name, sg.leader_user_id, sg.created_by,
                        leader.full_name AS leader_name, sg.status,
                        (SELECT COUNT(*) FROM group_members gm
                         WHERE gm.group_id = sg.id AND gm.status = \'active\') AS active_member_count,
-                       sg.created_at, sg.updated_at
+                       sg.created_at, sg.updated_at, sg.dissolved_at
                 FROM student_groups sg
                 JOIN project_rounds pr ON pr.id = sg.project_round_id
                 JOIN users leader ON leader.id = sg.leader_user_id';
@@ -262,6 +267,224 @@ try {
         $statement->execute([$groupId]);
         $group['members'] = $statement->fetchAll();
         respond(200, ['data' => $group]);
+    }
+
+    if ($method === 'GET' && $action === 'available_students') {
+        $groupId = positiveId($_GET['group_id'] ?? null, 'group_id');
+        $group = getGroup($pdo, $groupId);
+        requireGroupManager($group, $actor);
+        requireValue(in_array($group['status'], ['forming', 'active'], true), 409, 'Nhóm không còn nhận thành viên.');
+
+        $statement = $pdo->prepare(
+            "SELECT u.id, u.student_code, u.full_name
+             FROM users u
+             JOIN project_rounds pr ON pr.id = ?
+             WHERE u.role = 'student'
+               AND u.account_status = 'active'
+               AND NOT EXISTS (
+                   SELECT 1 FROM group_members current_member
+                   WHERE current_member.group_id = ?
+                     AND current_member.user_id = u.id
+                     AND current_member.status = 'active'
+               )
+               AND NOT EXISTS (
+                   SELECT 1
+                   FROM group_members other_member
+                   JOIN student_groups other_group ON other_group.id = other_member.group_id
+                   WHERE other_member.user_id = u.id
+                     AND other_member.status = 'active'
+                     AND other_group.project_round_id = pr.id
+                     AND other_group.status IN ('forming', 'active')
+               )
+               AND (
+                   SELECT COUNT(*) FROM group_members member_count
+                   WHERE member_count.group_id = ?
+                     AND member_count.status = 'active'
+               ) < pr.max_members
+             ORDER BY u.full_name, u.id"
+        );
+        $statement->execute([$group['project_round_id'], $groupId, $groupId]);
+        respond(200, ['data' => $statement->fetchAll()]);
+    }
+
+    if ($method === 'GET' && $action === 'requests') {
+        $groupId = positiveId($_GET['group_id'] ?? null, 'group_id');
+        $group = getGroup($pdo, $groupId);
+        requireGroupManager($group, $actor);
+        $statement = $pdo->prepare(
+            'SELECT gr.id, gr.group_id, gr.user_id, u.full_name, gr.message,
+                    gr.status, gr.requested_at, gr.reviewed_by, gr.reviewed_at, gr.review_note
+             FROM group_requests gr
+             JOIN users u ON u.id = gr.user_id
+             WHERE gr.group_id = ?
+             ORDER BY gr.requested_at DESC, gr.id DESC'
+        );
+        $statement->execute([$groupId]);
+        respond(200, ['data' => $statement->fetchAll()]);
+    }
+
+    if ($method === 'POST' && $action === 'request') {
+        requireValue($actor['role'] === 'student', 403, 'Chỉ sinh viên mới được gửi yêu cầu tham gia nhóm.');
+        $groupId = positiveId($body['group_id'] ?? null, 'group_id');
+        $message = validateGroupText($body, 'message', 500, false);
+        $group = getGroup($pdo, $groupId);
+        requireValue(in_array($group['status'], ['forming', 'active'], true), 409, 'Nhóm không còn nhận thành viên.');
+        requireValue((int) $group['leader_user_id'] !== (int) $actor['id'], 409, 'Bạn đã là trưởng nhóm.');
+
+        $statement = $pdo->prepare(
+            "SELECT 1 FROM group_members
+             WHERE group_id = ? AND user_id = ? AND status = 'active'"
+        );
+        $statement->execute([$groupId, $actor['id']]);
+        requireValue($statement->fetchColumn() === false, 409, 'Bạn đã là thành viên của nhóm.');
+        $statement = $pdo->prepare(
+            "SELECT 1
+             FROM group_members gm
+             JOIN student_groups sg ON sg.id = gm.group_id
+             WHERE gm.user_id = ? AND gm.status = 'active'
+               AND sg.project_round_id = ?
+               AND sg.status IN ('forming', 'active')"
+        );
+        $statement->execute([$actor['id'], $group['project_round_id']]);
+        requireValue($statement->fetchColumn() === false, 409, 'Bạn đã thuộc một nhóm khác trong đợt đồ án này.');
+
+        $statement = $pdo->prepare(
+            "SELECT 1 FROM group_requests
+             WHERE group_id = ? AND user_id = ? AND status = 'pending'"
+        );
+        $statement->execute([$groupId, $actor['id']]);
+        requireValue($statement->fetchColumn() === false, 409, 'Bạn đã có yêu cầu đang chờ duyệt.');
+
+        $statement = $pdo->prepare(
+            'INSERT INTO group_requests (group_id, user_id, message) VALUES (?, ?, ?)'
+        );
+        $statement->execute([$groupId, $actor['id'], $message]);
+        respond(201, ['data' => ['id' => (int) $pdo->lastInsertId()]]);
+    }
+
+    if ($method === 'PATCH' && $action === 'review_request') {
+        $requestId = positiveId($body['request_id'] ?? null, 'request_id');
+        $status = $body['status'] ?? null;
+        requireValue(in_array($status, ['approved', 'rejected'], true), 400, 'Trạng thái duyệt yêu cầu không hợp lệ.');
+        $reviewNote = validateGroupText($body, 'review_note', 500, false);
+
+        $pdo->beginTransaction();
+        $statement = $pdo->prepare('SELECT * FROM group_requests WHERE id = ? FOR UPDATE');
+        $statement->execute([$requestId]);
+        $request = $statement->fetch();
+        requireValue($request !== false, 404, 'Không tìm thấy yêu cầu tham gia nhóm.');
+        $group = getGroup($pdo, (int) $request['group_id'], true);
+        requireGroupManager($group, $actor);
+        requireValue($request['status'] === 'pending', 409, 'Yêu cầu này đã được xử lý.');
+
+        if ($status === 'approved') {
+            requireValue(in_array($group['status'], ['forming', 'active'], true), 409, 'Nhóm không còn nhận thành viên.');
+            $statement = $pdo->prepare(
+                "INSERT INTO group_members (group_id, user_id, member_role, status)
+                 VALUES (?, ?, 'member', 'active')"
+            );
+            $statement->execute([(int) $group['id'], (int) $request['user_id']]);
+        }
+        $statement = $pdo->prepare(
+            'UPDATE group_requests
+             SET status = ?, review_note = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP
+             WHERE id = ?'
+        );
+        $statement->execute([$status, $reviewNote, $actor['id'], $requestId]);
+        $pdo->commit();
+        respond(200, ['message' => 'Đã xử lý yêu cầu tham gia nhóm.']);
+    }
+
+    if ($method === 'GET' && $action === 'invitations') {
+        requireValue($actor['role'] === 'student', 403, 'Chỉ sinh viên mới có thể xem lời mời nhóm.');
+        $statement = $pdo->prepare(
+            'SELECT gi.id, gi.group_id, sg.group_name, gi.invited_user_id,
+                    gi.invited_by, gi.message, gi.status, gi.sent_at,
+                    gi.responded_at, gi.expires_at
+             FROM group_invitations gi
+             JOIN student_groups sg ON sg.id = gi.group_id
+             WHERE gi.invited_user_id = ?
+             ORDER BY gi.sent_at DESC, gi.id DESC'
+        );
+        $statement->execute([$actor['id']]);
+        respond(200, ['data' => $statement->fetchAll()]);
+    }
+
+    if ($method === 'POST' && $action === 'invite') {
+        $groupId = positiveId($body['group_id'] ?? null, 'group_id');
+        $invitedUserId = positiveId($body['invited_user_id'] ?? null, 'invited_user_id');
+        $message = validateGroupText($body, 'message', 500, false);
+        $group = getGroup($pdo, $groupId);
+        requireGroupManager($group, $actor);
+        requireValue(in_array($group['status'], ['forming', 'active'], true), 409, 'Nhóm không còn nhận thành viên.');
+        $statement = $pdo->prepare(
+            "SELECT id FROM users
+             WHERE id = ? AND role = 'student' AND account_status = 'active'"
+        );
+        $statement->execute([$invitedUserId]);
+        requireValue($statement->fetchColumn() !== false, 404, 'Không tìm thấy tài khoản sinh viên đang hoạt động.');
+
+        $statement = $pdo->prepare(
+            "SELECT 1 FROM group_members
+             WHERE group_id = ? AND user_id = ? AND status = 'active'"
+        );
+        $statement->execute([$groupId, $invitedUserId]);
+        requireValue($statement->fetchColumn() === false, 409, 'Sinh viên này đã là thành viên của nhóm.');
+        $statement = $pdo->prepare(
+            "SELECT 1
+             FROM group_members gm
+             JOIN student_groups sg ON sg.id = gm.group_id
+             WHERE gm.user_id = ? AND gm.status = 'active'
+               AND sg.project_round_id = ?
+               AND sg.status IN ('forming', 'active')"
+        );
+        $statement->execute([$invitedUserId, $group['project_round_id']]);
+        requireValue($statement->fetchColumn() === false, 409, 'Sinh viên đã thuộc một nhóm khác trong đợt đồ án này.');
+        $statement = $pdo->prepare(
+            "SELECT 1 FROM group_invitations
+             WHERE group_id = ? AND invited_user_id = ? AND status = 'pending'"
+        );
+        $statement->execute([$groupId, $invitedUserId]);
+        requireValue($statement->fetchColumn() === false, 409, 'Lời mời đang chờ phản hồi.');
+
+        $statement = $pdo->prepare(
+            'INSERT INTO group_invitations (group_id, invited_user_id, invited_by, message)
+             VALUES (?, ?, ?, ?)'
+        );
+        $statement->execute([$groupId, $invitedUserId, $actor['id'], $message]);
+        respond(201, ['data' => ['id' => (int) $pdo->lastInsertId()]]);
+    }
+
+    if ($method === 'PATCH' && $action === 'respond_invitation') {
+        requireValue($actor['role'] === 'student', 403, 'Chỉ sinh viên mới có thể phản hồi lời mời.');
+        $invitationId = positiveId($body['invitation_id'] ?? null, 'invitation_id');
+        $status = $body['status'] ?? null;
+        requireValue(in_array($status, ['accepted', 'rejected'], true), 400, 'Trạng thái phản hồi lời mời không hợp lệ.');
+
+        $pdo->beginTransaction();
+        $statement = $pdo->prepare(
+            'SELECT * FROM group_invitations
+             WHERE id = ? AND invited_user_id = ? FOR UPDATE'
+        );
+        $statement->execute([$invitationId, $actor['id']]);
+        $invitation = $statement->fetch();
+        requireValue($invitation !== false, 404, 'Không tìm thấy lời mời nhóm.');
+        requireValue($invitation['status'] === 'pending', 409, 'Lời mời này đã được phản hồi.');
+        if ($status === 'accepted') {
+            $group = getGroup($pdo, (int) $invitation['group_id'], true);
+            requireValue(in_array($group['status'], ['forming', 'active'], true), 409, 'Nhóm không còn nhận thành viên.');
+            $statement = $pdo->prepare(
+                "INSERT INTO group_members (group_id, user_id, member_role, status)
+                 VALUES (?, ?, 'member', 'active')"
+            );
+            $statement->execute([(int) $group['id'], $actor['id']]);
+        }
+        $statement = $pdo->prepare(
+            'UPDATE group_invitations SET status = ?, responded_at = CURRENT_TIMESTAMP WHERE id = ?'
+        );
+        $statement->execute([$status, $invitationId]);
+        $pdo->commit();
+        respond(200, ['message' => 'Đã phản hồi lời mời nhóm.']);
     }
 
     if ($method === 'POST' && $action === 'assign_lecturer') {
@@ -331,6 +554,38 @@ try {
         requireValue($statement->fetch() !== false, 409, 'Đợt đồ án không tồn tại hoặc chưa mở đăng ký.');
 
         $statement = $pdo->prepare(
+            "SELECT sg.group_name
+             FROM student_groups sg
+             WHERE sg.project_round_id = ?
+               AND sg.status IN ('forming', 'active')
+               AND (
+                   sg.leader_user_id = ?
+                   OR EXISTS (
+                       SELECT 1 FROM group_members gm
+                       WHERE gm.group_id = sg.id
+                         AND gm.user_id = ?
+                         AND gm.status = 'active'
+                   )
+               )
+             LIMIT 1"
+        );
+        $statement->execute([$roundId, $actor['id'], $actor['id']]);
+        $existingGroup = $statement->fetchColumn();
+        if ($existingGroup !== false) {
+            requireValue(
+                false,
+                409,
+                'Bạn đã thuộc nhóm "' . $existingGroup . '" trong đợt đồ án này. Vui lòng rời nhóm hiện tại trước khi tạo nhóm mới.'
+            );
+        }
+
+        $statement = $pdo->prepare(
+            'SELECT 1 FROM student_groups WHERE project_round_id = ? AND group_code = ?'
+        );
+        $statement->execute([$roundId, $groupCode]);
+        requireValue($statement->fetchColumn() === false, 409, 'Mã nhóm đã được sử dụng trong đợt đồ án này.');
+
+        $statement = $pdo->prepare(
             "INSERT INTO student_groups
                 (group_code, group_name, description, project_round_id, leader_user_id, created_by)
              VALUES (?, ?, ?, ?, ?, ?)"
@@ -372,9 +627,49 @@ try {
     if ($method === 'POST' && $action === 'add_member') {
         $groupId = positiveId($body['group_id'] ?? null, 'group_id');
         $memberId = positiveId($body['user_id'] ?? null, 'user_id');
-        $group = getGroup($pdo, $groupId);
+        $pdo->beginTransaction();
+        $group = getGroup($pdo, $groupId, true);
         requireGroupManager($group, $actor);
         requireValue(in_array($group['status'], ['forming', 'active'], true), 409, 'Nhóm không còn nhận thành viên.');
+
+        $statement = $pdo->prepare(
+            'SELECT pr.max_members,
+                    (SELECT COUNT(*) FROM group_members gm
+                     WHERE gm.group_id = ? AND gm.status = \'active\') AS active_member_count
+             FROM project_rounds pr WHERE pr.id = ?'
+        );
+        $statement->execute([$groupId, $group['project_round_id']]);
+        $capacity = $statement->fetch();
+        requireValue($capacity !== false, 409, 'Đợt đồ án của nhóm không còn tồn tại.');
+        requireValue(
+            (int) $capacity['active_member_count'] < (int) $capacity['max_members'],
+            409,
+            'Nhóm đã đạt số lượng thành viên tối đa.'
+        );
+
+        $statement = $pdo->prepare(
+            "SELECT 1 FROM users
+             WHERE id = ? AND role = 'student' AND account_status = 'active'"
+        );
+        $statement->execute([$memberId]);
+        requireValue($statement->fetchColumn() !== false, 404, 'Không tìm thấy tài khoản sinh viên đang hoạt động.');
+
+        $statement = $pdo->prepare(
+            "SELECT 1
+             FROM group_members gm
+             JOIN student_groups sg ON sg.id = gm.group_id
+             WHERE gm.user_id = ?
+               AND gm.status = 'active'
+               AND gm.group_id <> ?
+               AND sg.project_round_id = ?
+               AND sg.status IN ('forming', 'active')"
+        );
+        $statement->execute([$memberId, $groupId, $group['project_round_id']]);
+        requireValue(
+            $statement->fetchColumn() === false,
+            409,
+            'Sinh viên đã thuộc một nhóm khác trong đợt đồ án này.'
+        );
 
         $statement = $pdo->prepare(
             "SELECT id, status FROM group_members WHERE group_id = ? AND user_id = ?"
@@ -397,6 +692,7 @@ try {
             );
             $statement->execute([$membership['id']]);
         }
+        $pdo->commit();
         respond(201, ['message' => 'Thêm thành viên thành công.']);
     }
 

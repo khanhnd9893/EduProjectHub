@@ -12,6 +12,7 @@ USE eduprojecthub;
 
 CREATE TABLE IF NOT EXISTS users (
     id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username        VARCHAR(50) NOT NULL,
     student_code    VARCHAR(30) NULL,
     full_name       VARCHAR(150) NOT NULL,
     email           VARCHAR(150) NOT NULL,
@@ -20,10 +21,10 @@ CREATE TABLE IF NOT EXISTS users (
     account_status  ENUM('active', 'locked', 'inactive') NOT NULL DEFAULT 'active',
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_users_username (username),
     UNIQUE KEY uq_users_email (email),
     UNIQUE KEY uq_users_student_code (student_code),
     KEY idx_users_role_status (role, account_status)
 ) ENGINE=InnoDB;
 
--- Du lieu minh hoa: password_hash chi la chuoi gia lap.
--- Khi tich hop that, tao hash bang bcrypt/Argon2 trong Backend.
+-- Với database đã tạo trước đây, sao lưu trước rồi thêm username cho từng tài khoản.

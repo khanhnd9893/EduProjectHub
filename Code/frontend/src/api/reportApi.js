@@ -1,4 +1,5 @@
-import { backendNotImplemented } from './response.js'
+import apiClient from './client.js'
+import { unwrap } from './response.js'
 import {
   findOrThrow,
   getMockUser,
@@ -15,18 +16,84 @@ import {
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
+function mapFeedback(feedback) {
+  return {
+    id: Number(feedback.id),
+    reportVersionId: Number(feedback.report_version_id),
+    lecturerId: Number(feedback.lecturer_user_id),
+    lecturerName: feedback.lecturer_name,
+    content: feedback.content,
+    score: feedback.score === null ? null : Number(feedback.score),
+    createdAt: feedback.created_at,
+  }
+}
+
+function mapVersion(version) {
+  return {
+    id: Number(version.id),
+    reportId: Number(version.report_id),
+    versionNo: Number(version.version_no),
+    submittedBy: Number(version.submitted_by),
+    submittedByName: version.submitted_by_name,
+    originalFilename: version.original_filename,
+    storedFilename: version.stored_filename,
+    mimeType: version.mime_type,
+    fileSize: Number(version.file_size),
+    note: version.note,
+    submittedAt: version.submitted_at,
+    feedback: version.feedback?.map(mapFeedback),
+  }
+}
+
+function mapReport(report) {
+  return {
+    id: Number(report.id),
+    groupId: Number(report.group_id),
+    groupName: report.group_name,
+    title: report.title,
+    reportType: report.report_type,
+    description: report.description,
+    deadline: report.deadline,
+    status: report.status,
+    createdBy: Number(report.created_by),
+    createdAt: report.created_at,
+    updatedAt: report.updated_at,
+    versions: report.versions?.map(mapVersion),
+  }
+}
+
+function mapGrade(grade) {
+  return {
+    groupId: Number(grade.group_id),
+    groupName: grade.group_name,
+    studentId: Number(grade.student_id),
+    studentName: grade.student_name,
+    totalScore: Number(grade.total_score),
+    status: grade.status,
+    note: grade.note,
+    publishedAt: grade.published_at,
+    updatedAt: grade.updated_at,
+  }
+}
+
 const reportApi = {
-  async listReports({ projectId } = {}) {
+  async listReports({ groupId } = {}) {
     if (useMock) {
       return mockResolve(
         mockReports.filter(
           (report) =>
-            projectId === undefined || report.projectId === Number(projectId),
+            groupId === undefined || report.groupId === Number(groupId),
         ),
       )
     }
 
-    return backendNotImplemented('báo cáo')
+    return (
+      await unwrap(
+        apiClient.get('/reports.php', {
+          params: { action: 'reports', group_id: groupId },
+        }),
+      )
+    ).map(mapReport)
   },
 
   async getReport(reportId) {
@@ -47,7 +114,13 @@ const reportApi = {
       return mockResolve({ ...report, versions })
     }
 
-    return backendNotImplemented('chi tiết báo cáo')
+    return mapReport(
+      await unwrap(
+        apiClient.get('/reports.php', {
+          params: { action: 'report', id: reportId },
+        }),
+      ),
+    )
   },
 
   async submitVersion(reportId, { file, note }) {
@@ -83,23 +156,45 @@ const reportApi = {
       return mockResolve(version)
     }
 
-    return backendNotImplemented('nộp phiên bản báo cáo')
+    const formData = new FormData()
+    formData.append('report_id', String(reportId))
+    formData.append('file', file)
+    if (note) {
+      formData.append('note', note)
+    }
+
+    const version = await unwrap(
+      apiClient.post('/reports.php?action=submit', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }),
+    )
+    return {
+      id: Number(version.id),
+      reportId: Number(version.report_id),
+      versionNo: Number(version.version_no),
+    }
   },
 
-  async listGrades({ projectId } = {}) {
+  async listGrades({ groupId } = {}) {
     if (useMock) {
       const user = getMockUser()
       return mockResolve(
         mockFinalGrades.filter(
           (grade) =>
-            (projectId === undefined || grade.projectId === Number(projectId)) &&
+            (groupId === undefined || grade.groupId === Number(groupId)) &&
             (user.role !== 'STUDENT' ||
               (grade.studentId === user.id && grade.status === 'published')),
         ),
       )
     }
 
-    return backendNotImplemented('điểm')
+    return (
+      await unwrap(
+        apiClient.get('/reports.php', {
+          params: { action: 'grades', group_id: groupId },
+        }),
+      )
+    ).map(mapGrade)
   },
 }
 
