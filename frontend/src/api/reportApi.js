@@ -1,0 +1,119 @@
+import apiClient from './client.js'
+import { unwrap } from './response.js'
+import {
+  findOrThrow,
+  getMockUser,
+  mockResolve,
+  nextId,
+  nowIso,
+} from './mock/helpers.js'
+import {
+  mockFinalGrades,
+  mockReportFeedback,
+  mockReports,
+  mockReportVersions,
+} from './mock/reportMock.js'
+
+// Endpoint thật: đề xuất, chờ M6 xác nhận.
+// Dung lượng và định dạng tệp cho phép khi nộp báo cáo: chờ nhóm thống nhất.
+
+const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+
+const reportApi = {
+  async listReports({ projectId } = {}) {
+    if (useMock) {
+      return mockResolve(
+        mockReports.filter(
+          (report) =>
+            projectId === undefined || report.projectId === Number(projectId),
+        ),
+      )
+    }
+
+    return unwrap(apiClient.get('/reports', { params: { projectId } }))
+  },
+
+  async getReport(reportId) {
+    if (useMock) {
+      const report = findOrThrow(
+        mockReports,
+        reportId,
+        'Không tìm thấy đợt báo cáo',
+      )
+      const versions = mockReportVersions
+        .filter((version) => version.reportId === report.id)
+        .map((version) => ({
+          ...version,
+          feedback: mockReportFeedback.filter(
+            (entry) => entry.reportVersionId === version.id,
+          ),
+        }))
+      return mockResolve({ ...report, versions })
+    }
+
+    return unwrap(apiClient.get(`/reports/${reportId}`))
+  },
+
+  async submitVersion(reportId, { file, note }) {
+    if (useMock) {
+      const report = findOrThrow(
+        mockReports,
+        reportId,
+        'Không tìm thấy đợt báo cáo',
+      )
+
+      if (report.status !== 'open') {
+        throw new Error('Đợt báo cáo đã đóng')
+      }
+
+      const user = getMockUser()
+      const versionNo =
+        mockReportVersions.filter((version) => version.reportId === report.id)
+          .length + 1
+      const version = {
+        id: nextId(mockReportVersions),
+        reportId: report.id,
+        versionNo,
+        submittedBy: user.id,
+        submittedByName: user.fullName,
+        originalFilename: file.name,
+        storedFilename: `report-${report.id}-v${versionNo}`,
+        mimeType: file.type,
+        fileSize: file.size,
+        note,
+        submittedAt: nowIso(),
+      }
+      mockReportVersions.push(version)
+      return mockResolve(version)
+    }
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('note', note)
+
+    // client.js mặc định gửi JSON; axios sẽ chuyển FormData thành JSON nếu không đổi header này.
+    return unwrap(
+      apiClient.post(`/reports/${reportId}/versions`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }),
+    )
+  },
+
+  async listGrades({ projectId } = {}) {
+    if (useMock) {
+      const user = getMockUser()
+      return mockResolve(
+        mockFinalGrades.filter(
+          (grade) =>
+            (projectId === undefined || grade.projectId === Number(projectId)) &&
+            (user.role !== 'STUDENT' ||
+              (grade.studentId === user.id && grade.status === 'published')),
+        ),
+      )
+    }
+
+    return unwrap(apiClient.get('/grades', { params: { projectId } }))
+  },
+}
+
+export default reportApi
