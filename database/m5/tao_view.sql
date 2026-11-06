@@ -2,6 +2,7 @@ USE eduprojecthub;
 
 -- =========================================================
 -- VIEWS: truy van du lieu thuong dung cho giao dien.
+-- Chi chay sau khi da tao student_groups va group_members.
 -- =========================================================
 
 CREATE OR REPLACE VIEW vw_group_list AS
