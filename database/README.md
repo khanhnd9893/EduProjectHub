@@ -4,15 +4,17 @@ The application uses one MySQL database, `eduprojecthub`, and one shared account
 
 ## Import everything at once (new installation)
 
-For a new/empty installation, use [`eduprojecthub-xampp.sql`](./eduprojecthub-xampp.sql). It combines the active core schemas, feature schemas, triggers, views, and demo data into one phpMyAdmin import.
+For a new/empty installation, use [`filetong/eduprojecthub-xampp.sql`](./filetong/eduprojecthub-xampp.sql). It combines the active core schemas, feature schemas, triggers, views, and demo data into one phpMyAdmin import.
 
 1. In XAMPP Control Panel, start **MySQL**.
 2. Open `http://localhost/phpmyadmin`.
 3. Use **Import** from the phpMyAdmin home page (do not select an existing database first).
-4. Choose `eduprojecthub-xampp.sql` from this folder, keep the format as **SQL**, and click **Import**.
+4. Choose `database\filetong\eduprojecthub-xampp.sql`, keep the format as **SQL**, and click **Import**.
 5. After a successful import, the database `eduprojecthub` contains the demo data. Demo accounts `sv`, `gv`, and `admin` use password `123456`.
 
 **Do not import this all-in-one file into a database that contains data.** The demo seed uses fixed IDs and is intended for a fresh demo database. Back up existing data and follow the existing-database instructions below instead.
+
+The separate FR01 SQL draft is not imported as-is: it creates a different database, drops `users`, and defines role/status/session fields that conflict with this application's API. The combined package keeps the current `sv`/`gv`/`admin` accounts and adds compatible optional profile fields to `users`. Roles continue to use `users.role`, account state uses `users.account_status`, and login sessions use PHP's session cookie; no unused `roles` or `user_sessions` tables are created.
 
 ## Fresh installation
 

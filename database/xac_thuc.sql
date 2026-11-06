@@ -1,4 +1,0 @@
--- File nay da duoc thay the boi schema dung chung eduprojecthub.
--- Khong import schema cu nay: truoc day no tao eduprojecthub_db, xoa users
--- va dung role_id/status khong tuong thich voi cac API hien tai.
--- Cai dat tai khoan dung: Tai_khoan.sql; xem database/README.md.

@@ -1,5 +1,6 @@
 -- EduProjectHub: one-file fresh-install package for XAMPP/phpMyAdmin.
--- Includes all application schemas and demo data.
+-- Includes the current application schema, compatible FR01 profile fields, and demo data.
+-- Keeps the existing sv/gv/admin account model and PHP cookie sessions.
 -- Import ONLY into a new/empty eduprojecthub database. This file is not a migration.
 -- For an existing database, back it up and import only the missing schema files.
 SET NAMES utf8mb4;
@@ -23,9 +24,13 @@ CREATE TABLE IF NOT EXISTS users (
     student_code    VARCHAR(30) NULL,
     full_name       VARCHAR(150) NOT NULL,
     email           VARCHAR(150) NOT NULL,
+    phone           VARCHAR(15) NULL,
+    department      VARCHAR(100) NULL,
+    avatar_url      VARCHAR(255) NULL,
     password_hash   VARCHAR(255) NOT NULL,
     role            ENUM('admin', 'lecturer', 'student') NOT NULL DEFAULT 'student',
     account_status  ENUM('active', 'locked', 'inactive') NOT NULL DEFAULT 'active',
+    last_login_at   DATETIME NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_users_username (username),
