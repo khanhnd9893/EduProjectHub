@@ -12,6 +12,7 @@ session_set_cookie_params([
 session_start();
 require_once __DIR__ . '/api_common.php';
 
+/** Kiểm tra và chuyển giá trị thành ID báo cáo nguyên dương. */
 function reportId($value): int
 {
     $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -19,6 +20,7 @@ function reportId($value): int
     return (int) $id;
 }
 
+/** Xác thực quyền truy cập báo cáo dựa trên quyền truy cập nhóm. */
 function reportCanAccess(PDO $pdo, int $groupId, array $actor): array
 {
     return apiRequireGroupAccess($pdo, $groupId, $actor);

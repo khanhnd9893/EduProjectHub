@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+/** Trả phản hồi JSON với mã HTTP đã chỉ định rồi kết thúc yêu cầu. */
 function apiRespond(int $status, array $body): void
 {
     http_response_code($status);
@@ -8,6 +9,7 @@ function apiRespond(int $status, array $body): void
     exit;
 }
 
+/** Ném lỗi HTTP nếu điều kiện kiểm tra không đạt. */
 function apiRequire(bool $condition, int $status, string $message): void
 {
     if (!$condition) {
@@ -15,6 +17,7 @@ function apiRequire(bool $condition, int $status, string $message): void
     }
 }
 
+/** Đọc và xác thực phần thân JSON của yêu cầu hiện tại. */
 function apiReadJsonBody(): array
 {
     $body = json_decode(file_get_contents('php://input'), true);
@@ -22,6 +25,7 @@ function apiReadJsonBody(): array
     return $body;
 }
 
+/** Xác thực CSRF token nhận từ header hoặc phần thân yêu cầu. */
 function apiRequireCsrf(array $body = []): void
 {
     $provided = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($body['csrf_token'] ?? '');
@@ -34,6 +38,7 @@ function apiRequireCsrf(array $body = []): void
     );
 }
 
+/** Xác thực phiên đăng nhập và trả thông tin tài khoản đang hoạt động. */
 function apiRequireActor(PDO $pdo): array
 {
     $userId = filter_var(
@@ -54,6 +59,7 @@ function apiRequireActor(PDO $pdo): array
     return $actor;
 }
 
+/** Xác thực quyền truy cập nhóm và trả thông tin nhóm. */
 function apiRequireGroupAccess(PDO $pdo, int $groupId, array $actor): array
 {
     $statement = $pdo->prepare(
@@ -94,6 +100,7 @@ function apiRequireGroupAccess(PDO $pdo, int $groupId, array $actor): array
     return $group;
 }
 
+/** Yêu cầu người gọi là quản trị viên hoặc trưởng nhóm. */
 function apiRequireGroupManager(array $group, array $actor): void
 {
     apiRequire(

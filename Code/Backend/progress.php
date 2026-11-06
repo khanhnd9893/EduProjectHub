@@ -16,6 +16,7 @@ class ProgressApiException extends RuntimeException
 {
     public $httpStatus;
 
+    /** Khởi tạo lỗi API tiến độ kèm mã trạng thái HTTP. */
     public function __construct(int $httpStatus, string $message)
     {
         parent::__construct($message);
@@ -23,6 +24,7 @@ class ProgressApiException extends RuntimeException
     }
 }
 
+/** Trả phản hồi JSON với mã HTTP đã chỉ định rồi kết thúc yêu cầu. */
 function progressRespond(int $status, array $data): void
 {
     http_response_code($status);
@@ -30,6 +32,7 @@ function progressRespond(int $status, array $data): void
     exit;
 }
 
+/** Ném lỗi API tiến độ nếu điều kiện kiểm tra không đạt. */
 function progressRequire(bool $condition, int $status, string $message): void
 {
     if (!$condition) {
@@ -37,6 +40,7 @@ function progressRequire(bool $condition, int $status, string $message): void
     }
 }
 
+/** Kiểm tra và chuyển giá trị thành ID nhóm nguyên dương. */
 function progressId($value): int
 {
     $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);

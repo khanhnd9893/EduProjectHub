@@ -12,6 +12,7 @@ session_set_cookie_params([
 session_start();
 require_once __DIR__ . '/api_common.php';
 
+/** Chuẩn hóa câu hỏi thành các từ khóa để so khớp câu hỏi thường gặp. */
 function chatbotNormalize(string $text): array
 {
     $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
@@ -21,6 +22,7 @@ function chatbotNormalize(string $text): array
     return array_values(array_diff(array_unique($words), $stopWords));
 }
 
+/** Chuyển tin nhắn từ cấu trúc cơ sở dữ liệu sang định dạng API. */
 function chatbotMessage(array $message): array
 {
     return [

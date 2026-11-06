@@ -16,6 +16,7 @@ class TaskApiException extends RuntimeException
 {
     public $httpStatus;
 
+    /** Khởi tạo lỗi API nhiệm vụ kèm mã trạng thái HTTP. */
     public function __construct(int $httpStatus, string $message)
     {
         parent::__construct($message);
@@ -23,6 +24,7 @@ class TaskApiException extends RuntimeException
     }
 }
 
+/** Trả phản hồi JSON với mã HTTP đã chỉ định rồi kết thúc yêu cầu. */
 function taskRespond(int $status, array $data): void
 {
     http_response_code($status);
@@ -30,6 +32,7 @@ function taskRespond(int $status, array $data): void
     exit;
 }
 
+/** Ném lỗi API nhiệm vụ nếu điều kiện kiểm tra không đạt. */
 function taskRequire(bool $condition, int $status, string $message): void
 {
     if (!$condition) {
@@ -37,6 +40,7 @@ function taskRequire(bool $condition, int $status, string $message): void
     }
 }
 
+/** Kiểm tra và chuyển giá trị thành ID nguyên dương. */
 function taskId($value, string $field): int
 {
     $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -44,6 +48,7 @@ function taskId($value, string $field): int
     return (int) $id;
 }
 
+/** Đọc và xác thực phần thân JSON của yêu cầu. */
 function taskBody(): array
 {
     $body = json_decode(file_get_contents('php://input'), true);
@@ -51,6 +56,7 @@ function taskBody(): array
     return $body;
 }
 
+/** Xác thực CSRF token nhận từ header hoặc phần thân yêu cầu. */
 function taskCsrf(array $body): void
 {
     $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($body['csrf_token'] ?? '');
@@ -63,6 +69,7 @@ function taskCsrf(array $body): void
     );
 }
 
+/** Kiểm tra trường văn bản, giá trị bắt buộc và giới hạn độ dài. */
 function taskText(array $body, string $field, int $maxLength, bool $required): ?string
 {
     if (!array_key_exists($field, $body)) {
@@ -85,6 +92,7 @@ function taskText(array $body, string $field, int $maxLength, bool $required): ?
     return $value;
 }
 
+/** Kiểm tra và chuẩn hóa ngày giờ theo định dạng YYYY-MM-DD HH:MM:SS. */
 function taskDueDate(array $body, string $field = 'due_at'): ?string
 {
     if (!array_key_exists($field, $body)) {
@@ -107,6 +115,7 @@ function taskDueDate(array $body, string $field = 'due_at'): ?string
     return $date->format('Y-m-d H:i:s');
 }
 
+/** Lấy thông tin nhóm cần thiết cho các thao tác nhiệm vụ. */
 function taskGroup(PDO $pdo, int $groupId): array
 {
     $statement = $pdo->prepare(
@@ -118,6 +127,7 @@ function taskGroup(PDO $pdo, int $groupId): array
     return $group;
 }
 
+/** Kiểm tra người dùng có tư cách thành viên đang hoạt động trong nhóm. */
 function taskIsMember(PDO $pdo, int $groupId, int $userId): bool
 {
     $statement = $pdo->prepare(
@@ -128,6 +138,7 @@ function taskIsMember(PDO $pdo, int $groupId, int $userId): bool
     return $statement->fetchColumn() !== false;
 }
 
+/** Xác thực quyền xem nhiệm vụ của quản trị viên, giảng viên hoặc sinh viên. */
 function taskRequireViewer(PDO $pdo, array $group, array $actor): void
 {
     if ($actor['role'] === 'admin') {
@@ -163,6 +174,7 @@ function taskRequireViewer(PDO $pdo, array $group, array $actor): void
     );
 }
 
+/** Yêu cầu người gọi là quản trị viên hoặc trưởng nhóm. */
 function taskRequireManager(array $group, array $actor): void
 {
     taskRequire(
@@ -176,6 +188,7 @@ function taskRequireManager(array $group, array $actor): void
     );
 }
 
+/** Kiểm tra người được giao nhiệm vụ là thành viên đang hoạt động của nhóm. */
 function taskAssignedMember(PDO $pdo, int $groupId, ?int $userId): void
 {
     if ($userId === null) {
