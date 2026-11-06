@@ -1,5 +1,4 @@
-import apiClient from './client.js'
-import { unwrap } from './response.js'
+import { backendNotImplemented } from './response.js'
 import {
   getMockUser,
   mockResolve,
@@ -11,9 +10,6 @@ import {
   mockChatSessions,
   mockFaqs,
 } from './mock/chatbotMock.js'
-
-// Endpoint thật: đề xuất, chờ M6 xác nhận.
-// Tạm giả định chatbot trả lời một lần; streaming hay không: chờ nhóm thống nhất.
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
@@ -67,7 +63,7 @@ const chatbotApi = {
       return mockResolve(mockFaqs.filter((faq) => faq.status === 'published'))
     }
 
-    return unwrap(apiClient.get('/chatbot/faqs'))
+    return backendNotImplemented('FAQ chatbot')
   },
 
   async listSessions() {
@@ -78,7 +74,7 @@ const chatbotApi = {
       )
     }
 
-    return unwrap(apiClient.get('/chatbot/sessions'))
+    return backendNotImplemented('phiên chatbot')
   },
 
   async listMessages(sessionId) {
@@ -90,7 +86,7 @@ const chatbotApi = {
       )
     }
 
-    return unwrap(apiClient.get(`/chatbot/sessions/${sessionId}/messages`))
+    return backendNotImplemented('tin nhắn chatbot')
   },
 
   // Không truyền sessionId thì tạo phiên hội thoại mới.
@@ -123,7 +119,7 @@ const chatbotApi = {
       })
     }
 
-    return unwrap(apiClient.post('/chatbot/messages', { sessionId, content }))
+    return backendNotImplemented('gửi tin nhắn chatbot')
   },
 }
 

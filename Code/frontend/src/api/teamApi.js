@@ -1,5 +1,5 @@
 import apiClient from './client.js'
-import { unwrap } from './response.js'
+import { backendNotImplemented, unwrap } from './response.js'
 import {
   findOrThrow,
   getMockUser,
@@ -14,9 +14,35 @@ import {
   mockTeams,
 } from './mock/teamMock.js'
 
-// Endpoint thật: đề xuất, chờ M5 xác nhận.
-
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+
+function mapTeam(team) {
+  return {
+    id: Number(team.id),
+    groupCode: team.group_code,
+    groupName: team.group_name,
+    description: team.description,
+    projectRoundId: Number(team.project_round_id),
+    roundName: team.round_name,
+    leaderUserId: Number(team.leader_user_id),
+    leaderName: team.leader_name,
+    createdBy: team.created_by == null ? null : Number(team.created_by),
+    status: team.status,
+    activeMemberCount: Number(team.active_member_count),
+    createdAt: team.created_at,
+    updatedAt: team.updated_at,
+    dissolvedAt: team.dissolved_at ?? null,
+    members: team.members?.map((member) => ({
+      id: Number(member.group_member_id),
+      userId: Number(member.user_id),
+      fullName: member.full_name,
+      memberRole: member.member_role,
+      status: member.status,
+      joinedAt: member.joined_at,
+      leftAt: member.left_at,
+    })),
+  }
+}
 
 function addMockMember(groupId, userId, fullName) {
   const existing = mockMembers.find(
@@ -44,12 +70,24 @@ function addMockMember(groupId, userId, fullName) {
 }
 
 const teamApi = {
-  async listTeams() {
+  async listTeams({ roundId, status } = {}) {
     if (useMock) {
-      return mockResolve(mockTeams)
+      return mockResolve(
+        mockTeams.filter(
+          (team) =>
+            (roundId === undefined ||
+              team.projectRoundId === Number(roundId)) &&
+            (status === undefined || team.status === status),
+        ),
+      )
     }
 
-    return unwrap(apiClient.get('/teams'))
+    const teams = await unwrap(
+      apiClient.get('/groups.php', {
+        params: { action: 'groups', round_id: roundId, status },
+      }),
+    )
+    return teams.map(mapTeam)
   },
 
   async getTeam(teamId) {
@@ -61,10 +99,16 @@ const teamApi = {
       return mockResolve({ ...team, members })
     }
 
-    return unwrap(apiClient.get(`/teams/${teamId}`))
+    return mapTeam(
+      await unwrap(
+        apiClient.get('/groups.php', {
+          params: { action: 'group', id: teamId },
+        }),
+      ),
+    )
   },
 
-  async createTeam({ groupCode, groupName, description }) {
+  async createTeam({ groupCode, groupName, description, projectRoundId }) {
     if (useMock) {
       const user = getMockUser()
       const team = {
@@ -72,7 +116,7 @@ const teamApi = {
         groupCode,
         groupName,
         description,
-        projectRoundId: 1,
+        projectRoundId: projectRoundId ?? 1,
         leaderUserId: user.id,
         createdBy: user.id,
         status: 'forming',
@@ -86,8 +130,17 @@ const teamApi = {
       return mockResolve(team)
     }
 
+    if (projectRoundId === undefined) {
+      throw new Error('projectRoundId là bắt buộc khi tạo nhóm bằng backend PHP.')
+    }
+
     return unwrap(
-      apiClient.post('/teams', { groupCode, groupName, description }),
+      apiClient.post('/groups.php?action=create', {
+        group_code: groupCode,
+        group_name: groupName,
+        description,
+        project_round_id: projectRoundId,
+      }),
     )
   },
 
@@ -107,7 +160,11 @@ const teamApi = {
       return mockResolve(member)
     }
 
-    return unwrap(apiClient.delete(`/teams/${teamId}/members/${userId}`))
+    return unwrap(
+      apiClient.delete('/groups.php?action=remove_member', {
+        data: { group_id: teamId, user_id: userId },
+      }),
+    )
   },
 
   async listRequests(teamId) {
@@ -117,7 +174,7 @@ const teamApi = {
       )
     }
 
-    return unwrap(apiClient.get(`/teams/${teamId}/requests`))
+    return backendNotImplemented('yêu cầu tham gia nhóm')
   },
 
   async sendJoinRequest(teamId, { message }) {
@@ -139,7 +196,7 @@ const teamApi = {
       return mockResolve(request)
     }
 
-    return unwrap(apiClient.post(`/teams/${teamId}/requests`, { message }))
+    return backendNotImplemented('gửi yêu cầu tham gia nhóm')
   },
 
   async reviewRequest(requestId, { status, reviewNote }) {
@@ -161,9 +218,7 @@ const teamApi = {
       return mockResolve(request)
     }
 
-    return unwrap(
-      apiClient.patch(`/team-requests/${requestId}`, { status, reviewNote }),
-    )
+    return backendNotImplemented('duyệt yêu cầu tham gia nhóm')
   },
 
   async listInvitations() {
@@ -174,7 +229,7 @@ const teamApi = {
       )
     }
 
-    return unwrap(apiClient.get('/team-invitations'))
+    return backendNotImplemented('lời mời nhóm')
   },
 
   async sendInvitation(teamId, { invitedUserId, message }) {
@@ -196,12 +251,7 @@ const teamApi = {
       return mockResolve(invitation)
     }
 
-    return unwrap(
-      apiClient.post(`/teams/${teamId}/invitations`, {
-        invitedUserId,
-        message,
-      }),
-    )
+    return backendNotImplemented('gửi lời mời nhóm')
   },
 
   async respondInvitation(invitationId, { status }) {
@@ -222,9 +272,7 @@ const teamApi = {
       return mockResolve(invitation)
     }
 
-    return unwrap(
-      apiClient.patch(`/team-invitations/${invitationId}`, { status }),
-    )
+    return backendNotImplemented('phản hồi lời mời nhóm')
   },
 }
 

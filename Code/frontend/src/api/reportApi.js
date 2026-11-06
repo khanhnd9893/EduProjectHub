@@ -1,5 +1,4 @@
-import apiClient from './client.js'
-import { unwrap } from './response.js'
+import { backendNotImplemented } from './response.js'
 import {
   findOrThrow,
   getMockUser,
@@ -14,9 +13,6 @@ import {
   mockReportVersions,
 } from './mock/reportMock.js'
 
-// Endpoint thật: đề xuất, chờ M6 xác nhận.
-// Dung lượng và định dạng tệp cho phép khi nộp báo cáo: chờ nhóm thống nhất.
-
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
 const reportApi = {
@@ -30,7 +26,7 @@ const reportApi = {
       )
     }
 
-    return unwrap(apiClient.get('/reports', { params: { projectId } }))
+    return backendNotImplemented('báo cáo')
   },
 
   async getReport(reportId) {
@@ -51,7 +47,7 @@ const reportApi = {
       return mockResolve({ ...report, versions })
     }
 
-    return unwrap(apiClient.get(`/reports/${reportId}`))
+    return backendNotImplemented('chi tiết báo cáo')
   },
 
   async submitVersion(reportId, { file, note }) {
@@ -87,16 +83,7 @@ const reportApi = {
       return mockResolve(version)
     }
 
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('note', note)
-
-    // client.js mặc định gửi JSON; axios sẽ chuyển FormData thành JSON nếu không đổi header này.
-    return unwrap(
-      apiClient.post(`/reports/${reportId}/versions`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      }),
-    )
+    return backendNotImplemented('nộp phiên bản báo cáo')
   },
 
   async listGrades({ projectId } = {}) {
@@ -112,7 +99,7 @@ const reportApi = {
       )
     }
 
-    return unwrap(apiClient.get('/grades', { params: { projectId } }))
+    return backendNotImplemented('điểm')
   },
 }
 

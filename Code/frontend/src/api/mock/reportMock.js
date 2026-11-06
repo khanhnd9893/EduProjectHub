@@ -1,6 +1,6 @@
 import { daysFromNow } from './helpers.js'
 
-// Tên trường theo database/schema-reports-defense-chatbot.sql.
+// Tên trường theo database/schema-reports.sql.
 // lecturerName, submittedByName, studentName, projectTitle là trường join, không có trong bảng.
 export const mockReports = [
   {

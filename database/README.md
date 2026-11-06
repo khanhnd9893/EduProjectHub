@@ -20,6 +20,16 @@ Các file cài đặt bên dưới tạo schema nhóm đồ án trong database `
 
 phpMyAdmin hỗ trợ `DELIMITER` trong file trigger `kiem_tra_tien_do.sql`; hãy import nguyên file, không xóa các dòng `DELIMITER`.
 
+## Schema báo cáo, bảo vệ, điểm và chatbot
+
+Schema mở rộng được tách theo từng mục lớn thành:
+
+1. `schema-reports.sql` — đợt báo cáo, phiên bản nộp và phản hồi.
+2. `schema-defense-grades.sql` — hội đồng, lịch bảo vệ, điểm bảo vệ và điểm tổng kết.
+3. `schema-chatbot-faqs.sql` — FAQ chatbot.
+
+Các file này dùng database `spms` và cần schema nền có các bảng phụ thuộc `users`, `students`, `lecturers`, `projects`, `semesters`. Chúng độc lập với chuỗi cài đặt `eduprojecthub` ở trên. Mỗi file xóa rồi tạo lại các bảng thuộc nhóm tương ứng; sao lưu dữ liệu trước khi chạy lại trên database đang dùng.
+
 ## Khôi phục khi import dở
 
 Nếu phpMyAdmin báo `#1146 - Table 'eduprojecthub.student_groups' doesn't exist` khi chạy `tao_view.sql`, database đã được tạo nhưng các bảng nhóm chưa được import. `tao_view.sql` chỉ tạo view, không tạo bảng. Chọn database `eduprojecthub` rồi import tiếp từ `quan_ly_nhom.sql`, theo thứ tự:

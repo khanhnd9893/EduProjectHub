@@ -1,5 +1,3 @@
-import apiClient from './client.js'
-
 const mockUsers = {
   sv: { id: 1, fullName: 'Nguyễn Văn A', role: 'STUDENT' },
   gv: { id: 2, fullName: 'TS. Trần Thị B', role: 'LECTURER' },
@@ -18,11 +16,9 @@ const authApi = {
       return { token: 'mock-token', user }
     }
 
-    const response = await apiClient.post('/auth/login', {
-      username,
-      password,
-    })
-    return response.data
+    throw new Error(
+      'Backend PHP hiện chưa có endpoint đăng nhập. Hãy bật VITE_USE_MOCK hoặc triển khai API xác thực.',
+    )
   },
 }
 

@@ -1,5 +1,18 @@
 # React + Vite
 
+## PHP API configuration
+
+The frontend calls the PHP endpoints in `../Backend`. By default, API requests
+use `/EduProjectHub/Code/Backend`; when running Vite, that path is proxied to
+Apache on `http://localhost`. Set `VITE_API_URL` to the backend URL if the
+project is hosted under a different path or Apache uses a different host/port.
+
+The groups and tasks APIs use PHP sessions and CSRF tokens. Authentication,
+reports, grades, join requests, invitations, and chatbot endpoints do not yet
+exist in the PHP backend; those live-mode calls report that limitation rather
+than sending requests to unimplemented routes. Set `VITE_USE_MOCK=true` to use
+the frontend's mock data while those endpoints are being implemented.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
