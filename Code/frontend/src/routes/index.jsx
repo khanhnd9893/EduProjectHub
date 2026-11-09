@@ -3,6 +3,7 @@ import ProtectedRoute from '../components/ProtectedRoute.jsx'
 import RoleRoute from '../components/RoleRoute.jsx'
 import MainLayout from '../layouts/MainLayout.jsx'
 import LoginPage from '../features/auth/LoginPage.jsx'
+import ProfilePage from '../features/profile/ProfilePage.jsx'
 import DashboardPage from '../features/dashboard/DashboardPage.jsx'
 import SemestersPage from '../features/semesters/SemestersPage.jsx'
 // M2: các trang FR04-FR07
@@ -21,6 +22,7 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route
             path="/semesters"
             element={
