@@ -768,3 +768,27 @@ h2 {
     flex-direction: column;
   }
 }
+
+.semester-create-button {
+  background: var(--accent);
+  border: 0;
+  border-radius: 7px;
+  color: white;
+  font-weight: 700;
+  margin-top: 24px;
+  padding: 10px 16px;
+}
+
+.semester-form {
+  margin-top: 20px;
+}
+
+.semester-form-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.semester-form-heading h2 {
+  margin-bottom: 0;
+}

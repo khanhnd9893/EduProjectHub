@@ -23,6 +23,23 @@ function SemestersPage() {
   const [semesters, setSemesters] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingSemester, setEditingSemester] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [success, setSuccess] = useState('')
+
+  const emptyForm = {
+    roundCode: '',
+    roundName: '',
+    semester: 'Học kỳ 1',
+    academicYear: '',
+    startDate: '',
+    endDate: '',
+    minMembers: 2,
+    maxMembers: 5,
+    status: 'draft',
+  }
+  const [form, setForm] = useState(emptyForm)
 
   useEffect(() => {
     let active = true
@@ -49,6 +66,67 @@ function SemestersPage() {
     }
   }, [])
 
+  function openCreateForm() {
+    setEditingSemester(null)
+    setForm(emptyForm)
+    setError('')
+    setSuccess('')
+    setIsFormOpen(true)
+  }
+
+  function openEditForm(semester) {
+    setEditingSemester(semester)
+    setForm({ ...semester })
+    setError('')
+    setSuccess('')
+    setIsFormOpen(true)
+  }
+
+  function handleChange(event) {
+    const { name, value } = event.target
+    setForm((current) => ({
+      ...current,
+      [name]: ['minMembers', 'maxMembers'].includes(name) ? Number(value) : value,
+    }))
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setError('')
+    setSuccess('')
+
+    if (!form.roundCode.trim() || !form.roundName.trim() || !form.academicYear.trim()) {
+      setError('Vui lòng nhập mã, tên học kỳ và năm học.')
+      return
+    }
+    if (!form.startDate || !form.endDate || form.endDate < form.startDate) {
+      setError('Ngày kết thúc phải từ ngày bắt đầu trở đi.')
+      return
+    }
+    if (form.minMembers < 1 || form.maxMembers < form.minMembers) {
+      setError('Số thành viên tối đa phải lớn hơn hoặc bằng số tối thiểu.')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const saved = editingSemester
+        ? await semesterApi.updateSemester(editingSemester.id, form)
+        : await semesterApi.createSemester(form)
+      setSemesters((current) =>
+        editingSemester
+          ? current.map((semester) => (semester.id === saved.id ? saved : semester))
+          : [saved, ...current],
+      )
+      setIsFormOpen(false)
+      setSuccess(editingSemester ? 'Đã cập nhật học kỳ.' : 'Đã tạo học kỳ.')
+    } catch (saveError) {
+      setError(saveError.message || 'Không thể lưu học kỳ.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <section className="dashboard-page">
       <PageHeading
@@ -57,7 +135,71 @@ function SemestersPage() {
         description="Danh sách học kỳ/đợt đồ án hiện có."
         status={isLoading ? 'Đang tải' : 'Chỉ ADMIN'}
       />
+      <button className="semester-create-button" type="button" onClick={openCreateForm}>
+        Thêm học kỳ
+      </button>
       {error && <p className="alert-error" role="alert">{error}</p>}
+      {success && <p className="success-message" role="status">{success}</p>}
+      {isFormOpen && (
+        <form className="workspace-panel data-form semester-form" onSubmit={handleSubmit}>
+          <div className="semester-form-heading">
+            <h2>{editingSemester ? 'Chỉnh sửa học kỳ' : 'Thêm học kỳ'}</h2>
+            <button className="button-secondary" type="button" onClick={() => setIsFormOpen(false)}>
+              Hủy
+            </button>
+          </div>
+          <div className="form-grid">
+            <label className="field-control">
+              Mã đợt
+              <input name="roundCode" value={form.roundCode} onChange={handleChange} />
+            </label>
+            <label className="field-control">
+              Tên đợt
+              <input name="roundName" value={form.roundName} onChange={handleChange} />
+            </label>
+            <label className="field-control">
+              Học kỳ
+              <select name="semester" value={form.semester} onChange={handleChange}>
+                <option>Học kỳ 1</option>
+                <option>Học kỳ 2</option>
+                <option>Học kỳ hè</option>
+              </select>
+            </label>
+            <label className="field-control">
+              Năm học
+              <input name="academicYear" value={form.academicYear} onChange={handleChange} />
+            </label>
+            <label className="field-control">
+              Ngày bắt đầu
+              <input name="startDate" type="date" value={form.startDate} onChange={handleChange} />
+            </label>
+            <label className="field-control">
+              Ngày kết thúc
+              <input name="endDate" type="date" value={form.endDate} onChange={handleChange} />
+            </label>
+            <label className="field-control">
+              Số thành viên tối thiểu
+              <input name="minMembers" type="number" min="1" value={form.minMembers} onChange={handleChange} />
+            </label>
+            <label className="field-control">
+              Số thành viên tối đa
+              <input name="maxMembers" type="number" min="1" value={form.maxMembers} onChange={handleChange} />
+            </label>
+            <label className="field-control">
+              Trạng thái
+              <select name="status" value={form.status} onChange={handleChange}>
+                <option value="draft">Bản nháp</option>
+                <option value="open">Đang mở</option>
+                <option value="in_progress">Đang diễn ra</option>
+                <option value="closed">Đã đóng</option>
+              </select>
+            </label>
+          </div>
+          <button type="submit" disabled={isSaving}>
+            {isSaving ? 'Đang lưu...' : 'Lưu học kỳ'}
+          </button>
+        </form>
+      )}
       {isLoading ? (
         <p role="status">Đang tải học kỳ...</p>
       ) : semesters.length ? (
@@ -69,6 +211,9 @@ function SemestersPage() {
               <span className="status-chip">
                 {semesterStatuses[semester.status] || semester.status}
               </span>
+              <button className="button-secondary" type="button" onClick={() => openEditForm(semester)}>
+                Chỉnh sửa
+              </button>
               <dl className="semester-metadata">
                 <div>
                   <dt>Năm học</dt>
