@@ -183,6 +183,68 @@ h2 {
   padding: 28px;
 }
 
+.profile-panel {
+  margin-top: 28px;
+  max-width: 760px;
+}
+
+.profile-summary {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+}
+
+.profile-summary h2 {
+  margin-bottom: 6px;
+}
+
+.profile-summary .muted {
+  margin-bottom: 0;
+}
+
+.profile-avatar {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 50%;
+  color: var(--accent-dark);
+  display: flex;
+  font-size: 1.5rem;
+  font-weight: 800;
+  height: 64px;
+  justify-content: center;
+  width: 64px;
+}
+
+.profile-metadata {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 28px 0 20px;
+  padding: 20px 0;
+}
+
+.profile-metadata dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+}
+
+.profile-metadata dd {
+  color: var(--ink);
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+
 .teams-layout {
   align-items: start;
   display: grid;
@@ -761,6 +823,7 @@ h2 {
 
   .teams-layout,
   .team-metadata,
+  .profile-metadata,
   .reports-layout,
   .chatbot-layout,
   .form-grid {
