@@ -73,7 +73,7 @@ function LoginPage() {
           </button>
           {import.meta.env.VITE_USE_MOCK === 'true' && (
             <small className="mock-hint">
-              Chế độ mock: sv / gv / admin, mật khẩu 123456
+              Chế độ mock: sv / sv2 / gv / admin, mật khẩu 123456
             </small>
           )}
         </form>

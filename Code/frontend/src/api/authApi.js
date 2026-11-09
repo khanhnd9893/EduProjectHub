@@ -3,6 +3,7 @@ import { unwrap } from './response.js'
 
 const mockUsers = {
   sv: { id: 1, fullName: 'Nguyễn Văn A', role: 'STUDENT' },
+  sv2: { id: 8, fullName: 'Hoàng Gia Bảo', role: 'STUDENT' },
   gv: { id: 2, fullName: 'TS. Trần Thị B', role: 'LECTURER' },
   admin: { id: 3, fullName: 'Quản trị viên', role: 'ADMIN' },
 }

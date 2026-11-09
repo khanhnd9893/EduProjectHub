@@ -249,7 +249,7 @@ const teamApi = {
       const team = findMockTeam(teamId)
       const currentUser = getMockUser()
       if (currentUser.role !== 'ADMIN' && currentUser.id !== team.leaderUserId) {
-        throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được thêm thành viên.')
+        throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được mời thành viên.')
       }
 
       const activeMembers = mockMembers.filter(
@@ -474,6 +474,16 @@ const teamApi = {
         throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được mời thành viên.')
       }
       assertCanAddMockMember(teamId, invitedUserId)
+      if (
+        mockInvitations.some(
+          (entry) =>
+            entry.groupId === team.id &&
+            entry.invitedUserId === Number(invitedUserId) &&
+            entry.status === 'pending',
+        )
+      ) {
+        throw new Error('Lời mời đang chờ phản hồi.')
+      }
       const invitation = {
         id: nextId(mockInvitations),
         groupId: team.id,
