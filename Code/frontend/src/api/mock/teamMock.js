@@ -114,6 +114,8 @@ export const mockInvitations = [
     groupId: 2,
     groupName: 'Nhóm Thư viện số',
     invitedUserId: 8,
+    invitedName: 'Hoàng Gia Bảo',
+    inviteCode: 'A1B2C3D4E5F60708',
     invitedBy: 6,
     message: 'Mời bạn tham gia nhóm Thư viện số.',
     status: 'pending',

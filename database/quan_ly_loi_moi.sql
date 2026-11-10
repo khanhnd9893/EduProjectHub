@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS group_invitations (
     group_id        BIGINT UNSIGNED NOT NULL,
     invited_user_id BIGINT UNSIGNED NOT NULL,
     invited_by      BIGINT UNSIGNED NOT NULL,
+    invite_code     CHAR(16) NOT NULL,
     message         VARCHAR(500) NULL,
     status          ENUM('pending', 'accepted', 'rejected', 'cancelled', 'expired') NOT NULL DEFAULT 'pending',
     sent_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -17,6 +18,7 @@ CREATE TABLE IF NOT EXISTS group_invitations (
 
     KEY idx_invitation_user_status (invited_user_id, status),
     KEY idx_invitation_group_status (group_id, status),
+    UNIQUE KEY uq_invitation_code (invite_code),
 
     CONSTRAINT fk_invitation_group
       FOREIGN KEY (group_id) REFERENCES student_groups(id)

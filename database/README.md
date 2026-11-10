@@ -48,6 +48,8 @@ The SQL files use `CREATE TABLE IF NOT EXISTS` and do not drop application data.
 
 For an existing database, do not re-import `file examp.sql`. Back up first, run the username migration if required, then import any missing core table scripts and the three feature schemas. The `CREATE TABLE IF NOT EXISTS` scripts preserve existing rows; re-importing the trigger/view files only replaces those database objects.
 
+For an existing database that already has `group_invitations`, back it up and run [`upgrade-group-invitation-code.sql`](./upgrade-group-invitation-code.sql) once to add and populate unique invitation codes. New databases already get this column from `quan_ly_loi_moi.sql`.
+
 Do not import `xac_thuc.sql`: it is retired because its previous version created a second database, dropped `users`, and used a conflicting role/status schema. Do not import `file examp.sql` more than once.
 
 ## PHP connection
@@ -58,10 +60,12 @@ Do not import `xac_thuc.sql`: it is retired because its previous version created
 
 The frontend uses camelCase models; PHP and MySQL use snake_case fields. `src/api/*Api.js` owns that mapping. API responses use `{ "data": ... }`; errors use `{ "error": "..." }`. Mutating requests use the PHP session cookie and `X-CSRF-Token`.
 
+`POST groups.php?action=invite` returns the generated `invite_code`. `GET groups.php?action=sent_invitations` lists invitations for the signed-in student's own groups; administrators can list all sent invitations. Invitation codes are also included in the recipient's `GET groups.php?action=invitations` response.
+
 | Feature | PHP endpoint | Actions |
 |---|---|---|
 | Authentication | `auth.php` | `POST login`, `GET me`, `POST logout` |
-| Groups | `groups.php` | groups, group, create/update, member operations, requests, invitations, lecturer assignment |
+| Groups | `groups.php` | groups, group, create/update, member operations, requests, `GET invitations` (received), `GET sent_invitations` (leader/admin), lecturer assignment |
 | Tasks | `tasks.php` | tasks, task, create/update/status/delete |
 | Progress | `progress.php` | group progress |
 | Semester rounds | `semesters.php` | `GET semesters` |

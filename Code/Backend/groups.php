@@ -384,12 +384,35 @@ try {
     if ($method === 'GET' && $action === 'invitations') {
         requireValue($actor['role'] === 'student', 403, 'Chỉ sinh viên mới có thể xem lời mời nhóm.');
         $statement = queryStatement($pdo, 'SELECT gi.id, gi.group_id, sg.group_name, gi.invited_user_id,
-                    gi.invited_by, gi.message, gi.status, gi.sent_at,
+                    gi.invited_by, gi.invite_code, gi.message, gi.status, gi.sent_at,
                     gi.responded_at, gi.expires_at
              FROM group_invitations gi
              JOIN student_groups sg ON sg.id = gi.group_id
              WHERE gi.invited_user_id = ?
              ORDER BY gi.sent_at DESC, gi.id DESC', [$actor['id']]);
+        respond(200, ['data' => $statement->fetchAll()]);
+    }
+
+    if ($method === 'GET' && $action === 'sent_invitations') {
+        requireValue(
+            in_array($actor['role'], ['admin', 'student'], true),
+            403,
+            'Chỉ trưởng nhóm hoặc quản trị viên mới có thể xem lời mời đã gửi.'
+        );
+        $sql = 'SELECT gi.id, gi.group_id, sg.group_name, gi.invited_user_id,
+                       invitee.full_name AS invited_name, invitee.student_code AS invited_student_code,
+                       gi.invited_by, gi.invite_code, gi.message, gi.status, gi.sent_at,
+                       gi.responded_at, gi.expires_at
+                FROM group_invitations gi
+                JOIN student_groups sg ON sg.id = gi.group_id
+                JOIN users invitee ON invitee.id = gi.invited_user_id';
+        $params = [];
+        if ($actor['role'] !== 'admin') {
+            $sql .= ' WHERE sg.leader_user_id = ?';
+            $params[] = $actor['id'];
+        }
+        $sql .= ' ORDER BY gi.sent_at DESC, gi.id DESC';
+        $statement = queryStatement($pdo, $sql, $params);
         respond(200, ['data' => $statement->fetchAll()]);
     }
 
@@ -418,9 +441,11 @@ try {
              WHERE group_id = ? AND invited_user_id = ? AND status = 'pending'", [$groupId, $invitedUserId]);
         requireValue($statement->fetchColumn() === false, 409, 'Lời mời đang chờ phản hồi.');
 
-        $statement = queryStatement($pdo, 'INSERT INTO group_invitations (group_id, invited_user_id, invited_by, message)
-             VALUES (?, ?, ?, ?)', [$groupId, $invitedUserId, $actor['id'], $message]);
-        respond(201, ['data' => ['id' => (int) $pdo->lastInsertId()]]);
+        $inviteCode = strtoupper(bin2hex(random_bytes(8)));
+        $statement = queryStatement($pdo, 'INSERT INTO group_invitations
+             (group_id, invited_user_id, invited_by, invite_code, message)
+             VALUES (?, ?, ?, ?, ?)', [$groupId, $invitedUserId, $actor['id'], $inviteCode, $message]);
+        respond(201, ['data' => ['id' => (int) $pdo->lastInsertId(), 'invite_code' => $inviteCode]]);
     }
 
     if ($method === 'PATCH' && $action === 'respond_invitation') {
