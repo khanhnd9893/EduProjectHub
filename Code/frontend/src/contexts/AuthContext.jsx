@@ -101,6 +101,11 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user')
   }
 
+  function updateUser(updatedUser) {
+    setUser(updatedUser)
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -112,6 +117,7 @@ export function AuthProvider({ children }) {
         retrySession,
         login,
         logout,
+        updateUser,
       }}
     >
       {children}

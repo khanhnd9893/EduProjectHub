@@ -1,0 +1,17 @@
+.profile-edit-form {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+}
+
+.profile-edit-form .form-grid {
+  margin: 0;
+}
+
+.profile-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
