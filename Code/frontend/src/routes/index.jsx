@@ -6,6 +6,7 @@ import LoginPage from '../features/auth/LoginPage.jsx'
 import ProfilePage from '../features/profile/ProfilePage.jsx'
 import DashboardPage from '../features/dashboard/DashboardPage.jsx'
 import SemestersPage from '../features/semesters/SemestersPage.jsx'
+import UsersPage from '../features/users/UsersPage.jsx'
 // M2: các trang FR04-FR07
 import TeamsPage from '../features/teams/TeamsPage.jsx'
 import TasksPage from '../features/tasks/TasksPage.jsx'
@@ -28,6 +29,14 @@ function AppRoutes() {
             element={
               <RoleRoute allowedRoles={['ADMIN']}>
                 <SemestersPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/users"
+            element={
+              <RoleRoute allowedRoles={['ADMIN']}>
+                <UsersPage />
               </RoleRoute>
             }
           />
