@@ -137,58 +137,57 @@ Các chức năng sau có thể được cân nhắc trong những phiên bản 
 ---
 
  👥 5. ĐỐI TƯỢNG SỬ DỤNG
+Hệ thống EDUProject ERP được thiết kế với 5 nhóm người dùng chính. Mỗi nhóm được cấp quyền truy cập và thực hiện các chức năng tương ứng với vai trò, nhiệm vụ trong hệ thống.
+5.1. Quản trị viên — Administrator
+Quản trị viên là người chịu trách nhiệm quản lý, phân quyền và kiểm soát hoạt động chung của hệ thống.
 
-Hệ thống dự kiến có ba nhóm người dùng chính.
-
- 5.1. Quản trị viên — Administrator
-
-Quản trị viên chịu trách nhiệm quản lý dữ liệu và vận hành hệ thống.
-
-Quyền hạn dự kiến:
-
+Quyền hạn:
+- Phân quyền và quản lý vai trò người dùng.
 - Quản lý tài khoản người dùng.
-- Quản lý thông tin sinh viên.
 - Quản lý thông tin giảng viên.
-- Quản lý học kỳ và thời gian đăng ký.
-- Quản lý danh sách đề tài.
-- Theo dõi các đồ án đang thực hiện.
-- Quản lý dữ liệu và cấu hình hệ thống.
-- Xem thống kê tổng quan.
+- Theo dõi và xem các báo cáo tổng quan.
+- Kiểm soát dữ liệu và hoạt động của hệ thống.
+5.2. Nhân viên đào tạo — Training Staff
+Nhân viên đào tạo chịu trách nhiệm quản lý các hoạt động đào tạo và thông tin học tập trong hệ thống.
 
- 5.2. Giảng viên — Lecturer
+Quyền hạn:
+- Quản lý thông tin giảng viên.
+- Quản lý lớp học.
+- Quản lý đăng ký học.
+- Quản lý khóa học.
+- Theo dõi tình hình học tập.
+- Xem và tổng hợp báo cáo đào tạo.
+5.3. Sinh viên — Student
+Sinh viên là người trực tiếp tham gia các hoạt động học tập và thực hiện đồ án trên hệ thống.
 
-Giảng viên sử dụng hệ thống để quản lý các đồ án được phân công hướng dẫn.
-
-Quyền hạn dự kiến:
-
-- Xem danh sách đồ án được phân công.
-- Theo dõi tiến độ thực hiện của sinh viên.
-- Giao nhiệm vụ và thời hạn hoàn thành.
-- Xem tài liệu sinh viên đã nộp.
-- Gửi nhận xét và phản hồi.
-- Đánh giá tiến độ thực hiện.
-- Trao đổi thông tin liên quan đến đồ án.
-
- 5.3. Sinh viên — Student
-
-Sinh viên sử dụng hệ thống để đăng ký, thực hiện và theo dõi đồ án.
-
-Quyền hạn dự kiến:
-
-- Cập nhật thông tin cá nhân được phép chỉnh sửa.
-- Xem danh sách đề tài.
-- Đăng ký đề tài theo quy định.
+Quyền hạn:
+- Thực hiện đăng ký học theo quy định.
+- Tra cứu thông tin khóa học.
+- Theo dõi tình hình học tập.
 - Tham gia nhóm thực hiện đồ án.
-- Xem thông tin giảng viên hướng dẫn.
-- Theo dõi nhiệm vụ và thời hạn.
+- Theo dõi nhiệm vụ và tiến độ thực hiện đồ án.
 - Cập nhật tiến độ thực hiện.
-- Nộp báo cáo và tài liệu.
-- Xem nhận xét của giảng viên.
-- Nhận thông báo.
-- Sử dụng chatbot để tra cứu thông tin.
+- Xem thông tin và báo cáo liên quan.
+- Sử dụng các chức năng hỗ trợ học tập trên hệ thống.
+5.4. Giảng viên — Lecturer
+Giảng viên chịu trách nhiệm hướng dẫn, quản lý và đánh giá quá trình thực hiện đồ án của sinh viên.
 
----
+Quyền hạn:
+- Xem và quản lý các dự án học tập được phân công.
+- Tạo dự án học tập.
+- Phân công nhiệm vụ cho sinh viên.
+- Theo dõi và cập nhật tiến độ thực hiện dự án.
+- Đánh giá kết quả thực hiện dự án.
+- Xem báo cáo liên quan đến dự án.
+5.5. Trưởng nhóm — Team Leader
+Trưởng nhóm là sinh viên đại diện cho nhóm thực hiện đồ án, chịu trách nhiệm điều phối công việc và theo dõi tiến độ chung của nhóm.
 
+Quyền hạn:
+- Quản lý thông tin và thành viên nhóm.
+- Phân công nhiệm vụ cho các thành viên.
+- Theo dõi và cập nhật tiến độ thực hiện.
+- Phối hợp đánh giá tình hình thực hiện dự án.
+- Theo dõi kết quả và báo cáo của nhóm.
  ⚙️ 6. CHỨC NĂNG HỆ THỐNG
 
  6.1. Xác thực và phân quyền
