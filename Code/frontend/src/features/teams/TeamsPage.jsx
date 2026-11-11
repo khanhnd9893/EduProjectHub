@@ -3,6 +3,7 @@ import PageHeading from '../../components/PageHeading.jsx'
 import teamApi from '../../api/teamApi.js'
 import { useAuth } from '../../contexts/useAuth.js'
 import InviteMemberForm from './InviteMemberForm.jsx'
+import JoinRequestsPanel from './JoinRequestsPanel.jsx'
 import MyInvitationsPanel from './MyInvitationsPanel.jsx'
 
 const groupStatuses = {
@@ -129,6 +130,11 @@ function TeamsPage() {
     } catch (removeError) {
       setError(removeError.message || 'Không thể xóa thành viên.')
     }
+  }
+
+  async function handleRequestApproved() {
+    setSelectedTeam(await teamApi.getTeam(selectedTeamId))
+    await refreshTeams()
   }
 
   async function handleInvitationAccepted(groupId) {
@@ -309,6 +315,14 @@ function TeamsPage() {
                 ) : (
                   <p className="muted">Chưa có dữ liệu thành viên.</p>
                 )}
+                {selectedTeam.leaderUserId === user?.id &&
+                  ['forming', 'active'].includes(selectedTeam.status) && (
+                    <JoinRequestsPanel
+                      key={selectedTeam.id}
+                      onApproved={handleRequestApproved}
+                      teamId={selectedTeam.id}
+                    />
+                  )}
               </>
             )}
           </section>
