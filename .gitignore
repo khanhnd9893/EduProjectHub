@@ -34,3 +34,6 @@ dist/
 *.dump
 *.bak
 *.sql.gz
+
+# Uploaded student reports (never commit)
+Code/Backend/storage/
