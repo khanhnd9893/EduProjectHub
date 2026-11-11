@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import semesterApi from '../../api/semesterApi.js'
+import './semesters.css'
 
-const semesterStatuses = {
+const semesterStatusLabels = {
   draft: 'Bản nháp',
   open: 'Đang mở',
   in_progress: 'Đang diễn ra',
@@ -95,12 +96,16 @@ function SemestersPage() {
     setError('')
     setSuccess('')
 
-    if (!form.roundCode.trim() || !form.roundName.trim() || !form.academicYear.trim()) {
-      setError('Vui lòng nhập mã, tên học kỳ và năm học.')
+    if (!form.roundCode.trim() || !form.roundName.trim()) {
+      setError('Vui lòng nhập mã đợt và tên đợt.')
       return
     }
-    if (!form.startDate || !form.endDate || form.endDate < form.startDate) {
-      setError('Ngày kết thúc phải từ ngày bắt đầu trở đi.')
+    if ((form.startDate && !form.endDate) || (!form.startDate && form.endDate)) {
+      setError('Vui lòng nhập cả ngày bắt đầu và ngày kết thúc.')
+      return
+    }
+    if (form.startDate && form.endDate && form.endDate < form.startDate) {
+      setError('Ngày kết thúc không được trước ngày bắt đầu.')
       return
     }
     if (form.minMembers < 1 || form.maxMembers < form.minMembers) {
@@ -209,7 +214,7 @@ function SemestersPage() {
               <p className="eyebrow">{semester.roundCode}</p>
               <h2>{semester.roundName}</h2>
               <span className="status-chip">
-                {semesterStatuses[semester.status] || semester.status}
+                {semesterStatusLabels[semester.status] || semester.status}
               </span>
               <button className="button-secondary" type="button" onClick={() => openEditForm(semester)}>
                 Chỉnh sửa
