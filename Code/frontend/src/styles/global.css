@@ -861,3 +861,28 @@ h2 {
 .semester-form-heading h2 {
   margin-bottom: 0;
 }
+
+/* Menu ngang xuống dòng riêng và cuộn ngang khi màn hình hẹp, không kéo rộng trang. */
+@media (max-width: 1100px) {
+  .topbar {
+    flex-wrap: wrap;
+    padding-bottom: 10px;
+    padding-top: 10px;
+    row-gap: 8px;
+  }
+
+  .account-actions {
+    margin-left: auto;
+  }
+
+  .main-nav {
+    flex-basis: 100%;
+    order: 3;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .main-nav a {
+    white-space: nowrap;
+  }
+}
