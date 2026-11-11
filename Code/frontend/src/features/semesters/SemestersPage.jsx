@@ -9,6 +9,7 @@ const semesterStatusLabels = {
   in_progress: 'Đang diễn ra',
   closed: 'Đã đóng',
 }
+const allStatus = 'all'
 
 function formatDate(value) {
   if (!value) {
@@ -27,6 +28,9 @@ function SemestersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingSemester, setEditingSemester] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isStatusSaving, setIsStatusSaving] = useState(false)
+  const [statusTarget, setStatusTarget] = useState(null)
+  const [statusFilter, setStatusFilter] = useState(allStatus)
   const [success, setSuccess] = useState('')
 
   const emptyForm = {
@@ -132,6 +136,40 @@ function SemestersPage() {
     }
   }
 
+  async function handleStatusChange() {
+    if (!statusTarget) {
+      return
+    }
+
+    setError('')
+    setSuccess('')
+    setIsStatusSaving(true)
+    const nextStatus = statusTarget.status === 'closed' ? 'open' : 'closed'
+    try {
+      const saved = await semesterApi.updateSemester(statusTarget.id, {
+        ...statusTarget,
+        status: nextStatus,
+      })
+      setSemesters((current) =>
+        current.map((semester) => (semester.id === saved.id ? saved : semester)),
+      )
+      setSuccess(
+        nextStatus === 'closed'
+          ? 'Đã đóng học kỳ.'
+          : 'Đã mở học kỳ.',
+      )
+      setStatusTarget(null)
+    } catch (saveError) {
+      setError(saveError.message || 'Không thể cập nhật trạng thái học kỳ.')
+    } finally {
+      setIsStatusSaving(false)
+    }
+  }
+
+  const visibleSemesters = semesters.filter(
+    (semester) => statusFilter === allStatus || semester.status === statusFilter,
+  )
+
   return (
     <section className="dashboard-page">
       <PageHeading
@@ -145,6 +183,15 @@ function SemestersPage() {
       </button>
       {error && <p className="alert-error" role="alert">{error}</p>}
       {success && <p className="success-message" role="status">{success}</p>}
+      <label className="semester-filter field-control">
+        Lọc theo trạng thái
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <option value={allStatus}>Tất cả trạng thái</option>
+          {Object.entries(semesterStatusLabels).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+      </label>
       {isFormOpen && (
         <form className="workspace-panel data-form semester-form" onSubmit={handleSubmit}>
           <div className="semester-form-heading">
@@ -207,9 +254,9 @@ function SemestersPage() {
       )}
       {isLoading ? (
         <p role="status">Đang tải học kỳ...</p>
-      ) : semesters.length ? (
+      ) : visibleSemesters.length ? (
         <div className="semester-grid">
-          {semesters.map((semester) => (
+          {visibleSemesters.map((semester) => (
             <article className="workspace-panel semester-card" key={semester.id}>
               <p className="eyebrow">{semester.roundCode}</p>
               <h2>{semester.roundName}</h2>
@@ -218,6 +265,14 @@ function SemestersPage() {
               </span>
               <button className="button-secondary" type="button" onClick={() => openEditForm(semester)}>
                 Chỉnh sửa
+              </button>
+              <button
+                className="button-secondary"
+                type="button"
+                disabled={isStatusSaving}
+                onClick={() => setStatusTarget(semester)}
+              >
+                {semester.status === 'closed' ? 'Mở học kỳ' : 'Đóng học kỳ'}
               </button>
               <dl className="semester-metadata">
                 <div>
@@ -238,8 +293,41 @@ function SemestersPage() {
         </div>
       ) : (
         <section className="workspace-panel">
-          Chưa có dữ liệu học kỳ. API PHP quản lý học kỳ chưa được triển khai.
+          {semesters.length
+            ? 'Không có học kỳ phù hợp với bộ lọc.'
+            : 'Chưa có dữ liệu học kỳ. API PHP quản lý học kỳ chưa được triển khai.'}
         </section>
+      )}
+      {statusTarget && (
+        <div className="semester-modal-backdrop" role="presentation">
+          <section
+            className="workspace-panel semester-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="semester-status-dialog-title"
+          >
+            <h2 id="semester-status-dialog-title">
+              {statusTarget.status === 'closed' ? 'Mở học kỳ?' : 'Đóng học kỳ?'}
+            </h2>
+            <p>
+              Bạn có chắc muốn {statusTarget.status === 'closed' ? 'mở' : 'đóng'} học kỳ
+              <strong> {statusTarget.roundName}</strong> không?
+            </p>
+            <div className="semester-modal-actions">
+              <button
+                className="button-secondary"
+                type="button"
+                disabled={isStatusSaving}
+                onClick={() => setStatusTarget(null)}
+              >
+                Hủy
+              </button>
+              <button type="button" disabled={isStatusSaving} onClick={handleStatusChange}>
+                {isStatusSaving ? 'Đang lưu...' : 'Xác nhận'}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </section>
   )

@@ -6,6 +6,18 @@
   margin-bottom: 1.5rem;
 }
 
+.semester-filter {
+  display: block;
+  margin-bottom: 1.5rem;
+  max-width: 20rem;
+}
+
+.semester-filter select {
+  display: block;
+  margin-top: 0.4rem;
+  width: 100%;
+}
+
 .semester-form-heading {
   align-items: center;
   display: flex;
@@ -28,4 +40,30 @@
 
 .semester-card .button-secondary {
   justify-self: start;
+}
+
+.semester-modal-backdrop {
+  align-items: center;
+  background: rgb(15 23 42 / 45%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 10;
+}
+
+.semester-modal {
+  max-width: 32rem;
+  width: 100%;
+}
+
+.semester-modal h2 {
+  margin-top: 0;
+}
+
+.semester-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
 }
