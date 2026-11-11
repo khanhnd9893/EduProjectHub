@@ -138,6 +138,7 @@ Các chức năng sau có thể được cân nhắc trong những phiên bản 
 
  👥 5. ĐỐI TƯỢNG SỬ DỤNG
 Hệ thống EDUProject ERP được thiết kế với 5 nhóm người dùng chính. Mỗi nhóm được cấp quyền truy cập và thực hiện các chức năng tương ứng với vai trò, nhiệm vụ trong hệ thống.
+
 5.1. Quản trị viên — Administrator
 Quản trị viên là người chịu trách nhiệm quản lý, phân quyền và kiểm soát hoạt động chung của hệ thống.
 
@@ -147,6 +148,7 @@ Quyền hạn:
 - Quản lý thông tin giảng viên.
 - Theo dõi và xem các báo cáo tổng quan.
 - Kiểm soát dữ liệu và hoạt động của hệ thống.
+
 5.2. Nhân viên đào tạo — Training Staff
 Nhân viên đào tạo chịu trách nhiệm quản lý các hoạt động đào tạo và thông tin học tập trong hệ thống.
 
@@ -157,6 +159,7 @@ Quyền hạn:
 - Quản lý khóa học.
 - Theo dõi tình hình học tập.
 - Xem và tổng hợp báo cáo đào tạo.
+
 5.3. Sinh viên — Student
 Sinh viên là người trực tiếp tham gia các hoạt động học tập và thực hiện đồ án trên hệ thống.
 
@@ -169,6 +172,7 @@ Quyền hạn:
 - Cập nhật tiến độ thực hiện.
 - Xem thông tin và báo cáo liên quan.
 - Sử dụng các chức năng hỗ trợ học tập trên hệ thống.
+
 5.4. Giảng viên — Lecturer
 Giảng viên chịu trách nhiệm hướng dẫn, quản lý và đánh giá quá trình thực hiện đồ án của sinh viên.
 
@@ -179,6 +183,7 @@ Quyền hạn:
 - Theo dõi và cập nhật tiến độ thực hiện dự án.
 - Đánh giá kết quả thực hiện dự án.
 - Xem báo cáo liên quan đến dự án.
+
 5.5. Trưởng nhóm — Team Leader
 Trưởng nhóm là sinh viên đại diện cho nhóm thực hiện đồ án, chịu trách nhiệm điều phối công việc và theo dõi tiến độ chung của nhóm.
 
@@ -188,7 +193,8 @@ Quyền hạn:
 - Theo dõi và cập nhật tiến độ thực hiện.
 - Phối hợp đánh giá tình hình thực hiện dự án.
 - Theo dõi kết quả và báo cáo của nhóm.
- ⚙️ 6. CHỨC NĂNG HỆ THỐNG
+
+⚙️ 6. CHỨC NĂNG HỆ THỐNG
 
  6.1. Xác thực và phân quyền
 
