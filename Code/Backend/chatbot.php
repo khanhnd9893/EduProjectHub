@@ -42,11 +42,13 @@ try {
     $action = $_GET['action'] ?? '';
 
     if ($method === 'GET' && $action === 'faqs') {
-        $statement = $pdo->query(
-            "SELECT id, question, answer, category, status, created_at, updated_at
-             FROM chatbot_faqs WHERE status = 'published'
+        $statement = $pdo->prepare(
+            "SELECT id, question, answer, category, visibility, status, created_at, updated_at
+             FROM chatbot_faqs
+             WHERE status = 'published' AND visibility IN ('all', ?)
              ORDER BY category, id"
         );
+        $statement->execute([$actor['role']]);
         apiRespond(200, ['data' => $statement->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
@@ -90,7 +92,11 @@ try {
         }
 
         $questionWords = chatbotNormalize($content);
-        $statement = $pdo->query("SELECT question, answer FROM chatbot_faqs WHERE status = 'published'");
+        $statement = $pdo->prepare(
+            "SELECT question, answer FROM chatbot_faqs
+             WHERE status = 'published' AND visibility IN ('all', ?)"
+        );
+        $statement->execute([$actor['role']]);
         $bestAnswer = 'Xin lỗi, mình chưa có thông tin cho câu hỏi này. Bạn hãy liên hệ giảng viên hướng dẫn nhé.';
         $bestScore = 0;
         foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $faq) {

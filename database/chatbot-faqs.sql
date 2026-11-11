@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS chatbot_faqs (
     question VARCHAR(500) NOT NULL,
     answer TEXT NOT NULL,
     category VARCHAR(100) NULL,
+    visibility ENUM('all','admin','lecturer','student') NOT NULL DEFAULT 'all',
     status ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
     created_by BIGINT UNSIGNED NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

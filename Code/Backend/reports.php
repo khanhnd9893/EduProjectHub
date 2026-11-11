@@ -210,6 +210,39 @@ try {
         apiRespond(201, ['data' => ['id' => $versionId, 'report_id' => $id, 'version_no' => $versionNo]]);
     }
 
+    if ($method === 'POST' && $action === 'feedback') {
+        $body = apiReadJsonBody();
+        apiRequireCsrf($body);
+        apiRequire($actor['role'] === 'lecturer', 403, 'Chỉ giảng viên mới được nhận xét báo cáo.');
+        $versionId = reportId($body['report_version_id'] ?? null);
+        $content = $body['content'] ?? null;
+        apiRequire(is_string($content), 400, 'content phải là chuỗi.');
+        $content = trim($content);
+        apiRequire($content !== '' && mb_strlen($content, 'UTF-8') <= 5000, 400, 'Nhận xét phải có từ 1 đến 5000 ký tự.');
+        $score = $body['score'] ?? null;
+        apiRequire(
+            $score === null || (is_numeric($score) && (float) $score >= 0 && (float) $score <= 10),
+            400,
+            'Điểm phải nằm trong khoảng từ 0 đến 10.'
+        );
+        $statement = $pdo->prepare(
+            'SELECT r.group_id
+             FROM report_versions rv
+             JOIN reports r ON r.id = rv.report_id
+             WHERE rv.id = ?'
+        );
+        $statement->execute([$versionId]);
+        $reportVersion = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($reportVersion !== false, 404, 'Không tìm thấy phiên bản báo cáo.');
+        reportCanAccess($pdo, (int) $reportVersion['group_id'], $actor);
+        $statement = $pdo->prepare(
+            'INSERT INTO report_feedback (report_version_id, lecturer_user_id, content, score)
+             VALUES (?, ?, ?, ?)'
+        );
+        $statement->execute([$versionId, $actor['id'], $content, $score === null ? null : (float) $score]);
+        apiRespond(201, ['data' => ['id' => (int) $pdo->lastInsertId()]]);
+    }
+
     if ($method === 'GET' && $action === 'grades') {
         $sql = 'SELECT fg.group_id, g.group_name,
                        fg.student_user_id AS student_id, u.full_name AS student_name,

@@ -27,10 +27,8 @@ VALUES
 (2, 'N02', 'Nhóm Thư viện số', 'Ứng dụng tra cứu tài liệu.', 1, 6, 6, 'forming');
 
 INSERT INTO group_members (group_id, user_id, member_role, status) VALUES
-(1, 1, 'leader', 'active'),
 (1, 5, 'member', 'active'),
 (1, 4, 'member', 'active'),
-(2, 6, 'leader', 'active'),
 (2, 7, 'member', 'active');
 
 INSERT INTO group_lecturers (group_id, lecturer_user_id, assigned_by) VALUES

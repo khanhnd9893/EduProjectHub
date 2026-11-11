@@ -31,10 +31,13 @@ function toWords(text) {
 
 function findMockAnswer(content) {
   const words = new Set(toWords(content))
+  const { role } = getMockUser()
   let bestFaq = null
   let bestScore = 0
 
-  for (const faq of mockFaqs) {
+  for (const faq of mockFaqs.filter(
+    (entry) => !entry.visibility || entry.visibility === 'all' || entry.visibility === role.toLowerCase(),
+  )) {
     const score = toWords(faq.question).filter((word) => words.has(word)).length
 
     if (score > bestScore) {
@@ -71,7 +74,16 @@ function mapMessage(message) {
 const chatbotApi = {
   async listFaqs() {
     if (useMock) {
-      return mockResolve(mockFaqs.filter((faq) => faq.status === 'published'))
+      const { role } = getMockUser()
+      return mockResolve(
+        mockFaqs.filter(
+          (faq) =>
+            faq.status === 'published' &&
+            (!faq.visibility ||
+              faq.visibility === 'all' ||
+              faq.visibility === role.toLowerCase()),
+        ),
+      )
     }
 
     const faqs = await unwrap(
@@ -82,6 +94,7 @@ const chatbotApi = {
       question: faq.question,
       answer: faq.answer,
       category: faq.category,
+      visibility: faq.visibility,
       status: faq.status,
     }))
   },

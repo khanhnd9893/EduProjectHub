@@ -31,14 +31,15 @@ Import in phpMyAdmin in this order:
 9. `kiem_tra_tien_do.sql`
 10. `tao_view.sql`
 11. `file examp.sql` — optional demo users, groups, assignments, and a task. Import once, after the core schema.
-12. `schema-reports.sql`
-13. `schema-defense-grades.sql`
-14. `schema-chatbot-faqs.sql`
-15. Optional demo data: `seed-reports.sql`, `seed-defense-grades.sql`, and `seed-chatbot-faqs.sql`.
+12. `bao_cao_do_an.sql`
+13. `bao_ve_diem_so.sql`
+14. `chatbot-faqs.sql`
+15. Optional demo data: `examp bao_cao_do_an.sql`, `expam_bao_ve_diem_so.sql`, and `exam_chatbot-faqs.sql`.
+16. `danh_sach_de_tai.sql` — topic/registration tables, notifications, FAQ audience scopes, leader integrity triggers, and notification triggers.
 
 The demo accounts are `sv`, `gv`, and `admin`; each has password `123456`. Change these passwords before exposing the site outside a local development machine. The demo lecturer is assigned two groups, as required by the API access policy.
 
-The three feature schemas use `student_groups`, `project_rounds`, and `users` from the core schema. Reports and defense schedules belong to a group; user/lecturer/student IDs always reference `users.id`. Semester/round data uses `project_rounds`. All scores use a 0–10 scale. The chat FAQ and history tables are created by `schema-chatbot-faqs.sql`.
+The feature schemas use `student_groups`, `project_rounds`, and `users` from the core schema. Reports and defense schedules belong to a group; user/lecturer/student IDs always reference `users.id`. Semester/round data uses `project_rounds`. All scores use a 0–10 scale. The chat FAQ and history tables are created by `chatbot-faqs.sql`.
 
 The SQL files use `CREATE TABLE IF NOT EXISTS` and do not drop application data. The trigger and view scripts replace only their own triggers/views. Back up the database before applying schema changes to a database with existing data.
 
@@ -49,6 +50,8 @@ The SQL files use `CREATE TABLE IF NOT EXISTS` and do not drop application data.
 For an existing database, do not re-import `file examp.sql`. Back up first, run the username migration if required, then import any missing core table scripts and the three feature schemas. The `CREATE TABLE IF NOT EXISTS` scripts preserve existing rows; re-importing the trigger/view files only replaces those database objects.
 
 For an existing database that already has `group_invitations`, back it up and run [`upgrade-group-invitation-code.sql`](./upgrade-group-invitation-code.sql) once to add and populate unique invitation codes. New databases already get this column from `quan_ly_loi_moi.sql`.
+
+For existing databases, first ensure the reports, defense schedules, tasks, and chatbot tables are installed, then back up and run [`danh_sach_de_tai.sql`](./danh_sach_de_tai.sql). It creates `project_topics`, `topic_registrations`, and `notifications`, adds FAQ visibility by role, repairs missing group-leader memberships, and installs leader-integrity and notification triggers. Newly created database packages already include these changes.
 
 Do not import `xac_thuc.sql`: it is retired because its previous version created a second database, dropped `users`, and used a conflicting role/status schema. Do not import `file examp.sql` more than once.
 
@@ -62,10 +65,14 @@ The frontend uses camelCase models; PHP and MySQL use snake_case fields. `src/ap
 
 `POST groups.php?action=invite` returns the generated `invite_code`. `GET groups.php?action=sent_invitations` lists invitations for the signed-in student's own groups; administrators can list all sent invitations. Invitation codes are also included in the recipient's `GET groups.php?action=invitations` response.
 
+Topics use `topics.php` actions `GET topics/registrations`, `POST create/register`, and `PATCH update/review`. Notifications use `notifications.php` actions `GET notifications` and `PATCH read/read_all`. `POST reports.php?action=feedback` lets an assigned lecturer submit report feedback; database triggers notify group members when feedback or defense schedules change. FAQ rows default to visibility `all`; set `visibility` to `admin`, `lecturer`, or `student` to restrict the audience.
+
 | Feature | PHP endpoint | Actions |
 |---|---|---|
 | Authentication | `auth.php` | `POST login`, `GET me`, `POST logout` |
 | Groups | `groups.php` | groups, group, create/update, member operations, requests, `GET invitations` (received), `GET sent_invitations` (leader/admin), lecturer assignment |
+| Topics | `topics.php` | `GET topics/registrations`, `POST create/register`, `PATCH update/review` |
+| Notifications | `notifications.php` | `GET notifications`, `PATCH read/read_all` |
 | Tasks | `tasks.php` | tasks, task, create/update/status/delete |
 | Progress | `progress.php` | group progress |
 | Semester rounds | `semesters.php` | `GET semesters` |
@@ -81,3 +88,4 @@ Report uploads accept PDF/DOC/DOCX up to 10 MB. Files are stored under `Code/Bac
 - Admins can read all groups and manage permitted records.
 - Students can submit reports only for groups they actively belong to. Users can read report/grade/chat records only within their authorized scope.
 - Chatbot sessions and messages are private to the signed-in user.
+- Chatbot FAQ answers are filtered by `chatbot_faqs.visibility` on both list and response matching.

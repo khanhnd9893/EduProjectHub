@@ -39,6 +39,8 @@ function ReportsPage() {
   const [report, setReport] = useState(null)
   const [file, setFile] = useState(null)
   const [note, setNote] = useState('')
+  const [feedbackDrafts, setFeedbackDrafts] = useState({})
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -115,6 +117,27 @@ function ReportsPage() {
       setError(submitError.message || 'Không thể nộp báo cáo.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleFeedbackSubmit(event, versionId) {
+    event.preventDefault()
+    const draft = feedbackDrafts[versionId] || { content: '', score: '' }
+    setError('')
+    setSuccess('')
+    setIsSubmittingFeedback(true)
+    try {
+      await reportApi.addFeedback(versionId, draft)
+      setReport(await reportApi.getReport(reportId))
+      setFeedbackDrafts((current) => ({
+        ...current,
+        [versionId]: { content: '', score: '' },
+      }))
+      setSuccess('Đã gửi nhận xét và điểm báo cáo.')
+    } catch (feedbackError) {
+      setError(feedbackError.message || 'Không thể gửi nhận xét.')
+    } finally {
+      setIsSubmittingFeedback(false)
     }
   }
 
@@ -208,6 +231,48 @@ function ReportsPage() {
                             {feedback.score != null ? ` · ${feedback.score}/10` : ''}
                           </p>
                         ))}
+                        {role === 'LECTURER' && (
+                          <form
+                            className="data-form report-feedback-form"
+                            onSubmit={(event) => handleFeedbackSubmit(event, version.id)}
+                          >
+                            <label className="field-control">
+                              Nhận xét
+                              <textarea
+                                onChange={(event) => setFeedbackDrafts((current) => ({
+                                  ...current,
+                                  [version.id]: {
+                                    ...current[version.id],
+                                    content: event.target.value,
+                                  },
+                                }))}
+                                required
+                                rows="2"
+                                value={feedbackDrafts[version.id]?.content || ''}
+                              />
+                            </label>
+                            <label className="field-control">
+                              Điểm (0–10, tùy chọn)
+                              <input
+                                max="10"
+                                min="0"
+                                onChange={(event) => setFeedbackDrafts((current) => ({
+                                  ...current,
+                                  [version.id]: {
+                                    ...current[version.id],
+                                    score: event.target.value,
+                                  },
+                                }))}
+                                step="0.1"
+                                type="number"
+                                value={feedbackDrafts[version.id]?.score || ''}
+                              />
+                            </label>
+                            <button disabled={isSubmittingFeedback} type="submit">
+                              {isSubmittingFeedback ? 'Đang gửi...' : 'Gửi nhận xét'}
+                            </button>
+                          </form>
+                        )}
                       </li>
                     ))}
                   </ul>

@@ -560,8 +560,6 @@ try {
              VALUES (?, ?, ?, ?, ?, ?)", [$groupCode, $groupName, $description, $roundId, $actor['id'], $actor['id']]);
         $groupId = (int) $pdo->lastInsertId();
 
-        $statement = queryStatement($pdo, "INSERT INTO group_members (group_id, user_id, member_role, status)
-             VALUES (?, ?, 'leader', 'active')", [$groupId, $actor['id']]);
         $pdo->commit();
         respond(201, ['message' => 'Tạo nhóm thành công.', 'data' => ['id' => $groupId]]);
     }
@@ -670,10 +668,10 @@ try {
         $newLeaderMembership = $statement->fetch();
         requireValue($newLeaderMembership !== false, 400, 'Trưởng nhóm mới phải là thành viên đang hoạt động.');
 
-        $statement = queryStatement($pdo, "UPDATE group_members SET member_role = 'member'
-             WHERE group_id = ? AND member_role = 'leader' AND status = 'active'", [$groupId]);
         $statement = queryStatement($pdo, "UPDATE group_members SET member_role = 'leader' WHERE id = ? AND status = 'active'", [$newLeaderMembership['id']]);
         requireValue($statement->rowCount() === 1, 409, 'Không thể cập nhật trưởng nhóm.');
+        $statement = queryStatement($pdo, "UPDATE group_members SET member_role = 'member'
+             WHERE group_id = ? AND user_id = ? AND member_role = 'leader' AND status = 'active'", [$groupId, $group['leader_user_id']]);
         $pdo->commit();
         respond(200, ['message' => 'Chuyển trưởng nhóm thành công.']);
     }

@@ -13,6 +13,8 @@ import ProgressPage from '../features/progress/ProgressPage.jsx'
 import ReportsPage from '../features/reports/ReportsPage.jsx'
 import GradesPage from '../features/grades/GradesPage.jsx'
 import ChatbotPage from '../features/chatbot/ChatbotPage.jsx'
+import TopicsPage from '../features/topics/TopicsPage.jsx'
+import NotificationsPage from '../features/notifications/NotificationsPage.jsx'
 // Hết khối M2
 
 function AppRoutes() {
@@ -23,6 +25,15 @@ function AppRoutes() {
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route
+            path="/topics"
+            element={
+              <RoleRoute allowedRoles={['ADMIN', 'STUDENT', 'LECTURER']}>
+                <TopicsPage />
+              </RoleRoute>
+            }
+          />
           <Route
             path="/semesters"
             element={

@@ -49,6 +49,7 @@ button {
   display: flex;
   flex: 1;
   gap: 20px;
+  flex-wrap: wrap;
 }
 
 .main-nav a {
@@ -125,6 +126,64 @@ h2 {
 .muted {
   color: var(--muted);
   line-height: 1.6;
+}
+
+.topic-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-top: 24px;
+}
+
+.topic-card,
+.topic-registrations {
+  padding: 22px;
+}
+
+.topic-status-control {
+  margin-top: 16px;
+}
+
+.topic-register-actions,
+.topic-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-list li {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 16px 0;
+}
+
+.notification-list li:last-child {
+  border-bottom: 0;
+}
+
+.notification-list p {
+  margin: 6px 0;
+}
+
+.notification-unread {
+  border-left: 3px solid var(--accent);
+  padding-left: 14px !important;
+}
+
+.report-feedback-form {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 14px;
 }
 
 .eyebrow {

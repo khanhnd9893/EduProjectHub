@@ -24,7 +24,11 @@ function MainLayout() {
         <nav className="main-nav" aria-label="Điều hướng chính">
           <NavLink to="/dashboard">Tổng quan</NavLink>
           <NavLink to="/profile">Hồ sơ</NavLink>
+          <NavLink to="/notifications">Thông báo</NavLink>
           {role === 'ADMIN' && <NavLink to="/semesters">Học kỳ</NavLink>}
+          {(role === 'ADMIN' || role === 'STUDENT' || role === 'LECTURER') && (
+            <NavLink to="/topics">Đề tài</NavLink>
+          )}
           {/* M2: menu FR04-FR07, chỉ cho STUDENT và LECTURER */}
           {(role === 'STUDENT' || role === 'LECTURER') && (
             <>
