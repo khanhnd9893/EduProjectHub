@@ -1,6 +1,6 @@
-import apiClient from './client.js'
+﻿import apiClient from './client.js'
 import { unwrap } from './response.js'
-import { mockResolve } from './mock/helpers.js'
+import { mockResolve, nextId } from './mock/helpers.js'
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
@@ -40,6 +40,30 @@ const semesterApi = {
       maxMembers: Number(semester.max_members),
       status: semester.status,
     }))
+  },
+
+  async createSemester(values) {
+    if (!useMock) {
+      throw new Error('Backend hiện chưa hỗ trợ tạo học kỳ.')
+    }
+
+    const semester = { id: nextId(mockSemesters), ...values }
+    mockSemesters.unshift(semester)
+    return mockResolve(semester)
+  },
+
+  async updateSemester(id, values) {
+    if (!useMock) {
+      throw new Error('Backend hiện chưa hỗ trợ cập nhật học kỳ.')
+    }
+
+    const index = mockSemesters.findIndex((semester) => semester.id === Number(id))
+    if (index === -1) {
+      throw new Error('Không tìm thấy học kỳ cần cập nhật.')
+    }
+
+    mockSemesters[index] = { ...mockSemesters[index], ...values }
+    return mockResolve(mockSemesters[index])
   },
 }
 
