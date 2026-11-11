@@ -395,6 +395,12 @@ h2 {
   opacity: 0.65;
 }
 
+.invitation-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
 .button-secondary {
   background: white;
   border: 1px solid var(--line);
