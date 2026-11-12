@@ -14,7 +14,7 @@ For a new/empty installation, use [`filetong/eduprojecthub-xampp.sql`](./fileton
 
 **Do not import this all-in-one file into a database that contains data.** The demo seed uses fixed IDs and is intended for a fresh demo database. Back up existing data and follow the existing-database instructions below instead.
 
-The separate FR01 SQL draft is not imported as-is: it creates a different database, drops `users`, and defines role/status/session fields that conflict with this application's API. The combined package keeps the current `sv`/`gv`/`admin` accounts and adds compatible optional profile fields to `users`. Roles continue to use `users.role`, account state uses `users.account_status`, and login sessions use PHP's session cookie; no unused `roles` or `user_sessions` tables are created.
+The separate FR01 SQL draft is not imported as-is: it creates a different database, drops `users`, and defines role/status/session fields that conflict with this application's API. The combined package keeps the current `sv`/`gv`/`admin` accounts and adds compatible optional profile fields to `users`. `users.role` supports `admin`, `student`, `team_leader`, `lecturer`, and `training_manager`; account state uses `users.account_status`, and login sessions use PHP's session cookie. No unused `roles` or `user_sessions` tables are created.
 
 ## Fresh installation
 
@@ -39,7 +39,9 @@ Import in phpMyAdmin in this order:
 
 The demo accounts are `sv`, `gv`, and `admin`; each has password `123456`. Change these passwords before exposing the site outside a local development machine. The demo lecturer is assigned two groups, as required by the API access policy.
 
-The feature schemas use `student_groups`, `project_rounds`, and `users` from the core schema. Reports and defense schedules belong to a group; user/lecturer/student IDs always reference `users.id`. Semester/round data uses `project_rounds`. All scores use a 0–10 scale. The chat FAQ and history tables are created by `chatbot-faqs.sql`.
+The feature schemas use `student_groups`, `project_rounds`, and `users` from the core schema. Reports and defense schedules belong to a group; user/lecturer/student IDs always reference `users.id`. Semester/round data uses `project_rounds`. All scores use a 0–10 scale. FAQ visibility supports all five roles. The chat FAQ and history tables are created by `chatbot-faqs.sql`.
+
+The `team_leader` account role inherits student capabilities. Whether an account is the leader of a particular group is still determined by `student_groups.leader_user_id` and `group_members.member_role`; the account role alone does not grant management rights over unrelated groups. The current backend gives `training_manager` access to existing round, topic, group-assignment, progress, report, and defense workflows. Account administration, system configuration, audit logs, backup/restore, and new semester create/update workflows are not currently implemented APIs.
 
 The SQL files use `CREATE TABLE IF NOT EXISTS` and do not drop application data. The trigger and view scripts replace only their own triggers/views. Back up the database before applying schema changes to a database with existing data.
 
@@ -50,6 +52,8 @@ The SQL files use `CREATE TABLE IF NOT EXISTS` and do not drop application data.
 For an existing database, do not re-import `file examp.sql`. Back up first, run the username migration if required, then import any missing core table scripts and the three feature schemas. The `CREATE TABLE IF NOT EXISTS` scripts preserve existing rows; re-importing the trigger/view files only replaces those database objects.
 
 For an existing database that already has `group_invitations`, back it up and run [`upgrade-group-invitation-code.sql`](./upgrade-group-invitation-code.sql) once to add and populate unique invitation codes. New databases already get this column from `quan_ly_loi_moi.sql`.
+
+For an existing database, back it up and run [`upgrade-user-roles.sql`](./upgrade-user-roles.sql) once after `Tai_khoan.sql` and `chatbot-faqs.sql` are installed. Then rerun `kiem_tra_tien_do.sql` so the group-membership triggers accept both student account roles. The migrations expand the account-role and FAQ-visibility enums without changing existing role values.
 
 For existing databases, first ensure the reports, defense schedules, tasks, and chatbot tables are installed, then back up and run [`danh_sach_de_tai.sql`](./danh_sach_de_tai.sql). It creates `project_topics`, `topic_registrations`, and `notifications`, adds FAQ visibility by role, repairs missing group-leader memberships, and installs leader-integrity and notification triggers. Newly created database packages already include these changes.
 
@@ -63,14 +67,14 @@ Do not import `xac_thuc.sql`: it is retired because its previous version created
 
 The frontend uses camelCase models; PHP and MySQL use snake_case fields. `src/api/*Api.js` owns that mapping. API responses use `{ "data": ... }`; errors use `{ "error": "..." }`. Mutating requests use the PHP session cookie and `X-CSRF-Token`.
 
-`POST groups.php?action=invite` returns the generated `invite_code`. `GET groups.php?action=sent_invitations` lists invitations for the signed-in student's own groups; administrators can list all sent invitations. Invitation codes are also included in the recipient's `GET groups.php?action=invitations` response.
+`POST groups.php?action=invite` returns the generated `invite_code`. `GET groups.php?action=sent_invitations` lists invitations for the signed-in student's own groups; administrators and training managers can list all sent invitations. Invitation codes are also included in the recipient's `GET groups.php?action=invitations` response.
 
-Topics use `topics.php` actions `GET topics/registrations`, `POST create/register`, and `PATCH update/review`. Notifications use `notifications.php` actions `GET notifications` and `PATCH read/read_all`. `POST reports.php?action=feedback` lets an assigned lecturer submit report feedback; database triggers notify group members when feedback or defense schedules change. FAQ rows default to visibility `all`; set `visibility` to `admin`, `lecturer`, or `student` to restrict the audience.
+Topics use `topics.php` actions `GET topics/registrations`, `POST create/register`, and `PATCH update/review`. Notifications use `notifications.php` actions `GET notifications` and `PATCH read/read_all`. `POST reports.php?action=feedback` lets an assigned lecturer submit report feedback; database triggers notify group members when feedback or defense schedules change. FAQ rows default to visibility `all`; set `visibility` to one of the five roles to restrict the audience. Team leaders can also view FAQs scoped to students.
 
 | Feature | PHP endpoint | Actions |
 |---|---|---|
 | Authentication | `auth.php` | `POST login`, `GET me`, `POST logout` |
-| Groups | `groups.php` | groups, group, create/update, member operations, requests, `GET invitations` (received), `GET sent_invitations` (leader/admin), lecturer assignment |
+| Groups | `groups.php` | groups, group, create/update, member operations, requests, `GET invitations` (received), `GET sent_invitations` (leader/admin/training manager), lecturer assignment |
 | Topics | `topics.php` | `GET topics/registrations`, `POST create/register`, `PATCH update/review` |
 | Notifications | `notifications.php` | `GET notifications`, `PATCH read/read_all` |
 | Tasks | `tasks.php` | tasks, task, create/update/status/delete |

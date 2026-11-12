@@ -7,6 +7,7 @@ import {
   isTaskOverdue,
 } from './taskStatus.js'
 import { useAuth } from '../../contexts/useAuth.js'
+import { isStudentRole } from '../../utils/roles.js'
 
 const taskStatuses = ['todo', 'in_progress', 'completed', 'cancelled']
 
@@ -100,7 +101,7 @@ function TasksPage() {
   function canUpdateTaskStatus(task) {
     return (
       canManageTasks ||
-      (role === 'STUDENT' && Number(task.assignedTo) === Number(user?.id))
+      (isStudentRole(role) && Number(task.assignedTo) === Number(user?.id))
     )
   }
 

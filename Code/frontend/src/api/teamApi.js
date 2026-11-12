@@ -7,6 +7,7 @@ import {
   nextId,
   nowIso,
 } from './mock/helpers.js'
+import { isAcademicManagerRole, isStudentRole } from '../utils/roles.js'
 import {
   mockInvitations,
   mockMembers,
@@ -197,7 +198,7 @@ const teamApi = {
   async createTeam({ groupCode, groupName, description, projectRoundId }) {
     if (useMock) {
       const user = getMockUser()
-      if (user.role !== 'STUDENT') {
+      if (!isStudentRole(user.role)) {
         throw new Error('Chỉ sinh viên mới được tạo nhóm.')
       }
       if (
@@ -370,7 +371,7 @@ const teamApi = {
     if (useMock) {
       const user = getMockUser()
       const team = findMockTeam(teamId)
-      if (user.role !== 'STUDENT') {
+      if (!isStudentRole(user.role)) {
         throw new Error('Chỉ sinh viên mới được gửi yêu cầu tham gia nhóm.')
       }
       if (!['forming', 'active'].includes(team.status)) {
@@ -476,7 +477,7 @@ const teamApi = {
         mockInvitations
           .filter((invitation) => {
             const team = mockTeams.find((entry) => entry.id === invitation.groupId)
-            return role === 'ADMIN' || team?.leaderUserId === id
+            return isAcademicManagerRole(role) || team?.leaderUserId === id
           })
           .map((invitation) => ({ ...invitation })),
       )

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth.js'
+import { isAcademicManagerRole, isStudentRole, roleLabel } from '../utils/roles.js'
 
 function MainLayout() {
   const { user, role, logout } = useAuth()
@@ -25,12 +26,11 @@ function MainLayout() {
           <NavLink to="/dashboard">Tổng quan</NavLink>
           <NavLink to="/profile">Hồ sơ</NavLink>
           <NavLink to="/notifications">Thông báo</NavLink>
-          {role === 'ADMIN' && <NavLink to="/semesters">Học kỳ</NavLink>}
-          {(role === 'ADMIN' || role === 'STUDENT' || role === 'LECTURER') && (
+          {isAcademicManagerRole(role) && <NavLink to="/semesters">Đợt đồ án</NavLink>}
+          {['ADMIN', 'STUDENT', 'TEAM_LEADER', 'LECTURER', 'TRAINING_MANAGER'].includes(role) && (
             <NavLink to="/topics">Đề tài</NavLink>
           )}
-          {/* M2: menu FR04-FR07, chỉ cho STUDENT và LECTURER */}
-          {(role === 'STUDENT' || role === 'LECTURER') && (
+          {(['LECTURER', 'TRAINING_MANAGER'].includes(role) || isStudentRole(role)) && (
             <>
               <NavLink to="/teams">Nhóm</NavLink>
               <NavLink to="/tasks">Nhiệm vụ</NavLink>
@@ -44,7 +44,7 @@ function MainLayout() {
         </nav>
         <div className="account-actions">
           <span>{user?.fullName}</span>
-          <span className="role-label">{role}</span>
+          <span className="role-label">{roleLabel(role)}</span>
           <button type="button" onClick={handleLogout}>
             Đăng xuất
           </button>

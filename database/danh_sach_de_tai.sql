@@ -65,11 +65,15 @@ SET @faq_visibility_sql = IF(
           AND COLUMN_NAME = 'visibility'
     ),
     'SELECT 1',
-    'ALTER TABLE chatbot_faqs ADD COLUMN visibility ENUM(''all'', ''admin'', ''lecturer'', ''student'') NOT NULL DEFAULT ''all'' AFTER category'
+    'ALTER TABLE chatbot_faqs ADD COLUMN visibility ENUM(''all'', ''admin'', ''student'', ''team_leader'', ''lecturer'', ''training_manager'') NOT NULL DEFAULT ''all'' AFTER category'
 );
 PREPARE faq_visibility_stmt FROM @faq_visibility_sql;
 EXECUTE faq_visibility_stmt;
 DEALLOCATE PREPARE faq_visibility_stmt;
+
+ALTER TABLE chatbot_faqs
+    MODIFY COLUMN visibility ENUM('all','admin','student','team_leader','lecturer','training_manager')
+    NOT NULL DEFAULT 'all';
 
 DROP TRIGGER IF EXISTS trg_group_members_guard_leader_update;
 DROP TRIGGER IF EXISTS trg_group_members_guard_leader_delete;

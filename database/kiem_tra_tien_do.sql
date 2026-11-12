@@ -32,7 +32,7 @@ BEGIN
     SELECT role INTO v_role
     FROM users WHERE id = NEW.user_id;
 
-    IF v_role IS NULL OR v_role <> 'student' THEN
+    IF v_role IS NULL OR v_role NOT IN ('student', 'team_leader') THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Chi tai khoan sinh vien moi duoc tham gia nhom';
     END IF;
@@ -86,7 +86,7 @@ BEGIN
 
     SELECT role INTO v_role FROM users WHERE id = NEW.user_id;
 
-    IF NEW.status = 'active' AND (v_role IS NULL OR v_role <> 'student') THEN
+    IF NEW.status = 'active' AND (v_role IS NULL OR v_role NOT IN ('student', 'team_leader')) THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Chi tai khoan sinh vien moi duoc tham gia nhom';
     END IF;

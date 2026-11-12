@@ -5,7 +5,7 @@ CREATE DATABASE IF NOT EXISTS eduprojecthub
 USE eduprojecthub;
 
 -- =========================================================
--- USERS: tai khoan sinh vien, giang vien, quan tri vien
+-- USERS: tai khoan theo 5 vai tro nghiep vu cua he thong
 -- Neu du an da co bang users, khong chay CREATE TABLE nay.
 -- Hay dam bao bang hien co co cac cot duoc cac bang khac tham chieu.
 -- =========================================================
@@ -20,7 +20,9 @@ CREATE TABLE IF NOT EXISTS users (
     department      VARCHAR(100) NULL,
     avatar_url      VARCHAR(255) NULL,
     password_hash   VARCHAR(255) NOT NULL,
-    role            ENUM('admin', 'lecturer', 'student') NOT NULL DEFAULT 'student',
+    role            ENUM('admin', 'student', 'team_leader', 'lecturer', 'training_manager')
+                    NOT NULL DEFAULT 'student'
+                    COMMENT 'Vai tro tai khoan; quyen truong nhom van phu thuoc group_members trong tung nhom',
     account_status  ENUM('active', 'locked', 'inactive') NOT NULL DEFAULT 'active',
     last_login_at   DATETIME NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

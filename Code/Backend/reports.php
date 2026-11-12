@@ -63,7 +63,7 @@ function reportDeadline($value): ?string
 function reportRequireManager(array $actor): void
 {
     apiRequire(
-        in_array($actor['role'], ['admin', 'lecturer'], true),
+        in_array($actor['role'], ['admin', 'training_manager', 'lecturer'], true),
         403,
         'Chỉ quản trị viên hoặc giảng viên được phân công mới được quản lý đợt báo cáo.'
     );
@@ -89,7 +89,7 @@ try {
                 FROM reports r
                 JOIN student_groups g ON g.id = r.group_id';
         $params = [];
-        if ($actor['role'] === 'student') {
+        if (apiIsStudentRole($actor)) {
             $sql .= " WHERE (g.leader_user_id = ? OR EXISTS (
                 SELECT 1 FROM group_members gm
                 WHERE gm.group_id = g.id AND gm.user_id = ? AND gm.status = 'active'
@@ -158,7 +158,7 @@ try {
 
     if ($method === 'POST' && $action === 'submit') {
         apiRequireCsrf();
-        apiRequire($actor['role'] === 'student', 403, 'Chỉ sinh viên mới được nộp báo cáo.');
+        apiRequire(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới được nộp báo cáo.');
         $id = reportId($_POST['report_id'] ?? null);
         apiRequire(isset($_FILES['file']) && is_array($_FILES['file']), 400, 'Vui lòng chọn tệp báo cáo.');
         $file = $_FILES['file'];
@@ -380,7 +380,7 @@ try {
                 JOIN student_groups g ON g.id = fg.group_id
                 JOIN users u ON u.id = fg.student_user_id';
         $params = [];
-        if ($actor['role'] === 'student') {
+        if (apiIsStudentRole($actor)) {
             $sql .= " WHERE fg.student_user_id = ? AND fg.status = 'published'
                       AND EXISTS (
                           SELECT 1 FROM group_members gm

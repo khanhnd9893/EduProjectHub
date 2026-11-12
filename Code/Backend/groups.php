@@ -111,7 +111,7 @@ function requireGroupManager(array $group, array $actor): void
     requireValue(
         $actor['role'] === 'admin'
             || (
-                $actor['role'] === 'student'
+                apiIsStudentRole($actor)
                 && (int) $group['leader_user_id'] === (int) $actor['id']
             ),
         403,
@@ -122,7 +122,7 @@ function requireGroupManager(array $group, array $actor): void
 /** Kiểm tra người gọi có quyền xem nhóm theo vai trò của họ. */
 function requireGroupViewer(PDO $pdo, array $group, array $actor): void
 {
-    if ($actor['role'] === 'admin') {
+    if (apiIsTrainingManager($actor)) {
         return;
     }
 
@@ -214,7 +214,7 @@ try {
         $where = [];
         $params = [];
 
-        if ($actor['role'] === 'student') {
+        if (apiIsStudentRole($actor)) {
             $where[] = '(sg.leader_user_id = ? OR EXISTS (
                 SELECT 1 FROM group_members gm_access
                 WHERE gm_access.group_id = sg.id
@@ -289,7 +289,7 @@ try {
         $statement = queryStatement($pdo, "SELECT u.id, u.student_code, u.full_name
              FROM users u
              JOIN project_rounds pr ON pr.id = ?
-             WHERE u.role = 'student'
+             WHERE u.role IN ('student', 'team_leader')
                AND u.account_status = 'active'
                AND NOT EXISTS (
                    SELECT 1 FROM group_members current_member
@@ -329,7 +329,7 @@ try {
     }
 
     if ($method === 'POST' && $action === 'request') {
-        requireValue($actor['role'] === 'student', 403, 'Chỉ sinh viên mới được gửi yêu cầu tham gia nhóm.');
+        requireValue(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới được gửi yêu cầu tham gia nhóm.');
         $groupId = positiveId($body['group_id'] ?? null, 'group_id');
         $message = validateGroupText($body, 'message', 500, false);
         $group = getGroup($pdo, $groupId);
@@ -382,7 +382,7 @@ try {
     }
 
     if ($method === 'GET' && $action === 'invitations') {
-        requireValue($actor['role'] === 'student', 403, 'Chỉ sinh viên mới có thể xem lời mời nhóm.');
+        requireValue(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới có thể xem lời mời nhóm.');
         $statement = queryStatement($pdo, 'SELECT gi.id, gi.group_id, sg.group_name, gi.invited_user_id,
                     gi.invited_by, gi.invite_code, gi.message, gi.status, gi.sent_at,
                     gi.responded_at, gi.expires_at
@@ -395,7 +395,7 @@ try {
 
     if ($method === 'GET' && $action === 'sent_invitations') {
         requireValue(
-            in_array($actor['role'], ['admin', 'student'], true),
+            apiIsTrainingManager($actor) || apiIsStudentRole($actor),
             403,
             'Chỉ trưởng nhóm hoặc quản trị viên mới có thể xem lời mời đã gửi.'
         );
@@ -407,7 +407,7 @@ try {
                 JOIN student_groups sg ON sg.id = gi.group_id
                 JOIN users invitee ON invitee.id = gi.invited_user_id';
         $params = [];
-        if ($actor['role'] !== 'admin') {
+        if (!apiIsTrainingManager($actor)) {
             $sql .= ' WHERE sg.leader_user_id = ?';
             $params[] = $actor['id'];
         }
@@ -424,7 +424,7 @@ try {
         requireGroupManager($group, $actor);
         requireValue(in_array($group['status'], ['forming', 'active'], true), 409, 'Nhóm không còn nhận thành viên.');
         $statement = queryStatement($pdo, "SELECT id FROM users
-             WHERE id = ? AND role = 'student' AND account_status = 'active'", [$invitedUserId]);
+             WHERE id = ? AND role IN ('student', 'team_leader') AND account_status = 'active'", [$invitedUserId]);
         requireValue($statement->fetchColumn() !== false, 404, 'Không tìm thấy tài khoản sinh viên đang hoạt động.');
 
         $statement = queryStatement($pdo, "SELECT 1 FROM group_members
@@ -449,7 +449,7 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'respond_invitation') {
-        requireValue($actor['role'] === 'student', 403, 'Chỉ sinh viên mới có thể phản hồi lời mời.');
+        requireValue(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới có thể phản hồi lời mời.');
         $invitationId = positiveId($body['invitation_id'] ?? null, 'invitation_id');
         $status = $body['status'] ?? null;
         requireValue(in_array($status, ['accepted', 'rejected'], true), 400, 'Trạng thái phản hồi lời mời không hợp lệ.');
@@ -472,7 +472,7 @@ try {
     }
 
     if ($method === 'POST' && $action === 'assign_lecturer') {
-        requireValue($actor['role'] === 'admin', 403, 'Chỉ quản trị viên mới được phân công giảng viên.');
+        requireValue(apiIsTrainingManager($actor), 403, 'Chỉ quản trị viên hoặc người đào tạo mới được phân công giảng viên.');
 
         $lecturerId = positiveId($body['lecturer_user_id'] ?? null, 'lecturer_user_id');
         requireValue(
@@ -519,7 +519,7 @@ try {
     }
 
     if ($method === 'POST' && $action === 'create') {
-        requireValue($actor['role'] === 'student', 403, 'Chỉ sinh viên mới được tạo nhóm.');
+        requireValue(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới được tạo nhóm.');
         $groupCode = validateGroupText($body, 'group_code', 30, true);
         $groupName = validateGroupText($body, 'group_name', 150, true);
         $description = validateGroupText($body, 'description', 65535, false);
@@ -606,7 +606,7 @@ try {
         );
 
         $statement = queryStatement($pdo, "SELECT 1 FROM users
-             WHERE id = ? AND role = 'student' AND account_status = 'active'", [$memberId]);
+             WHERE id = ? AND role IN ('student', 'team_leader') AND account_status = 'active'", [$memberId]);
         requireValue($statement->fetchColumn() !== false, 404, 'Không tìm thấy tài khoản sinh viên đang hoạt động.');
 
         $statement = queryStatement($pdo, "SELECT 1

@@ -51,11 +51,13 @@ try {
                 FROM project_topics t
                 LEFT JOIN users supervisor ON supervisor.id = t.supervisor_user_id';
         $params = [];
-        if ($actor['role'] !== 'admin') {
+        $canViewAllTopics = apiIsTrainingManager($actor) || $actor['role'] === 'lecturer';
+        if (!$canViewAllTopics) {
             $sql .= " WHERE t.status = 'open'";
         }
         if (isset($_GET['round_id'])) {
-            $sql .= $actor['role'] === 'admin' ? ' WHERE t.project_round_id = ?' : ' AND t.project_round_id = ?';
+            $sql .= $canViewAllTopics ? ' WHERE' : ' AND';
+            $sql .= ' t.project_round_id = ?';
             $params[] = topicId($_GET['round_id'], 'round_id');
         }
         $sql .= ' ORDER BY t.project_round_id DESC, t.title';
@@ -68,7 +70,7 @@ try {
         $topicId = isset($_GET['topic_id']) ? topicId($_GET['topic_id'], 'topic_id') : null;
         $groupId = isset($_GET['group_id']) ? topicId($_GET['group_id'], 'group_id') : null;
         apiRequire(
-            in_array($actor['role'], ['admin', 'student', 'lecturer'], true),
+            in_array($actor['role'], ['admin', 'training_manager', 'student', 'team_leader', 'lecturer'], true),
             403,
             'Không có quyền xem các đăng ký này.'
         );
@@ -93,7 +95,7 @@ try {
             $group = apiRequireGroupAccess($pdo, $groupId, $actor);
             $conditions[] = 'tr.group_id = ?';
             $params[] = $groupId;
-        } elseif ($actor['role'] === 'student') {
+        } elseif (apiIsStudentRole($actor)) {
             $conditions[] = 'g.leader_user_id = ?';
             $params[] = $actor['id'];
         } elseif ($actor['role'] === 'lecturer') {
@@ -115,7 +117,11 @@ try {
     }
 
     if ($method === 'POST' && $action === 'create') {
-        apiRequire($actor['role'] === 'admin', 403, 'Chỉ quản trị viên mới được tạo đề tài.');
+        apiRequire(
+            apiIsTrainingManager($actor) || $actor['role'] === 'lecturer',
+            403,
+            'Chỉ người đào tạo, quản trị viên hoặc giảng viên mới được tạo đề tài.'
+        );
         $roundId = topicId($body['project_round_id'] ?? null, 'project_round_id');
         $code = topicText($body, 'topic_code', 30);
         $title = topicText($body, 'title', 200);
@@ -146,7 +152,11 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'update') {
-        apiRequire($actor['role'] === 'admin', 403, 'Chỉ quản trị viên mới được cập nhật đề tài.');
+        apiRequire(
+            apiIsTrainingManager($actor) || $actor['role'] === 'lecturer',
+            403,
+            'Chỉ người đào tạo, quản trị viên hoặc giảng viên mới được cập nhật đề tài.'
+        );
         $id = topicId($body['id'] ?? null, 'id');
         $updates = [];
         $params = [];
@@ -206,7 +216,7 @@ try {
     }
 
     if ($method === 'POST' && $action === 'register') {
-        apiRequire($actor['role'] === 'student', 403, 'Chỉ sinh viên mới được đăng ký đề tài.');
+        apiRequire(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới được đăng ký đề tài.');
         $topicId = topicId($body['topic_id'] ?? null, 'topic_id');
         $groupId = topicId($body['group_id'] ?? null, 'group_id');
         $note = $body['note'] ?? null;
@@ -247,7 +257,11 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'review') {
-        apiRequire(in_array($actor['role'], ['admin', 'lecturer'], true), 403, 'Chỉ quản trị viên hoặc giảng viên mới được duyệt đăng ký.');
+        apiRequire(
+            in_array($actor['role'], ['admin', 'training_manager', 'lecturer'], true),
+            403,
+            'Chỉ người đào tạo, quản trị viên hoặc giảng viên mới được duyệt đăng ký.'
+        );
         $registrationId = topicId($body['registration_id'] ?? null, 'registration_id');
         $status = $body['status'] ?? null;
         apiRequire(in_array($status, ['approved', 'rejected'], true), 400, 'Trạng thái duyệt không hợp lệ.');

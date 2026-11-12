@@ -13,6 +13,7 @@ import {
   mockReports,
   mockReportVersions,
 } from './mock/reportMock.js'
+import { isStudentRole } from '../utils/roles.js'
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
@@ -210,7 +211,7 @@ const reportApi = {
         mockFinalGrades.filter(
           (grade) =>
             (groupId === undefined || grade.groupId === Number(groupId)) &&
-            (user.role !== 'STUDENT' ||
+            (!isStudentRole(user.role) ||
               (grade.studentId === user.id && grade.status === 'published')),
         ),
       )

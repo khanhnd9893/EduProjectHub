@@ -1,11 +1,6 @@
 import PageHeading from '../../components/PageHeading.jsx'
 import { useAuth } from '../../contexts/useAuth.js'
-
-const roleLabels = {
-  ADMIN: 'Quản trị viên',
-  LECTURER: 'Giảng viên',
-  STUDENT: 'Sinh viên',
-}
+import { roleLabel } from '../../utils/roles.js'
 
 function ProfilePage() {
   const { user } = useAuth()
@@ -16,7 +11,7 @@ function ProfilePage() {
         eyebrow="Tài khoản"
         title="Hồ sơ cá nhân"
         description="Thông tin tài khoản đang đăng nhập trong hệ thống."
-        status={roleLabels[user?.role] || user?.role || 'Chưa xác định'}
+        status={roleLabel(user?.role) || 'Chưa xác định'}
       />
       <section className="workspace-panel profile-panel">
         <div className="profile-summary">
@@ -26,7 +21,7 @@ function ProfilePage() {
           <div>
             <h2>{user?.fullName || 'Chưa cập nhật họ tên'}</h2>
             <p className="muted">
-              {roleLabels[user?.role] || 'Vai trò chưa được xác định'}
+              {roleLabel(user?.role) || 'Vai trò chưa được xác định'}
             </p>
           </div>
         </div>
@@ -41,7 +36,7 @@ function ProfilePage() {
           </div>
           <div>
             <dt>Vai trò</dt>
-            <dd>{roleLabels[user?.role] || user?.role || 'Chưa có dữ liệu'}</dd>
+            <dd>{roleLabel(user?.role) || 'Chưa có dữ liệu'}</dd>
           </div>
         </dl>
         <p className="profile-note">

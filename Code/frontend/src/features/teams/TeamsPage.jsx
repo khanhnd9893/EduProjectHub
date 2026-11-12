@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import teamApi from '../../api/teamApi.js'
 import { useAuth } from '../../contexts/useAuth.js'
+import { isStudentRole } from '../../utils/roles.js'
 import InviteMemberForm from './InviteMemberForm.jsx'
 import JoinRequestsPanel from './JoinRequestsPanel.jsx'
 import MyInvitationsPanel from './MyInvitationsPanel.jsx'
@@ -153,7 +154,7 @@ function TeamsPage() {
         description="Danh sách nhóm và thông tin thành viên được tải từ API nhóm."
         status={isLoadingTeams ? 'Đang tải' : `${teams.length} nhóm`}
       />
-      {role === 'STUDENT' && (
+      {isStudentRole(role) && (
         <button
           className="teams-create-toggle"
           onClick={() => setIsCreating((current) => !current)}
@@ -199,7 +200,7 @@ function TeamsPage() {
           </button>
         </form>
       )}
-      {role === 'STUDENT' && (
+      {isStudentRole(role) && (
         <MyInvitationsPanel onAccepted={handleInvitationAccepted} />
       )}
       {isLoadingTeams ? (

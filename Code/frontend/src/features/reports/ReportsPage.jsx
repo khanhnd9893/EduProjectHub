@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import reportApi from '../../api/reportApi.js'
 import { useAuth } from '../../contexts/useAuth.js'
+import { isStudentRole } from '../../utils/roles.js'
 
 const reportTypes = {
   weekly: 'Hàng tuần',
@@ -187,7 +188,7 @@ function ReportsPage() {
                 <p className="muted">{report.description}</p>
                 <p><strong>Hạn nộp:</strong> {formatDate(report.deadline)}</p>
                 <p><strong>Trạng thái:</strong> {report.status === 'open' ? 'Đang mở' : report.status === 'graded' ? 'Đã chấm' : 'Đã đóng'}</p>
-                {report.status === 'open' && role === 'STUDENT' && (
+                {report.status === 'open' && isStudentRole(role) && (
                   <form className="data-form" onSubmit={handleSubmit}>
                     <h3>Nộp phiên bản</h3>
                     <label className="field-control">

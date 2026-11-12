@@ -15,7 +15,8 @@ require_once __DIR__ . '/api_common.php';
 try {
     require_once __DIR__ . '/../../database/database.php';
     $pdo = $conn;
-    apiRequireActor($pdo);
+    $actor = apiRequireActor($pdo);
+    apiRequire(apiIsTrainingManager($actor), 403, 'Chỉ quản trị viên hoặc người đào tạo mới được xem các đợt đồ án.');
     apiRequire(strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET', 405, 'API học kỳ chỉ hỗ trợ GET.');
     apiRequire(($_GET['action'] ?? 'semesters') === 'semesters', 404, 'Không tìm thấy thao tác API.');
 

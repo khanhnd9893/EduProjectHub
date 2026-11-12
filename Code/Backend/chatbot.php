@@ -65,7 +65,7 @@ function chatbotFaqValues(array $body, bool $partial): array
         $values['category'] = $category === '' ? null : $category;
     }
     $enums = [
-        'visibility' => ['all', 'admin', 'lecturer', 'student'],
+        'visibility' => ['all', 'admin', 'student', 'team_leader', 'lecturer', 'training_manager'],
         'status' => ['draft', 'published', 'archived'],
     ];
     foreach ($enums as $field => $allowed) {
@@ -98,13 +98,14 @@ try {
     $action = $_GET['action'] ?? '';
 
     if ($method === 'GET' && $action === 'faqs') {
-        $statement = $pdo->prepare(
-            "SELECT id, question, answer, category, visibility, status, created_at, updated_at
-             FROM chatbot_faqs
-             WHERE status = 'published' AND visibility IN ('all', ?)
-             ORDER BY category, id"
-        );
-        $statement->execute([$actor['role']]);
+        $visibilities = apiFaqVisibilities($actor);
+        $sql = "SELECT id, question, answer, category, visibility, status, created_at, updated_at
+                FROM chatbot_faqs
+                WHERE status = 'published' AND visibility IN ("
+            . implode(', ', array_fill(0, count($visibilities), '?'))
+            . ') ORDER BY category, id';
+        $statement = $pdo->prepare($sql);
+        $statement->execute($visibilities);
         apiRespond(200, ['data' => $statement->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
@@ -148,11 +149,13 @@ try {
         }
 
         $questionWords = chatbotNormalize($content);
-        $statement = $pdo->prepare(
-            "SELECT question, answer FROM chatbot_faqs
-             WHERE status = 'published' AND visibility IN ('all', ?)"
-        );
-        $statement->execute([$actor['role']]);
+        $visibilities = apiFaqVisibilities($actor);
+        $sql = "SELECT question, answer FROM chatbot_faqs
+                WHERE status = 'published' AND visibility IN ("
+            . implode(', ', array_fill(0, count($visibilities), '?'))
+            . ')';
+        $statement = $pdo->prepare($sql);
+        $statement->execute($visibilities);
         $bestAnswer = 'Xin lỗi, mình chưa có thông tin cho câu hỏi này. Bạn hãy liên hệ giảng viên hướng dẫn nhé.';
         $bestScore = 0;
         foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $faq) {
@@ -208,7 +211,7 @@ try {
     }
 
     if ($method === 'GET' && $action === 'manage_faqs') {
-        apiRequire($actor['role'] === 'admin', 403, 'Chỉ quản trị viên mới được quản lý FAQ.');
+        apiRequire(in_array($actor['role'], ['admin', 'lecturer'], true), 403, 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
         $statement = $pdo->query(
             'SELECT f.id, f.question, f.answer, f.category, f.visibility, f.status,
                     f.created_by, creator.full_name AS created_by_name, f.created_at, f.updated_at
@@ -222,7 +225,7 @@ try {
     if ($method === 'POST' && $action === 'create_faq') {
         $body = apiReadJsonBody();
         apiRequireCsrf($body);
-        apiRequire($actor['role'] === 'admin', 403, 'Chỉ quản trị viên mới được quản lý FAQ.');
+        apiRequire(in_array($actor['role'], ['admin', 'lecturer'], true), 403, 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
         $values = chatbotFaqValues($body, false);
         $values['created_by'] = $actor['id'];
         $statement = $pdo->prepare(
@@ -236,7 +239,7 @@ try {
     if ($method === 'PATCH' && $action === 'update_faq') {
         $body = apiReadJsonBody();
         apiRequireCsrf($body);
-        apiRequire($actor['role'] === 'admin', 403, 'Chỉ quản trị viên mới được quản lý FAQ.');
+        apiRequire(in_array($actor['role'], ['admin', 'lecturer'], true), 403, 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
         $id = filter_var($body['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         apiRequire($id !== false, 400, 'id phải là số nguyên dương.');
         $values = chatbotFaqValues($body, true);

@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS users (
     department      VARCHAR(100) NULL,
     avatar_url      VARCHAR(255) NULL,
     password_hash   VARCHAR(255) NOT NULL,
-    role            ENUM('admin', 'lecturer', 'student') NOT NULL DEFAULT 'student',
+    role            ENUM('admin', 'student', 'team_leader', 'lecturer', 'training_manager')
+                    NOT NULL DEFAULT 'student'
+                    COMMENT 'Vai tro tai khoan; quyen truong nhom van phu thuoc group_members trong tung nhom',
     account_status  ENUM('active', 'locked', 'inactive') NOT NULL DEFAULT 'active',
     last_login_at   DATETIME NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -298,7 +300,7 @@ BEGIN
     SELECT role INTO v_role
     FROM users WHERE id = NEW.user_id;
 
-    IF v_role IS NULL OR v_role <> 'student' THEN
+    IF v_role IS NULL OR v_role NOT IN ('student', 'team_leader') THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Chi tai khoan sinh vien moi duoc tham gia nhom';
     END IF;
@@ -352,7 +354,7 @@ BEGIN
 
     SELECT role INTO v_role FROM users WHERE id = NEW.user_id;
 
-    IF NEW.status = 'active' AND (v_role IS NULL OR v_role <> 'student') THEN
+    IF NEW.status = 'active' AND (v_role IS NULL OR v_role NOT IN ('student', 'team_leader')) THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Chi tai khoan sinh vien moi duoc tham gia nhom';
     END IF;
@@ -699,7 +701,7 @@ CREATE TABLE IF NOT EXISTS chatbot_faqs (
     question VARCHAR(500) NOT NULL,
     answer TEXT NOT NULL,
     category VARCHAR(100) NULL,
-    visibility ENUM('all','admin','lecturer','student') NOT NULL DEFAULT 'all',
+    visibility ENUM('all','admin','student','team_leader','lecturer','training_manager') NOT NULL DEFAULT 'all',
     status ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
     created_by BIGINT UNSIGNED NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

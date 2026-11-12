@@ -29,7 +29,7 @@ function AppRoutes() {
           <Route
             path="/topics"
             element={
-              <RoleRoute allowedRoles={['ADMIN', 'STUDENT', 'LECTURER']}>
+              <RoleRoute allowedRoles={['ADMIN', 'STUDENT', 'TEAM_LEADER', 'LECTURER', 'TRAINING_MANAGER']}>
                 <TopicsPage />
               </RoleRoute>
             }
@@ -37,13 +37,13 @@ function AppRoutes() {
           <Route
             path="/semesters"
             element={
-              <RoleRoute allowedRoles={['ADMIN']}>
+              <RoleRoute allowedRoles={['ADMIN', 'TRAINING_MANAGER']}>
                 <SemestersPage />
               </RoleRoute>
             }
           />
-          {/* M2: route FR04-FR07, chỉ cho STUDENT và LECTURER */}
-          <Route element={<RoleRoute allowedRoles={['STUDENT', 'LECTURER']} />}>
+          {/* Nhóm, nhiệm vụ, báo cáo và chatbot dùng chung cho sinh viên và vai trò hướng dẫn. */}
+          <Route element={<RoleRoute allowedRoles={['STUDENT', 'TEAM_LEADER', 'LECTURER', 'TRAINING_MANAGER']} />}>
             <Route path="/teams" element={<TeamsPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/progress" element={<ProgressPage />} />

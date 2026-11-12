@@ -11,6 +11,7 @@ import {
   mockChatSessions,
   mockFaqs,
 } from './mock/chatbotMock.js'
+import { isStudentRole } from '../utils/roles.js'
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
@@ -35,15 +36,22 @@ function findMockAnswer(content) {
   let bestFaq = null
   let bestScore = 0
 
-  for (const faq of mockFaqs.filter(
-    (entry) => !entry.visibility || entry.visibility === 'all' || entry.visibility === role.toLowerCase(),
-  )) {
+  for (const faq of mockFaqs.filter((entry) => isFaqVisible(entry, role))) {
     const score = toWords(faq.question).filter((word) => words.has(word)).length
 
     if (score > bestScore) {
       bestFaq = faq
       bestScore = score
     }
+  }
+
+  function isFaqVisible(faq, role) {
+    return (
+      !faq.visibility ||
+      faq.visibility === 'all' ||
+      faq.visibility === role.toLowerCase() ||
+      (isStudentRole(role) && faq.visibility === 'student')
+    )
   }
 
   return bestScore >= MIN_MATCHED_WORDS ? bestFaq.answer : MOCK_FALLBACK_ANSWER
@@ -79,9 +87,7 @@ const chatbotApi = {
         mockFaqs.filter(
           (faq) =>
             faq.status === 'published' &&
-            (!faq.visibility ||
-              faq.visibility === 'all' ||
-              faq.visibility === role.toLowerCase()),
+            isFaqVisible(faq, role),
         ),
       )
     }

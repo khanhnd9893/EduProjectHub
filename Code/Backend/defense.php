@@ -180,7 +180,7 @@ function defenseLoadSchedule(PDO $pdo, int $id): array
 /** Quyền xem lịch: admin, thành viên hội đồng, giảng viên được phân công nhóm hoặc thành viên nhóm. */
 function defenseCanViewSchedule(PDO $pdo, array $schedule, array $actor): bool
 {
-    if ($actor['role'] === 'admin') {
+    if (apiIsTrainingManager($actor)) {
         return true;
     }
     if ($actor['role'] === 'lecturer'
@@ -219,7 +219,7 @@ function defenseRequireGradeManager(PDO $pdo, int $groupId, array $actor): array
     $statement->execute([$groupId]);
     $group = $statement->fetch(PDO::FETCH_ASSOC);
     apiRequire($group !== false, 404, 'Không tìm thấy nhóm.');
-    if ($actor['role'] === 'admin') {
+    if (apiIsTrainingManager($actor)) {
         return $group;
     }
     $isChair = false;
@@ -298,7 +298,7 @@ try {
     }
 
     if ($method === 'GET' && $action === 'lecturers') {
-        defenseRequireRole($actor, ['admin'], 'Chỉ quản trị viên mới xem được danh sách giảng viên.');
+        defenseRequireRole($actor, ['admin', 'training_manager'], 'Chỉ quản trị viên hoặc người đào tạo mới xem được danh sách giảng viên.');
         $statement = $pdo->query(
             "SELECT id, full_name FROM users
              WHERE role = 'lecturer' AND account_status = 'active'
@@ -308,7 +308,7 @@ try {
     }
 
     if ($method === 'GET' && $action === 'councils') {
-        defenseRequireRole($actor, ['admin', 'lecturer'], 'Sinh viên không có quyền xem hội đồng bảo vệ.');
+        defenseRequireRole($actor, ['admin', 'training_manager', 'lecturer'], 'Sinh viên không có quyền xem hội đồng bảo vệ.');
         $sql = 'SELECT c.id, c.project_round_id, pr.round_name, c.name, c.created_at
                 FROM defense_councils c
                 JOIN project_rounds pr ON pr.id = c.project_round_id';
@@ -340,7 +340,7 @@ try {
     }
 
     if ($method === 'POST' && $action === 'create_council') {
-        defenseRequireRole($actor, ['admin'], 'Chỉ quản trị viên mới được tạo hội đồng bảo vệ.');
+        defenseRequireRole($actor, ['admin', 'training_manager'], 'Chỉ quản trị viên hoặc người đào tạo mới được tạo hội đồng bảo vệ.');
         $roundId = defenseId($body['project_round_id'] ?? null, 'project_round_id');
         $name = defenseText($body, 'name', 150, true);
         $statement = $pdo->prepare('SELECT 1 FROM project_rounds WHERE id = ?');
@@ -362,7 +362,7 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'update_council') {
-        defenseRequireRole($actor, ['admin'], 'Chỉ quản trị viên mới được cập nhật hội đồng bảo vệ.');
+        defenseRequireRole($actor, ['admin', 'training_manager'], 'Chỉ quản trị viên hoặc người đào tạo mới được cập nhật hội đồng bảo vệ.');
         $id = defenseId($body['id'] ?? null, 'id');
         defenseLoadCouncil($pdo, $id);
         apiRequire(
@@ -415,7 +415,7 @@ try {
                 JOIN student_groups g ON g.id = s.group_id';
         $params = [$actor['id']];
         $conditions = [];
-        if ($actor['role'] === 'student') {
+        if (apiIsStudentRole($actor)) {
             $conditions[] = "(g.leader_user_id = ? OR EXISTS (
                 SELECT 1 FROM group_members gm
                 WHERE gm.group_id = g.id AND gm.user_id = ? AND gm.status = 'active'
@@ -464,7 +464,7 @@ try {
         $schedule['council_members'] = defenseCouncilMembers($pdo, (int) $schedule['council_id']);
         $schedule['students'] = defenseGroupStudents($pdo, (int) $schedule['group_id']);
         $schedule['scores'] = [];
-        if ($actor['role'] === 'admin' || $councilRole !== null) {
+        if (apiIsTrainingManager($actor) || $councilRole !== null) {
             $statement = $pdo->prepare(
                 'SELECT ds.id, ds.student_user_id, student.full_name AS student_name,
                         ds.lecturer_user_id, lecturer.full_name AS lecturer_name,
@@ -482,7 +482,7 @@ try {
     }
 
     if ($method === 'POST' && $action === 'create_schedule') {
-        defenseRequireRole($actor, ['admin'], 'Chỉ quản trị viên mới được lên lịch bảo vệ.');
+        defenseRequireRole($actor, ['admin', 'training_manager'], 'Chỉ quản trị viên hoặc người đào tạo mới được lên lịch bảo vệ.');
         $councilId = defenseId($body['council_id'] ?? null, 'council_id');
         $groupId = defenseId($body['group_id'] ?? null, 'group_id');
         $defenseAt = defenseDateTime($body['defense_at'] ?? null, 'defense_at');
@@ -522,7 +522,7 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'update_schedule') {
-        defenseRequireRole($actor, ['admin'], 'Chỉ quản trị viên mới được cập nhật lịch bảo vệ.');
+        defenseRequireRole($actor, ['admin', 'training_manager'], 'Chỉ quản trị viên hoặc người đào tạo mới được cập nhật lịch bảo vệ.');
         $id = defenseId($body['id'] ?? null, 'id');
         $pdo->beginTransaction();
         $statement = $pdo->prepare(

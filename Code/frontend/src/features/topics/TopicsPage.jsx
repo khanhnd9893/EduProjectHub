@@ -4,6 +4,7 @@ import semesterApi from '../../api/semesterApi.js'
 import teamApi from '../../api/teamApi.js'
 import topicApi from '../../api/topicApi.js'
 import { useAuth } from '../../contexts/useAuth.js'
+import { isStudentRole, topicManagerRoles } from '../../utils/roles.js'
 
 const topicStatuses = {
   draft: 'Bản nháp',
@@ -44,7 +45,7 @@ function TopicsPage() {
     () => Promise.all([
       topicApi.listTopics(),
       teamApi.listTeams(),
-      role === 'ADMIN' ? semesterApi.listSemesters() : Promise.resolve([]),
+      topicManagerRoles.includes(role) ? semesterApi.listSemesters() : Promise.resolve([]),
       topicApi.listRegistrations(),
     ]),
     [role],
@@ -150,7 +151,7 @@ function TopicsPage() {
     }
   }
 
-  const canReview = role === 'ADMIN' || role === 'LECTURER'
+  const canReview = topicManagerRoles.includes(role)
 
   return (
     <section className="dashboard-page">
@@ -163,7 +164,7 @@ function TopicsPage() {
       {error && <p className="alert-error" role="alert">{error}</p>}
       {notice && <p className="success-message" role="status">{notice}</p>}
 
-      {role === 'ADMIN' && (
+      {topicManagerRoles.includes(role) && (
         <form className="workspace-panel data-form topic-form" onSubmit={handleCreate}>
           <h2>Tạo đề tài</h2>
           <div className="form-grid">
@@ -229,7 +230,7 @@ function TopicsPage() {
                   Nhóm đã duyệt: {topic.approvedGroups}/{topic.maxGroups}
                 </p>
                 <span className="status-chip">{topicStatuses[topic.status] || topic.status}</span>
-                {role === 'ADMIN' && (
+                {topicManagerRoles.includes(role) && (
                   <label className="field-control topic-status-control">
                     Trạng thái
                     <select onChange={(event) => handleStatusChange(topic, event.target.value)} value={topic.status}>
@@ -239,7 +240,7 @@ function TopicsPage() {
                     </select>
                   </label>
                 )}
-                {role === 'STUDENT' && myGroups.length > 0 && topic.status === 'open' && (
+                {isStudentRole(role) && myGroups.length > 0 && topic.status === 'open' && (
                   <div className="topic-register-actions">
                     {myGroups.map((group) => (
                       (() => {
