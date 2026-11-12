@@ -13,11 +13,60 @@ session_start();
 require_once __DIR__ . '/api_common.php';
 
 /** Kiểm tra và chuyển giá trị thành ID báo cáo nguyên dương. */
-function reportId($value): int
+function reportId($value, string $field = 'report_id'): int
 {
     $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    apiRequire($id !== false, 400, 'report_id phải là số nguyên dương.');
+    apiRequire($id !== false, 400, "$field phải là số nguyên dương.");
     return (int) $id;
+}
+
+/** Chuẩn hóa chuỗi văn bản của đợt báo cáo; trả null nếu trường tùy chọn để trống. */
+function reportText(array $body, string $field, int $maxLength, bool $required): ?string
+{
+    $value = $body[$field] ?? null;
+    if (!$required && $value === null) {
+        return null;
+    }
+    apiRequire(is_string($value), 400, "$field phải là chuỗi.");
+    $value = trim($value);
+    apiRequire(!$required || $value !== '', 400, "$field không được để trống.");
+    apiRequire(mb_strlen($value, 'UTF-8') <= $maxLength, 400, "$field vượt quá giới hạn $maxLength ký tự.");
+    return $value === '' ? null : $value;
+}
+
+/** Chuẩn hóa hạn nộp sang định dạng DATETIME; null nghĩa là không có hạn. */
+function reportDeadline($value): ?string
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+    apiRequire(
+        is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?$/', $value) === 1,
+        400,
+        'deadline phải có dạng YYYY-MM-DD HH:MM.'
+    );
+    $normalized = str_replace('T', ' ', $value);
+    if (strlen($normalized) === 16) {
+        $normalized .= ':00';
+    }
+    $date = DateTime::createFromFormat('Y-m-d H:i:s', $normalized);
+    $errors = DateTime::getLastErrors();
+    apiRequire(
+        $date !== false && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0)),
+        400,
+        'deadline không phải ngày giờ hợp lệ.'
+    );
+    return $date->format('Y-m-d H:i:s');
+}
+
+/** Chỉ quản trị viên và giảng viên được tạo hoặc chỉnh sửa đợt báo cáo. */
+function reportRequireManager(array $actor): void
+{
+    apiRequire(
+        in_array($actor['role'], ['admin', 'lecturer'], true),
+        403,
+        'Chỉ quản trị viên hoặc giảng viên được phân công mới được quản lý đợt báo cáo.'
+    );
 }
 
 /** Xác thực quyền truy cập báo cáo dựa trên quyền truy cập nhóm. */
@@ -159,6 +208,11 @@ try {
         if (!is_dir($storage) && !mkdir($storage, 0750, true) && !is_dir($storage)) {
             throw new RuntimeException('Không thể tạo thư mục lưu báo cáo.', 500);
         }
+        // Thư mục nằm trong web root nên phải chặn tải trực tiếp và liệt kê tệp qua Apache.
+        $guard = __DIR__ . '/storage/.htaccess';
+        if (!is_file($guard)) {
+            file_put_contents($guard, "Require all denied\n");
+        }
         $storedName = bin2hex(random_bytes(24)) . '.' . $extension;
         $destination = $storage . DIRECTORY_SEPARATOR . $storedName;
 
@@ -208,6 +262,81 @@ try {
         $versionId = (int) $pdo->lastInsertId();
         $pdo->commit();
         apiRespond(201, ['data' => ['id' => $versionId, 'report_id' => $id, 'version_no' => $versionNo]]);
+    }
+
+    if ($method === 'POST' && $action === 'create') {
+        $body = apiReadJsonBody();
+        apiRequireCsrf($body);
+        reportRequireManager($actor);
+        $groupId = reportId($body['group_id'] ?? null, 'group_id');
+        $group = reportCanAccess($pdo, $groupId, $actor);
+        apiRequire($group['status'] !== 'dissolved', 409, 'Nhóm đã giải thể, không thể tạo đợt báo cáo.');
+        $title = reportText($body, 'title', 255, true);
+        $reportType = $body['report_type'] ?? 'other';
+        apiRequire(
+            in_array($reportType, ['weekly', 'midterm', 'final', 'other'], true),
+            400,
+            'Loại báo cáo không hợp lệ.'
+        );
+        $description = reportText($body, 'description', 5000, false);
+        $deadline = reportDeadline($body['deadline'] ?? null);
+        $status = $body['status'] ?? 'open';
+        apiRequire(in_array($status, ['open', 'closed'], true), 400, 'Trạng thái ban đầu chỉ có thể là open hoặc closed.');
+        $statement = $pdo->prepare(
+            'INSERT INTO reports (group_id, title, report_type, description, deadline, status, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
+        );
+        $statement->execute([$groupId, $title, $reportType, $description, $deadline, $status, $actor['id']]);
+        apiRespond(201, ['data' => ['id' => (int) $pdo->lastInsertId()]]);
+    }
+
+    if ($method === 'PATCH' && $action === 'update') {
+        $body = apiReadJsonBody();
+        apiRequireCsrf($body);
+        reportRequireManager($actor);
+        $id = reportId($body['id'] ?? null);
+        $statement = $pdo->prepare('SELECT group_id FROM reports WHERE id = ?');
+        $statement->execute([$id]);
+        $groupId = $statement->fetchColumn();
+        apiRequire($groupId !== false, 404, 'Không tìm thấy đợt báo cáo.');
+        reportCanAccess($pdo, (int) $groupId, $actor);
+
+        $updates = [];
+        $params = [];
+        if (array_key_exists('title', $body)) {
+            $updates[] = 'title = ?';
+            $params[] = reportText($body, 'title', 255, true);
+        }
+        if (array_key_exists('report_type', $body)) {
+            apiRequire(
+                in_array($body['report_type'], ['weekly', 'midterm', 'final', 'other'], true),
+                400,
+                'Loại báo cáo không hợp lệ.'
+            );
+            $updates[] = 'report_type = ?';
+            $params[] = $body['report_type'];
+        }
+        if (array_key_exists('description', $body)) {
+            $updates[] = 'description = ?';
+            $params[] = reportText($body, 'description', 5000, false);
+        }
+        if (array_key_exists('deadline', $body)) {
+            $updates[] = 'deadline = ?';
+            $params[] = reportDeadline($body['deadline']);
+        }
+        if (array_key_exists('status', $body)) {
+            apiRequire(
+                in_array($body['status'], ['open', 'closed', 'graded'], true),
+                400,
+                'Trạng thái đợt báo cáo không hợp lệ.'
+            );
+            $updates[] = 'status = ?';
+            $params[] = $body['status'];
+        }
+        apiRequire($updates !== [], 400, 'Không có trường nào để cập nhật.');
+        $params[] = $id;
+        $pdo->prepare('UPDATE reports SET ' . implode(', ', $updates) . ' WHERE id = ?')->execute($params);
+        apiRespond(200, ['message' => 'Đã cập nhật đợt báo cáo.']);
     }
 
     if ($method === 'POST' && $action === 'feedback') {
