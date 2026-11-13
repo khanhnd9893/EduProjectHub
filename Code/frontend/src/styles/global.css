@@ -833,6 +833,65 @@ h2 {
   padding-top: 16px;
 }
 
+/* M2: báo cáo theo wireframe FR06.1–FR06.3 */
+.report-upcoming {
+  align-items: center;
+  border-color: var(--accent);
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  margin-top: 28px;
+}
+
+.report-upcoming h2 {
+  margin-bottom: 6px;
+}
+
+.report-upcoming .muted {
+  margin: 0;
+}
+
+.report-upcoming button {
+  background: var(--accent);
+  border: 0;
+  border-radius: 7px;
+  color: white;
+  flex-shrink: 0;
+  font-weight: 700;
+  padding: 10px 16px;
+}
+
+.report-version-chip {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  vertical-align: middle;
+}
+
+.report-feedback {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.report-feedback p {
+  margin: 4px 0 0;
+}
+
+.report-feedback-score {
+  color: var(--accent-dark);
+  flex-shrink: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .report-upcoming {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 /* M2: khung chat theo wireframe FR07.1–FR07.2 */
 .chat-session-group {
   display: grid;
