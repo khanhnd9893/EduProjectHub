@@ -36,7 +36,13 @@ const mockUsers = [
   },
 ]
 
-const roles = ['ADMIN', 'LECTURER', 'STUDENT']
+const roles = [
+  'ADMIN',
+  'STUDENT',
+  'TEAM_LEADER',
+  'LECTURER',
+  'TRAINING_MANAGER',
+]
 const accountStatuses = ['active', 'locked', 'inactive']
 
 function assertMockAdmin() {

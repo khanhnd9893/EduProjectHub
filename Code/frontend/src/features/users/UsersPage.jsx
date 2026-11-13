@@ -5,8 +5,10 @@ import './users.css'
 
 const roleLabels = {
   ADMIN: 'Quản trị viên',
-  LECTURER: 'Giảng viên',
   STUDENT: 'Sinh viên',
+  TEAM_LEADER: 'Trưởng nhóm',
+  LECTURER: 'Giảng viên',
+  TRAINING_MANAGER: 'Người đào tạo',
 }
 const statusLabels = {
   active: 'Đang hoạt động',
