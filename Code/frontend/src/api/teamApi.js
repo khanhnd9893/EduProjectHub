@@ -231,6 +231,10 @@ const teamApi = {
       mockTeams.push(team)
       addMockMember(team.id, user.id, user.fullName)
       mockMembers.at(-1).memberRole = 'leader'
+      if (user.role === 'STUDENT') {
+        user.role = 'TEAM_LEADER'
+        localStorage.setItem('user', JSON.stringify(user))
+      }
       return mockResolve(team)
     }
 

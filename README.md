@@ -154,7 +154,7 @@ Sinh viên tham gia nhóm, thực hiện nhiệm vụ và nộp báo cáo.
 
 - Đăng nhập, đăng xuất và xem hồ sơ hiện tại.
 - Xem đề tài đang mở; trưởng nhóm gửi đăng ký đại diện cho nhóm.
-- Tạo nhóm, gửi yêu cầu tham gia, nhận lời mời và xem thông tin thành viên nhóm.
+- Tạo nhóm, gửi yêu cầu tham gia, nhận lời mời và xem thông tin thành viên nhóm. Khi tạo nhóm thành công, vai trò tài khoản được nâng từ Sinh viên lên Trưởng nhóm.
 - Xem nhiệm vụ, cập nhật trạng thái nhiệm vụ được giao và theo dõi tiến độ nhóm.
 - Nộp phiên bản báo cáo; xem phản hồi, thông báo, lịch bảo vệ và điểm đã công bố.
 - Sử dụng chatbot FAQ và xem lịch sử hội thoại cá nhân.
@@ -221,7 +221,7 @@ Mục này ghi rõ chức năng đang được hỗ trợ bởi API/giao diện 
 
 6.4. Nhóm và phân công giảng viên
 
-- Tạo nhóm; xem nhóm và thành viên trong phạm vi quyền.
+- Tạo nhóm; khi sinh viên tạo nhóm thành công, hệ thống cập nhật vai trò tài khoản thành Trưởng nhóm. Xem nhóm và thành viên trong phạm vi quyền.
 - Gửi/duyệt yêu cầu tham gia, gửi/nhận lời mời và quản lý thành viên.
 - Ràng buộc trưởng nhóm phải là thành viên đang hoạt động; kiểm tra giới hạn thành viên và không cho sinh viên thuộc nhiều nhóm đang hoạt động trong cùng đợt.
 - Phân công giảng viên cho nhóm do người đào tạo thực hiện; quản trị viên được xem dữ liệu nhóm và phân công ở chế độ chỉ đọc.

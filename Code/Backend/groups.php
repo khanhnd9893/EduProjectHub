@@ -584,6 +584,23 @@ try {
         $roundId = positiveId($body['project_round_id'] ?? null, 'project_round_id');
 
         $pdo->beginTransaction();
+        $statement = queryStatement(
+            $pdo,
+            'SELECT role, account_status FROM users WHERE id = ? FOR UPDATE',
+            [$actor['id']]
+        );
+        $creator = $statement->fetch(PDO::FETCH_ASSOC);
+        requireValue(
+            $creator !== false && $creator['account_status'] === 'active',
+            401,
+            'Tài khoản không tồn tại hoặc đã bị khóa.'
+        );
+        requireValue(
+            in_array($creator['role'], ['student', 'team_leader'], true),
+            403,
+            'Chỉ sinh viên mới được tạo nhóm.'
+        );
+
         $statement = queryStatement($pdo, "SELECT id FROM project_rounds WHERE id = ? AND status = 'open' FOR UPDATE", [$roundId]);
         requireValue($statement->fetch() !== false, 409, 'Đợt đồ án không tồn tại hoặc chưa mở đăng ký.');
 
@@ -612,6 +629,14 @@ try {
 
         $statement = queryStatement($pdo, 'SELECT 1 FROM student_groups WHERE project_round_id = ? AND group_code = ?', [$roundId, $groupCode]);
         requireValue($statement->fetchColumn() === false, 409, 'Mã nhóm đã được sử dụng trong đợt đồ án này.');
+
+        if ($creator['role'] === 'student') {
+            queryStatement(
+                $pdo,
+                "UPDATE users SET role = 'team_leader' WHERE id = ? AND role = 'student'",
+                [$actor['id']]
+            );
+        }
 
         $statement = queryStatement($pdo, "INSERT INTO student_groups
                 (group_code, group_name, description, project_round_id, leader_user_id, created_by)

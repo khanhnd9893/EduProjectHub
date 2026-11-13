@@ -82,6 +82,13 @@ export function AuthProvider({ children }) {
     }
   }
 
+  async function refreshCurrentUser() {
+    const currentUser = await authApi.getCurrentUser()
+    setUser(currentUser)
+    localStorage.setItem('user', JSON.stringify(currentUser))
+    return currentUser
+  }
+
   async function login(credentials) {
     const result = await authApi.login(credentials)
     setAuthError('')
@@ -111,6 +118,7 @@ export function AuthProvider({ children }) {
         isLoading,
         authError,
         retrySession,
+        refreshCurrentUser,
         login,
         logout,
       }}

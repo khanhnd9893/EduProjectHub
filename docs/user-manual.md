@@ -31,11 +31,12 @@ Các tài khoản trên chỉ là dữ liệu minh họa. Không dùng thông ti
 
 ## 4. Sinh viên
 1. Xem thông tin đồ án và thành viên.
-2. Mở danh sách nhiệm vụ để xem trạng thái và hạn nộp.
-3. Tải báo cáo đúng định dạng và dung lượng quy định.
-4. Ghi chú cho lần nộp nếu cần.
-5. Xem lịch sử nộp và nhận xét của giảng viên.
-6. Dùng chatbot để hỏi về quy trình, hướng dẫn và dữ liệu mà mình có quyền xem.
+2. Khi tạo nhóm thành công, tài khoản tự chuyển sang vai trò Trưởng nhóm; quyền quản lý chỉ áp dụng cho nhóm vừa tạo.
+3. Mở danh sách nhiệm vụ để xem trạng thái và hạn nộp.
+4. Tải báo cáo đúng định dạng và dung lượng quy định.
+5. Ghi chú cho lần nộp nếu cần.
+6. Xem lịch sử nộp và nhận xét của giảng viên.
+7. Dùng chatbot để hỏi về quy trình, hướng dẫn và dữ liệu mà mình có quyền xem.
 
 ## 5. Giảng viên
 1. Mở danh sách đồ án được phân công.
@@ -47,9 +48,10 @@ Các tài khoản trên chỉ là dữ liệu minh họa. Không dùng thông ti
 ## 6. Quản trị viên
 1. Tạo tài khoản bằng thông tin thật; tìm kiếm, cập nhật hồ sơ và gán một trong năm vai trò.
 2. Khóa/mở tài khoản hoặc đặt lại mật khẩu; mật khẩu không được hiển thị lại và chỉ lưu dạng hash.
-3. Tra cứu học kỳ, đề tài, nhóm, nhiệm vụ, báo cáo, hội đồng và lịch bảo vệ trên toàn hệ thống.
-4. Các trang nghiệp vụ của quản trị viên chỉ có quyền xem; người đào tạo quản lý học kỳ, đề tài, phân công, báo cáo và bảo vệ, còn trưởng nhóm quản lý thành viên và nhiệm vụ trong nhóm của mình.
-5. Cấu hình hệ thống, nhật ký hoạt động và sao lưu/khôi phục chưa có API quản trị tương ứng.
+3. Có thể xóa tài khoản sau khi xác nhận; thao tác bị từ chối nếu tài khoản còn liên kết với nhóm hoặc dữ liệu nghiệp vụ. Hãy chuyển quyền hay xử lý liên kết trước khi thử lại. Không thể tự xóa hoặc xóa quản trị viên hoạt động cuối cùng.
+4. Tra cứu học kỳ, đề tài, nhóm, nhiệm vụ, báo cáo, hội đồng và lịch bảo vệ trên toàn hệ thống.
+5. Các trang nghiệp vụ của quản trị viên chỉ có quyền xem; người đào tạo quản lý học kỳ, đề tài, phân công, báo cáo và bảo vệ, còn trưởng nhóm quản lý thành viên và nhiệm vụ trong nhóm của mình.
+6. Cấu hình hệ thống, nhật ký hoạt động và sao lưu/khôi phục chưa có API quản trị tương ứng.
 
 ## 7. Chatbot
 - Hỏi câu ngắn, nêu rõ phần cần hỗ trợ.

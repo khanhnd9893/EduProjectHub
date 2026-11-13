@@ -41,7 +41,7 @@ The demo accounts are `sv`, `truongnhom`, `gv`, `daotao`, and `admin`; each has 
 
 The feature schemas use `student_groups`, `project_rounds`, and `users` from the core schema. Reports and defense schedules belong to a group; user/lecturer/student IDs always reference `users.id`. Semester/round data uses `project_rounds`. All scores use a 0–10 scale. FAQ visibility supports all five roles. The chat FAQ and history tables are created by `chatbot-faqs.sql`.
 
-The `team_leader` account role inherits student capabilities. Whether an account is the leader of a particular group is still determined by `student_groups.leader_user_id` and `group_members.member_role`; the account role alone does not grant management rights over unrelated groups. The current backend gives `training_manager` access to existing round, topic, group-assignment, progress, report, and defense workflows. Administrators can use `users.php` to create/search/update accounts, assign one of the five fixed roles, set account status, and initialize/reset passwords; password hashes are never returned. Fine-grained custom permission toggles, system configuration, audit logs, and backup/restore remain unimplemented.
+The `team_leader` account role inherits student capabilities. Creating a group through the backend promotes its creator from `student` to `team_leader`; management rights still depend on `student_groups.leader_user_id` and `group_members.member_role` for that specific group. The account role alone does not grant management rights over unrelated groups. The current backend gives `training_manager` access to existing round, topic, group-assignment, progress, report, and defense workflows. Administrators can use `users.php` to create/search/update/delete accounts, assign one of the five fixed roles, set account status, and initialize/reset passwords; password hashes are never returned. Physical deletion is blocked while any foreign-key record refers to the account, and the active administrator cannot delete themself or the last active administrator. Fine-grained custom permission toggles, system configuration, audit logs, and backup/restore remain unimplemented.
 
 The SQL files use `CREATE TABLE IF NOT EXISTS` and do not drop application data. The trigger and view scripts replace only their own triggers/views. Back up the database before applying schema changes to a database with existing data.
 
@@ -74,7 +74,7 @@ Topics use `topics.php` actions `GET topics/registrations`, `POST create/registe
 | Feature | PHP endpoint | Actions |
 |---|---|---|
 | Authentication | `auth.php` | `POST login`, `GET me`, `POST logout` |
-| Account management | `users.php` | Admin-only `GET users`, `POST create`, `PATCH update` |
+| Account management | `users.php` | Admin-only `GET users`, `POST create`, `PATCH update`, `DELETE delete` (blocked while referenced) |
 | Groups | `groups.php` | groups, group, create/update, member operations, requests, `GET invitations` (received), `GET sent_invitations` (leader/admin/training manager), lecturer assignment |
 | Topics | `topics.php` | `GET topics/registrations`, `POST create/register`, `PATCH update/review` |
 | Notifications | `notifications.php` | `GET notifications`, `PATCH read/read_all` |

@@ -103,6 +103,95 @@ try {
         apiRespond(200, ['data' => $statement->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
+    if ($method === 'DELETE' && $action === 'delete') {
+        apiRequireCsrf();
+        $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        apiRequire($id !== false, 400, 'id phải là số nguyên dương.');
+        apiRequire((int) $id !== (int) $actor['id'], 409, 'Không thể xóa tài khoản đang đăng nhập.');
+
+        $pdo->beginTransaction();
+        $statement = $pdo->prepare(
+            'SELECT id, role, account_status FROM users WHERE id = ? FOR UPDATE'
+        );
+        $statement->execute([(int) $id]);
+        $existing = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($existing !== false, 404, 'Không tìm thấy tài khoản.');
+
+        if ($existing['role'] === 'admin' && $existing['account_status'] === 'active') {
+            $activeAdmins = $pdo->query(
+                "SELECT id FROM users WHERE role = 'admin' AND account_status = 'active' FOR UPDATE"
+            )->fetchAll(PDO::FETCH_COLUMN);
+            apiRequire(count($activeAdmins) > 1, 409, 'Không thể xóa quản trị viên đang hoạt động cuối cùng.');
+        }
+
+        $references = $pdo->query(
+            "SELECT TABLE_NAME, COLUMN_NAME
+             FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND REFERENCED_TABLE_SCHEMA = DATABASE()
+               AND REFERENCED_TABLE_NAME = 'users'
+               AND REFERENCED_COLUMN_NAME = 'id'
+             ORDER BY TABLE_NAME, COLUMN_NAME"
+        )->fetchAll(PDO::FETCH_ASSOC);
+        $linkedRecords = [];
+        foreach ($references as $reference) {
+            $table = (string) $reference['TABLE_NAME'];
+            $column = (string) $reference['COLUMN_NAME'];
+            apiRequire(
+                preg_match('/^[A-Za-z0-9_]+$/D', $table) === 1
+                    && preg_match('/^[A-Za-z0-9_]+$/D', $column) === 1,
+                500,
+                'Không thể xác minh các liên kết dữ liệu của tài khoản.'
+            );
+            $countStatement = $pdo->prepare(
+                "SELECT COUNT(*) FROM `$table` WHERE `$column` = ?"
+            );
+            $countStatement->execute([(int) $id]);
+            $count = (int) $countStatement->fetchColumn();
+            if ($count > 0) {
+                $linkedRecords[$table] = ($linkedRecords[$table] ?? 0) + $count;
+            }
+        }
+
+        if ($linkedRecords !== []) {
+            $labels = [
+                'student_groups' => 'nhóm đồ án',
+                'group_members' => 'thành viên nhóm',
+                'group_invitations' => 'lời mời nhóm',
+                'group_requests' => 'yêu cầu tham gia nhóm',
+                'group_lecturers' => 'phân công giảng viên',
+                'tasks' => 'nhiệm vụ',
+                'reports' => 'báo cáo đồ án',
+                'report_versions' => 'phiên bản báo cáo',
+                'report_feedback' => 'phản hồi báo cáo',
+                'defense_council_members' => 'thành viên hội đồng',
+                'defense_scores' => 'điểm bảo vệ',
+                'final_grades' => 'điểm tổng kết',
+                'chatbot_faqs' => 'FAQ chatbot',
+                'chat_sessions' => 'hội thoại chatbot',
+                'project_topics' => 'đề tài đồ án',
+                'topic_registrations' => 'đăng ký đề tài',
+                'notifications' => 'thông báo',
+            ];
+            $descriptions = [];
+            foreach ($linkedRecords as $table => $count) {
+                $descriptions[] = ($labels[$table] ?? $table) . " ($count)";
+            }
+            apiRequire(
+                false,
+                409,
+                'Không thể xóa tài khoản vì còn dữ liệu liên quan: '
+                    . implode(', ', $descriptions)
+                    . '. Hãy chuyển quyền hoặc xử lý các liên kết trước.'
+            );
+        }
+
+        $statement = $pdo->prepare('DELETE FROM users WHERE id = ?');
+        $statement->execute([(int) $id]);
+        $pdo->commit();
+        apiRespond(200, ['data' => ['id' => (int) $id]]);
+    }
+
     if ($method === 'POST' && $action === 'create') {
         $body = apiReadJsonBody();
         apiRequireCsrf($body);
@@ -246,6 +335,9 @@ try {
     }
     if (($exception->errorInfo[1] ?? null) === 1062) {
         apiRespond(409, ['error' => 'Tên đăng nhập, email hoặc mã sinh viên đã được sử dụng.']);
+    }
+    if (($exception->errorInfo[1] ?? null) === 1451) {
+        apiRespond(409, ['error' => 'Không thể xóa tài khoản vì dữ liệu liên quan vừa được tạo. Hãy xử lý các liên kết trước.']);
     }
     error_log($exception->getMessage());
     apiRespond(500, ['error' => 'Lỗi cơ sở dữ liệu. Vui lòng thử lại sau.']);

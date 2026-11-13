@@ -16,7 +16,7 @@ const groupStatuses = {
 }
 
 function TeamsPage() {
-  const { user, role } = useAuth()
+  const { user, role, refreshCurrentUser } = useAuth()
   const [teams, setTeams] = useState([])
   const [selectedTeamId, setSelectedTeamId] = useState(null)
   const [selectedTeam, setSelectedTeam] = useState(null)
@@ -118,6 +118,13 @@ function TeamsPage() {
       setGroupCode('')
       setGroupName('')
       setDescription('')
+      try {
+        await refreshCurrentUser()
+      } catch (refreshError) {
+        setError(
+          `Nhóm đã được tạo nhưng không thể cập nhật vai trò hiển thị. Vui lòng tải lại trang. ${refreshError.message || ''}`,
+        )
+      }
     } catch (saveError) {
       setError(saveError.message || 'Không thể tạo nhóm.')
     } finally {

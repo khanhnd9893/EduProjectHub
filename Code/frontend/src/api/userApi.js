@@ -65,6 +65,14 @@ const userApi = {
       await unwrap(apiClient.patch('/users.php?action=update', payload)),
     )
   },
+
+  async deleteUser(id) {
+    return unwrap(
+      apiClient.delete('/users.php', {
+        params: { action: 'delete', id: Number(id) },
+      }),
+    )
+  },
 }
 
 export default userApi

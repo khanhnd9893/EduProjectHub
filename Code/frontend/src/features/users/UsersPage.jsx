@@ -48,6 +48,7 @@ function UsersPage() {
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [deletingUserId, setDeletingUserId] = useState(null)
   const [editingUser, setEditingUser] = useState(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [form, setForm] = useState(createEmptyForm)
@@ -143,6 +144,34 @@ function UsersPage() {
       setError(saveError.message || 'Không thể lưu tài khoản.')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function handleDelete(user) {
+    const confirmed = window.confirm(
+      `Bạn có chắc muốn xóa tài khoản ${user.fullName} (${user.username})? ` +
+        'Tài khoản chỉ được xóa khi không còn dữ liệu liên quan.',
+    )
+    if (!confirmed) {
+      return
+    }
+
+    setError('')
+    setSuccess('')
+    setDeletingUserId(user.id)
+    try {
+      await userApi.deleteUser(user.id)
+      setUsers((currentUsers) =>
+        currentUsers.filter((currentUser) => currentUser.id !== user.id),
+      )
+      if (editingUser?.id === user.id) {
+        setIsFormOpen(false)
+      }
+      setSuccess(`Đã xóa tài khoản ${user.username}.`)
+    } catch (deleteError) {
+      setError(deleteError.message || 'Không thể xóa tài khoản.')
+    } finally {
+      setDeletingUserId(null)
     }
   }
 
@@ -393,6 +422,22 @@ function UsersPage() {
                         {editingUser?.id === user.id && isFormOpen
                           ? 'Đóng biểu mẫu'
                           : 'Sửa / phân quyền'}
+                      </button>
+                      <button
+                        className="button-secondary"
+                        disabled={
+                          deletingUserId !== null ||
+                          Number(user.id) === Number(currentUser?.id)
+                        }
+                        onClick={() => handleDelete(user)}
+                        title={
+                          Number(user.id) === Number(currentUser?.id)
+                            ? 'Không thể xóa tài khoản đang đăng nhập.'
+                            : undefined
+                        }
+                        type="button"
+                      >
+                        {deletingUserId === user.id ? 'Đang xóa...' : 'Xóa tài khoản'}
                       </button>
                     </td>
                   </tr>
