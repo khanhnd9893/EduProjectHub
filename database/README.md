@@ -10,11 +10,11 @@ For a new/empty installation, use [`filetong/eduprojecthub-xampp.sql`](./fileton
 2. Open `http://localhost/phpmyadmin`.
 3. Use **Import** from the phpMyAdmin home page (do not select an existing database first).
 4. Choose `database\filetong\eduprojecthub-xampp.sql`, keep the format as **SQL**, and click **Import**.
-5. After a successful import, the database `eduprojecthub` contains the demo data. Demo accounts `sv`, `gv`, and `admin` use password `123456`.
+5. After a successful import, the database `eduprojecthub` contains the demo data. Demo accounts `sv`, `truongnhom`, `gv`, `daotao`, and `admin` use password `123456`.
 
 **Do not import this all-in-one file into a database that contains data.** The demo seed uses fixed IDs and is intended for a fresh demo database. Back up existing data and follow the existing-database instructions below instead.
 
-The separate FR01 SQL draft is not imported as-is: it creates a different database, drops `users`, and defines role/status/session fields that conflict with this application's API. The combined package keeps the current `sv`/`gv`/`admin` accounts and adds compatible optional profile fields to `users`. `users.role` supports `admin`, `student`, `team_leader`, `lecturer`, and `training_manager`; account state uses `users.account_status`, and login sessions use PHP's session cookie. No unused `roles` or `user_sessions` tables are created.
+The separate FR01 SQL draft is not imported as-is: it creates a different database, drops `users`, and defines role/status/session fields that conflict with this application's API. The combined package keeps the current demo accounts and adds compatible optional profile fields to `users`. `users.role` supports `admin`, `student`, `team_leader`, `lecturer`, and `training_manager`; account state uses `users.account_status`, and login sessions use PHP's session cookie. No unused `roles` or `user_sessions` tables are created.
 
 ## Fresh installation
 
@@ -37,7 +37,7 @@ Import in phpMyAdmin in this order:
 15. Optional demo data: `examp bao_cao_do_an.sql`, `expam_bao_ve_diem_so.sql`, and `exam_chatbot-faqs.sql`.
 16. `danh_sach_de_tai.sql` — topic/registration tables, notifications, FAQ audience scopes, leader integrity triggers, and notification triggers.
 
-The demo accounts are `sv`, `gv`, and `admin`; each has password `123456`. Change these passwords before exposing the site outside a local development machine. The demo lecturer is assigned two groups, as required by the API access policy.
+The demo accounts are `sv`, `truongnhom`, `gv`, `daotao`, and `admin`; each has password `123456`. The `truongnhom` account leads the demo group `N03`, and the demo lecturer is assigned two groups, as required by the API access policy. Change these passwords before exposing the site outside a local development machine.
 
 The feature schemas use `student_groups`, `project_rounds`, and `users` from the core schema. Reports and defense schedules belong to a group; user/lecturer/student IDs always reference `users.id`. Semester/round data uses `project_rounds`. All scores use a 0–10 scale. FAQ visibility supports all five roles. The chat FAQ and history tables are created by `chatbot-faqs.sql`.
 
@@ -87,8 +87,14 @@ Report uploads accept PDF/DOC/DOCX up to 10 MB. Files are stored under `Code/Bac
 
 ## Authorization rules
 
+- Every API request uses the signed-in user ID and current role from the database; the browser's cached user object is not an authorization source. Frontend route checks only control navigation and are not a replacement for API authorization.
+- The supported account roles are `admin`, `student`, `team_leader`, `lecturer`, and `training_manager`. The frontend uses their uppercase equivalents.
+- Admins and training managers can access the implemented cross-group and round-management workflows. Admin-only account management, role editing, system settings, audit/login history, backup, and restore APIs are not implemented.
+- Students and team leaders can use student workflows. Access to a specific group still requires active membership or being that group's `leader_user_id`; only that group's leader can perform leader actions. A `team_leader` account role does not grant management rights over unrelated groups.
+- Lecturers can access groups assigned to them only when assigned at least two groups. For those groups, they can create and edit tasks, provide report feedback, manage chatbot FAQs, and use the implemented topic workflows. They cannot cancel or delete tasks, change task status, or create/edit report rounds.
+- Training managers coordinate existing round, topic, group-assignment, report, and defense workflows. The current semester-round API is read-only; round creation, editing, and closing are not implemented there.
 - Students may access only their active groups. Only group leaders/admins can manage groups and tasks; assigned students can update their own task status.
-- Lecturers can read groups assigned to them only when assigned at least two groups. They cannot change group/task data.
+- Lecturers can read assigned groups but cannot change group membership or group information.
 - Admins can read all groups and manage permitted records.
 - Students can submit reports only for groups they actively belong to. Users can read report/grade/chat records only within their authorized scope.
 - Chatbot sessions and messages are private to the signed-in user.

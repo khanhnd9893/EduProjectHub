@@ -211,7 +211,7 @@ try {
     }
 
     if ($method === 'GET' && $action === 'manage_faqs') {
-        apiRequire(in_array($actor['role'], ['admin', 'lecturer'], true), 403, 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
+        apiRequireRole($actor, ['admin', 'lecturer'], 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
         $statement = $pdo->query(
             'SELECT f.id, f.question, f.answer, f.category, f.visibility, f.status,
                     f.created_by, creator.full_name AS created_by_name, f.created_at, f.updated_at
@@ -225,7 +225,7 @@ try {
     if ($method === 'POST' && $action === 'create_faq') {
         $body = apiReadJsonBody();
         apiRequireCsrf($body);
-        apiRequire(in_array($actor['role'], ['admin', 'lecturer'], true), 403, 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
+        apiRequireRole($actor, ['admin', 'lecturer'], 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
         $values = chatbotFaqValues($body, false);
         $values['created_by'] = $actor['id'];
         $statement = $pdo->prepare(
@@ -239,7 +239,7 @@ try {
     if ($method === 'PATCH' && $action === 'update_faq') {
         $body = apiReadJsonBody();
         apiRequireCsrf($body);
-        apiRequire(in_array($actor['role'], ['admin', 'lecturer'], true), 403, 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
+        apiRequireRole($actor, ['admin', 'lecturer'], 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
         $id = filter_var($body['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         apiRequire($id !== false, 400, 'id phải là số nguyên dương.');
         $values = chatbotFaqValues($body, true);

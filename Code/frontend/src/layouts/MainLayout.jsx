@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth.js'
-import { isAcademicManagerRole, isStudentRole, roleLabel } from '../utils/roles.js'
+import { canAccessPage, roleLabel } from '../utils/roles.js'
 
 function MainLayout() {
   const { user, role, logout } = useAuth()
@@ -26,21 +26,20 @@ function MainLayout() {
           <NavLink to="/dashboard">Tổng quan</NavLink>
           <NavLink to="/profile">Hồ sơ</NavLink>
           <NavLink to="/notifications">Thông báo</NavLink>
-          {isAcademicManagerRole(role) && <NavLink to="/semesters">Đợt đồ án</NavLink>}
-          {['ADMIN', 'STUDENT', 'TEAM_LEADER', 'LECTURER', 'TRAINING_MANAGER'].includes(role) && (
+          {canAccessPage(role, 'semesters') && <NavLink to="/semesters">Đợt đồ án</NavLink>}
+          {canAccessPage(role, 'topics') && (
             <NavLink to="/topics">Đề tài</NavLink>
           )}
-          {(['LECTURER', 'TRAINING_MANAGER'].includes(role) || isStudentRole(role)) && (
+          {canAccessPage(role, 'project-work') && (
             <>
               <NavLink to="/teams">Nhóm</NavLink>
               <NavLink to="/tasks">Nhiệm vụ</NavLink>
               <NavLink to="/progress">Tiến độ</NavLink>
               <NavLink to="/reports">Báo cáo</NavLink>
               <NavLink to="/grades">Điểm số</NavLink>
-              <NavLink to="/chatbot">Chatbot</NavLink>
             </>
           )}
-          {/* Hết khối M2 */}
+          {canAccessPage(role, 'chatbot') && <NavLink to="/chatbot">Chatbot</NavLink>}
         </nav>
         <div className="account-actions">
           <span>{user?.fullName}</span>

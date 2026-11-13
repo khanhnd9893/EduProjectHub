@@ -17,16 +17,28 @@ function apiRequire(bool $condition, int $status, string $message): void
     }
 }
 
+/** Kiểm tra tài khoản có một trong các vai trò được phép. */
+function apiHasRole(array $actor, array $roles): bool
+{
+    return isset($actor['role']) && in_array($actor['role'], $roles, true);
+}
+
+/** Từ chối yêu cầu nếu vai trò tài khoản không được phép thực hiện thao tác. */
+function apiRequireRole(array $actor, array $roles, string $message): void
+{
+    apiRequire(apiHasRole($actor, $roles), 403, $message);
+}
+
 /** Kiểm tra tài khoản thuộc nhóm sinh viên, gồm cả trưởng nhóm. */
 function apiIsStudentRole(array $actor): bool
 {
-    return in_array($actor['role'], ['student', 'team_leader'], true);
+    return apiHasRole($actor, ['student', 'team_leader']);
 }
 
 /** Kiểm tra tài khoản có quyền điều phối nghiệp vụ đào tạo. */
 function apiIsTrainingManager(array $actor): bool
 {
-    return in_array($actor['role'], ['admin', 'training_manager'], true);
+    return apiHasRole($actor, ['admin', 'training_manager']);
 }
 
 /** Trả các phạm vi FAQ mà vai trò hiện tại được phép đọc. */

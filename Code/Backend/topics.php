@@ -117,9 +117,9 @@ try {
     }
 
     if ($method === 'POST' && $action === 'create') {
-        apiRequire(
-            apiIsTrainingManager($actor) || $actor['role'] === 'lecturer',
-            403,
+        apiRequireRole(
+            $actor,
+            ['admin', 'training_manager', 'lecturer'],
             'Chỉ người đào tạo, quản trị viên hoặc giảng viên mới được tạo đề tài.'
         );
         $roundId = topicId($body['project_round_id'] ?? null, 'project_round_id');
@@ -152,9 +152,9 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'update') {
-        apiRequire(
-            apiIsTrainingManager($actor) || $actor['role'] === 'lecturer',
-            403,
+        apiRequireRole(
+            $actor,
+            ['admin', 'training_manager', 'lecturer'],
             'Chỉ người đào tạo, quản trị viên hoặc giảng viên mới được cập nhật đề tài.'
         );
         $id = topicId($body['id'] ?? null, 'id');
@@ -257,9 +257,9 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'review') {
-        apiRequire(
-            in_array($actor['role'], ['admin', 'training_manager', 'lecturer'], true),
-            403,
+        apiRequireRole(
+            $actor,
+            ['admin', 'training_manager', 'lecturer'],
             'Chỉ người đào tạo, quản trị viên hoặc giảng viên mới được duyệt đăng ký.'
         );
         $registrationId = topicId($body['registration_id'] ?? null, 'registration_id');

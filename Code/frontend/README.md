@@ -10,7 +10,7 @@ Copy-Item .env.example .env.production
 npm run build
 ```
 
-`.env.example` enables mock mode for a frontend-only demo. The build output is served at `http://localhost/EduProjectHub/Code/frontend/dist/`. Sign in with `sv`, `gv`, or `admin` and password `123456`.
+`.env.example` enables mock mode for a frontend-only demo. The build output is served at `http://localhost/EduProjectHub/Code/frontend/dist/`. Mock accounts `sv`, `sv2`, `truongnhom`, `gv`, `daotao`, and `admin` all use password `123456`.
 
 To use PHP and MySQL, set `VITE_USE_MOCK=false` in `.env.production` before building. Import the database files in the order documented in `../../database/README.md`. The default API URL is `/EduProjectHub/Code/Backend`; configure `VITE_API_URL` if the project is hosted at a different path. Rebuild after changing Vite environment variables.
 

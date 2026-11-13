@@ -59,13 +59,13 @@ function reportDeadline($value): ?string
     return $date->format('Y-m-d H:i:s');
 }
 
-/** Chỉ quản trị viên và giảng viên được tạo hoặc chỉnh sửa đợt báo cáo. */
+/** Chỉ quản trị viên và người đào tạo được tạo hoặc chỉnh sửa đợt báo cáo. */
 function reportRequireManager(array $actor): void
 {
-    apiRequire(
-        in_array($actor['role'], ['admin', 'training_manager', 'lecturer'], true),
-        403,
-        'Chỉ quản trị viên hoặc giảng viên được phân công mới được quản lý đợt báo cáo.'
+    apiRequireRole(
+        $actor,
+        ['admin', 'training_manager'],
+        'Chỉ quản trị viên hoặc người đào tạo mới được quản lý đợt báo cáo.'
     );
 }
 
@@ -342,7 +342,7 @@ try {
     if ($method === 'POST' && $action === 'feedback') {
         $body = apiReadJsonBody();
         apiRequireCsrf($body);
-        apiRequire($actor['role'] === 'lecturer', 403, 'Chỉ giảng viên mới được nhận xét báo cáo.');
+        apiRequireRole($actor, ['lecturer'], 'Chỉ giảng viên mới được nhận xét báo cáo.');
         $versionId = reportId($body['report_version_id'] ?? null);
         $content = $body['content'] ?? null;
         apiRequire(is_string($content), 400, 'content phải là chuỗi.');

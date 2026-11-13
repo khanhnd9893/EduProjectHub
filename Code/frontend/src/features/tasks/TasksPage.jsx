@@ -97,6 +97,7 @@ function TasksPage() {
 
   const canManageTasks =
     role === 'ADMIN' || selectedTeam?.leaderUserId === user?.id
+  const canCreateTasks = canManageTasks || role === 'LECTURER'
 
   function canUpdateTaskStatus(task) {
     return (
@@ -196,7 +197,7 @@ function TasksPage() {
       )}
       {teamId && (
         <>
-          {canManageTasks && (
+          {canCreateTasks && (
           <form className="workspace-panel data-form" onSubmit={handleCreateTask}>
             <h2>Tạo nhiệm vụ</h2>
             <label className="field-control">

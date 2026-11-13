@@ -131,9 +131,9 @@ function SemestersPage() {
     <section className="dashboard-page">
       <PageHeading
         eyebrow="Quản trị"
-        title="Quản lý học kỳ"
-        description="Danh sách học kỳ/đợt đồ án hiện có."
-        status={isLoading ? 'Đang tải' : 'Chỉ ADMIN'}
+        title="Quản lý đợt đồ án"
+        description="Danh sách đợt đồ án hiện có."
+        status={isLoading ? 'Đang tải' : 'Quản trị viên / Người đào tạo'}
       />
       <button className="semester-create-button" type="button" onClick={openCreateForm}>
         Thêm học kỳ
