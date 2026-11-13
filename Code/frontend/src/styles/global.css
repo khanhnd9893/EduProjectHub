@@ -49,6 +49,7 @@ button {
   display: flex;
   flex: 1;
   gap: 20px;
+  flex-wrap: wrap;
 }
 
 .main-nav a {
@@ -127,6 +128,64 @@ h2 {
   line-height: 1.6;
 }
 
+.topic-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-top: 24px;
+}
+
+.topic-card,
+.topic-registrations {
+  padding: 22px;
+}
+
+.topic-status-control {
+  margin-top: 16px;
+}
+
+.topic-register-actions,
+.topic-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-list li {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 16px 0;
+}
+
+.notification-list li:last-child {
+  border-bottom: 0;
+}
+
+.notification-list p {
+  margin: 6px 0;
+}
+
+.notification-unread {
+  border-left: 3px solid var(--accent);
+  padding-left: 14px !important;
+}
+
+.report-feedback-form {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
 .eyebrow {
   color: var(--accent);
   font-size: 0.75rem;
@@ -181,6 +240,68 @@ h2 {
 
 .workspace-panel {
   padding: 28px;
+}
+
+.profile-panel {
+  margin-top: 28px;
+  max-width: 760px;
+}
+
+.profile-summary {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+}
+
+.profile-summary h2 {
+  margin-bottom: 6px;
+}
+
+.profile-summary .muted {
+  margin-bottom: 0;
+}
+
+.profile-avatar {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 50%;
+  color: var(--accent-dark);
+  display: flex;
+  font-size: 1.5rem;
+  font-weight: 800;
+  height: 64px;
+  justify-content: center;
+  width: 64px;
+}
+
+.profile-metadata {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 28px 0 20px;
+  padding: 20px 0;
+}
+
+.profile-metadata dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+}
+
+.profile-metadata dd {
+  color: var(--ink);
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 0;
 }
 
 .teams-layout {
@@ -331,6 +452,12 @@ h2 {
 .chat-form button:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+.invitation-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
 }
 
 .button-secondary {
@@ -755,6 +882,7 @@ h2 {
 
   .teams-layout,
   .team-metadata,
+  .profile-metadata,
   .reports-layout,
   .chatbot-layout,
   .form-grid {
@@ -791,4 +919,29 @@ h2 {
 
 .semester-form-heading h2 {
   margin-bottom: 0;
+}
+
+/* Menu ngang xuống dòng riêng và cuộn ngang khi màn hình hẹp, không kéo rộng trang. */
+@media (max-width: 1100px) {
+  .topbar {
+    flex-wrap: wrap;
+    padding-bottom: 10px;
+    padding-top: 10px;
+    row-gap: 8px;
+  }
+
+  .account-actions {
+    margin-left: auto;
+  }
+
+  .main-nav {
+    flex-basis: 100%;
+    order: 3;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .main-nav a {
+    white-space: nowrap;
+  }
 }

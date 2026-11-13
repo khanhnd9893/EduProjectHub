@@ -7,6 +7,7 @@ import {
   nextId,
   nowIso,
 } from './mock/helpers.js'
+import { isAcademicManagerRole, isStudentRole } from '../utils/roles.js'
 import {
   mockInvitations,
   mockMembers,
@@ -68,7 +69,10 @@ function mapInvitation(invitation) {
     groupId: Number(invitation.group_id),
     groupName: invitation.group_name,
     invitedUserId: Number(invitation.invited_user_id),
+    invitedName: invitation.invited_name ?? null,
+    invitedStudentCode: invitation.invited_student_code ?? null,
     invitedBy: Number(invitation.invited_by),
+    inviteCode: invitation.invite_code,
     message: invitation.message,
     status: invitation.status,
     sentAt: invitation.sent_at,
@@ -194,7 +198,7 @@ const teamApi = {
   async createTeam({ groupCode, groupName, description, projectRoundId }) {
     if (useMock) {
       const user = getMockUser()
-      if (user.role !== 'STUDENT') {
+      if (!isStudentRole(user.role)) {
         throw new Error('Chỉ sinh viên mới được tạo nhóm.')
       }
       if (
@@ -249,7 +253,7 @@ const teamApi = {
       const team = findMockTeam(teamId)
       const currentUser = getMockUser()
       if (currentUser.role !== 'ADMIN' && currentUser.id !== team.leaderUserId) {
-        throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được thêm thành viên.')
+        throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được mời thành viên.')
       }
 
       const activeMembers = mockMembers.filter(
@@ -367,7 +371,7 @@ const teamApi = {
     if (useMock) {
       const user = getMockUser()
       const team = findMockTeam(teamId)
-      if (user.role !== 'STUDENT') {
+      if (!isStudentRole(user.role)) {
         throw new Error('Chỉ sinh viên mới được gửi yêu cầu tham gia nhóm.')
       }
       if (!['forming', 'active'].includes(team.status)) {
@@ -466,6 +470,28 @@ const teamApi = {
     ).map(mapInvitation)
   },
 
+  async listSentInvitations() {
+    if (useMock) {
+      const { id, role } = getMockUser()
+      return mockResolve(
+        mockInvitations
+          .filter((invitation) => {
+            const team = mockTeams.find((entry) => entry.id === invitation.groupId)
+            return isAcademicManagerRole(role) || team?.leaderUserId === id
+          })
+          .map((invitation) => ({ ...invitation })),
+      )
+    }
+
+    return (
+      await unwrap(
+        apiClient.get('/groups.php', {
+          params: { action: 'sent_invitations' },
+        }),
+      )
+    ).map(mapInvitation)
+  },
+
   async sendInvitation(teamId, { invitedUserId, message }) {
     if (useMock) {
       const team = findOrThrow(mockTeams, teamId, 'Không tìm thấy nhóm')
@@ -474,11 +500,25 @@ const teamApi = {
         throw new Error('Chỉ trưởng nhóm hoặc quản trị viên mới được mời thành viên.')
       }
       assertCanAddMockMember(teamId, invitedUserId)
+      if (
+        mockInvitations.some(
+          (entry) =>
+            entry.groupId === team.id &&
+            entry.invitedUserId === Number(invitedUserId) &&
+            entry.status === 'pending',
+        )
+      ) {
+        throw new Error('Lời mời đang chờ phản hồi.')
+      }
       const invitation = {
         id: nextId(mockInvitations),
         groupId: team.id,
         groupName: team.groupName,
         invitedUserId,
+        inviteCode: Array.from(
+          { length: 8 },
+          () => Math.floor(Math.random() * 16).toString(16),
+        ).join('').toUpperCase(),
         invitedBy: getMockUser().id,
         message,
         status: 'pending',
@@ -497,7 +537,11 @@ const teamApi = {
         message,
       }),
     )
-    return { id: Number(invitation.id), groupId: Number(teamId) }
+    return {
+      id: Number(invitation.id),
+      groupId: Number(teamId),
+      inviteCode: invitation.invite_code,
+    }
   },
 
   async respondInvitation(invitationId, { status }) {

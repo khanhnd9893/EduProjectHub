@@ -41,7 +41,7 @@ GROUP BY status;
 -- 7. Sinh vien chua tham gia nhom nao trong dot 1.
 SELECT u.id, u.student_code, u.full_name
 FROM users u
-WHERE u.role = 'student'
+WHERE u.role IN ('student', 'team_leader')
   AND NOT EXISTS (
       SELECT 1
       FROM group_members gm

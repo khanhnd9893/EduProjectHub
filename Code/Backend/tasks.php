@@ -141,7 +141,7 @@ function taskIsMember(PDO $pdo, int $groupId, int $userId): bool
 /** Xác thực quyền xem nhiệm vụ của quản trị viên, giảng viên hoặc sinh viên. */
 function taskRequireViewer(PDO $pdo, array $group, array $actor): void
 {
-    if ($actor['role'] === 'admin') {
+    if (apiIsTrainingManager($actor)) {
         return;
     }
 
@@ -164,7 +164,7 @@ function taskRequireViewer(PDO $pdo, array $group, array $actor): void
     }
 
     taskRequire(
-        $actor['role'] === 'student'
+        apiIsStudentRole($actor)
             && (
                 (int) $group['leader_user_id'] === (int) $actor['id']
                 || taskIsMember($pdo, (int) $group['id'], (int) $actor['id'])
@@ -180,7 +180,7 @@ function taskRequireManager(array $group, array $actor): void
     taskRequire(
         $actor['role'] === 'admin'
             || (
-                $actor['role'] === 'student'
+                apiIsStudentRole($actor)
                 && (int) $group['leader_user_id'] === (int) $actor['id']
             ),
         403,
@@ -370,11 +370,11 @@ try {
             taskRequire(
                 $actor['role'] === 'admin'
                     || (
-                        $actor['role'] === 'student'
+                        apiIsStudentRole($actor)
                         && (int) $group['leader_user_id'] === (int) $actor['id']
                     )
                     || (
-                        $actor['role'] === 'student'
+                        apiIsStudentRole($actor)
                         && taskIsMember($pdo, (int) $group['id'], (int) $actor['id'])
                         && $task['assigned_to'] !== null
                         && (int) $task['assigned_to'] === (int) $actor['id']
