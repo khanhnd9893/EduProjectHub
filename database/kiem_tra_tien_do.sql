@@ -9,6 +9,10 @@ DROP TRIGGER IF EXISTS trg_group_member_before_insert;
 DROP TRIGGER IF EXISTS trg_group_member_before_update;
 DROP TRIGGER IF EXISTS trg_group_member_after_insert;
 DROP TRIGGER IF EXISTS trg_group_member_after_update;
+DROP TRIGGER IF EXISTS trg_group_members_guard_leader_update;
+DROP TRIGGER IF EXISTS trg_group_members_guard_leader_delete;
+DROP TRIGGER IF EXISTS trg_student_groups_create_leader;
+DROP TRIGGER IF EXISTS trg_student_groups_guard_leader_update;
 
 DELIMITER $$
 
@@ -28,7 +32,7 @@ BEGIN
     SELECT role INTO v_role
     FROM users WHERE id = NEW.user_id;
 
-    IF v_role IS NULL OR v_role <> 'student' THEN
+    IF v_role IS NULL OR v_role NOT IN ('student', 'team_leader') THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Chi tai khoan sinh vien moi duoc tham gia nhom';
     END IF;
@@ -82,7 +86,7 @@ BEGIN
 
     SELECT role INTO v_role FROM users WHERE id = NEW.user_id;
 
-    IF NEW.status = 'active' AND (v_role IS NULL OR v_role <> 'student') THEN
+    IF NEW.status = 'active' AND (v_role IS NULL OR v_role NOT IN ('student', 'team_leader')) THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Chi tai khoan sinh vien moi duoc tham gia nhom';
     END IF;
@@ -127,19 +131,7 @@ BEGIN
     END IF;
 END$$
 
--- 3. Dong bo leader_user_id cua nhom khi them truong nhom.
-CREATE TRIGGER trg_group_member_after_insert
-AFTER INSERT ON group_members
-FOR EACH ROW
-BEGIN
-    IF NEW.member_role = 'leader' AND NEW.status = 'active' THEN
-        UPDATE student_groups
-        SET leader_user_id = NEW.user_id
-        WHERE id = NEW.group_id;
-    END IF;
-END$$
-
--- 4. Dong bo leader_user_id khi cap nhat vai tro.
+-- 3. Dong bo leader_user_id khi cap nhat vai tro.
 CREATE TRIGGER trg_group_member_after_update
 AFTER UPDATE ON group_members
 FOR EACH ROW
@@ -147,7 +139,63 @@ BEGIN
     IF NEW.member_role = 'leader' AND NEW.status = 'active' THEN
         UPDATE student_groups
         SET leader_user_id = NEW.user_id
-        WHERE id = NEW.group_id;
+        WHERE id = NEW.group_id AND leader_user_id <> NEW.user_id;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_group_members_guard_leader_update
+BEFORE UPDATE ON group_members
+FOR EACH ROW
+BEGIN
+    IF (NEW.group_id <> OLD.group_id OR NEW.status <> 'active' OR NEW.member_role <> 'leader')
+       AND EXISTS (
+           SELECT 1 FROM student_groups
+           WHERE id = OLD.group_id AND leader_user_id = OLD.user_id
+       )
+       AND NOT EXISTS (
+           SELECT 1 FROM group_members
+           WHERE group_id = OLD.group_id AND user_id <> OLD.user_id
+             AND member_role = 'leader' AND status = 'active'
+       ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Khong the roi hoac ha quyen truong nhom truoc khi chuyen quyen';
+    END IF;
+END$$
+
+CREATE TRIGGER trg_group_members_guard_leader_delete
+BEFORE DELETE ON group_members
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM student_groups
+        WHERE id = OLD.group_id AND leader_user_id = OLD.user_id
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Khong the xoa thanh vien dang la truong nhom';
+    END IF;
+END$$
+
+CREATE TRIGGER trg_student_groups_create_leader
+AFTER INSERT ON student_groups
+FOR EACH ROW
+BEGIN
+    INSERT INTO group_members (group_id, user_id, member_role, status)
+    VALUES (NEW.id, NEW.leader_user_id, 'leader', 'active');
+END$$
+
+CREATE TRIGGER trg_student_groups_guard_leader_update
+BEFORE UPDATE ON student_groups
+FOR EACH ROW
+BEGIN
+    IF NEW.leader_user_id <> OLD.leader_user_id
+       AND NOT EXISTS (
+           SELECT 1 FROM group_members
+           WHERE group_id = NEW.id AND user_id = NEW.leader_user_id
+             AND status = 'active'
+             AND member_role = 'leader'
+       ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Truong nhom phai la thanh vien dang hoat dong';
     END IF;
 END$$
 
@@ -155,7 +203,6 @@ DELIMITER ;
 
 -- QUY TAC BO SUNG:
 -- Khi doi truong nhom, Backend nen thuc hien trong mot transaction:
--- 1) UPDATE group_members SET member_role='member' WHERE group_id=? AND member_role='leader';
--- 2) UPDATE group_members SET member_role='leader' WHERE group_id=? AND user_id=? AND status='active';
+-- 1) Promote the active member to leader, then demote the previous leader.
 -- Trigger se cap nhat student_groups.leader_user_id.
 -- Backend phai dam bao buoc 2 thanh cong; khong de nhom khong co truong nhom.

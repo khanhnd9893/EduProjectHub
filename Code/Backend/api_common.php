@@ -17,6 +17,28 @@ function apiRequire(bool $condition, int $status, string $message): void
     }
 }
 
+/** Kiểm tra tài khoản thuộc nhóm sinh viên, gồm cả trưởng nhóm. */
+function apiIsStudentRole(array $actor): bool
+{
+    return in_array($actor['role'], ['student', 'team_leader'], true);
+}
+
+/** Kiểm tra tài khoản có quyền điều phối nghiệp vụ đào tạo. */
+function apiIsTrainingManager(array $actor): bool
+{
+    return in_array($actor['role'], ['admin', 'training_manager'], true);
+}
+
+/** Trả các phạm vi FAQ mà vai trò hiện tại được phép đọc. */
+function apiFaqVisibilities(array $actor): array
+{
+    $visibilities = ['all', $actor['role']];
+    if ($actor['role'] === 'team_leader') {
+        $visibilities[] = 'student';
+    }
+    return array_values(array_unique($visibilities));
+}
+
 /** Đọc và xác thực phần thân JSON của yêu cầu hiện tại. */
 function apiReadJsonBody(): array
 {
@@ -70,7 +92,7 @@ function apiRequireGroupAccess(PDO $pdo, int $groupId, array $actor): array
     $group = $statement->fetch(PDO::FETCH_ASSOC);
     apiRequire($group !== false, 404, 'Không tìm thấy nhóm.');
 
-    if ($actor['role'] === 'admin') {
+    if (apiIsTrainingManager($actor)) {
         return $group;
     }
 
@@ -105,7 +127,7 @@ function apiRequireGroupManager(array $group, array $actor): void
 {
     apiRequire(
         $actor['role'] === 'admin'
-            || ($actor['role'] === 'student' && (int) $group['leader_user_id'] === $actor['id']),
+            || (apiIsStudentRole($actor) && (int) $group['leader_user_id'] === $actor['id']),
         403,
         'Chỉ trưởng nhóm hoặc quản trị viên mới được thực hiện thao tác này.'
     );

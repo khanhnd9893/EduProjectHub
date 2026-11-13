@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import reportApi from '../../api/reportApi.js'
 import { useAuth } from '../../contexts/useAuth.js'
+import { isStudentRole } from '../../utils/roles.js'
 
 const reportTypes = {
   weekly: 'Hàng tuần',
@@ -39,6 +40,8 @@ function ReportsPage() {
   const [report, setReport] = useState(null)
   const [file, setFile] = useState(null)
   const [note, setNote] = useState('')
+  const [feedbackDrafts, setFeedbackDrafts] = useState({})
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -118,6 +121,27 @@ function ReportsPage() {
     }
   }
 
+  async function handleFeedbackSubmit(event, versionId) {
+    event.preventDefault()
+    const draft = feedbackDrafts[versionId] || { content: '', score: '' }
+    setError('')
+    setSuccess('')
+    setIsSubmittingFeedback(true)
+    try {
+      await reportApi.addFeedback(versionId, draft)
+      setReport(await reportApi.getReport(reportId))
+      setFeedbackDrafts((current) => ({
+        ...current,
+        [versionId]: { content: '', score: '' },
+      }))
+      setSuccess('Đã gửi nhận xét và điểm báo cáo.')
+    } catch (feedbackError) {
+      setError(feedbackError.message || 'Không thể gửi nhận xét.')
+    } finally {
+      setIsSubmittingFeedback(false)
+    }
+  }
+
   const selectedReport = reports.find((entry) => String(entry.id) === reportId)
   const isLoadingReport = Boolean(reportId) && report?.id !== Number(reportId)
 
@@ -164,7 +188,7 @@ function ReportsPage() {
                 <p className="muted">{report.description}</p>
                 <p><strong>Hạn nộp:</strong> {formatDate(report.deadline)}</p>
                 <p><strong>Trạng thái:</strong> {report.status === 'open' ? 'Đang mở' : report.status === 'graded' ? 'Đã chấm' : 'Đã đóng'}</p>
-                {report.status === 'open' && role === 'STUDENT' && (
+                {report.status === 'open' && isStudentRole(role) && (
                   <form className="data-form" onSubmit={handleSubmit}>
                     <h3>Nộp phiên bản</h3>
                     <label className="field-control">
@@ -208,6 +232,48 @@ function ReportsPage() {
                             {feedback.score != null ? ` · ${feedback.score}/10` : ''}
                           </p>
                         ))}
+                        {role === 'LECTURER' && (
+                          <form
+                            className="data-form report-feedback-form"
+                            onSubmit={(event) => handleFeedbackSubmit(event, version.id)}
+                          >
+                            <label className="field-control">
+                              Nhận xét
+                              <textarea
+                                onChange={(event) => setFeedbackDrafts((current) => ({
+                                  ...current,
+                                  [version.id]: {
+                                    ...current[version.id],
+                                    content: event.target.value,
+                                  },
+                                }))}
+                                required
+                                rows="2"
+                                value={feedbackDrafts[version.id]?.content || ''}
+                              />
+                            </label>
+                            <label className="field-control">
+                              Điểm (0–10, tùy chọn)
+                              <input
+                                max="10"
+                                min="0"
+                                onChange={(event) => setFeedbackDrafts((current) => ({
+                                  ...current,
+                                  [version.id]: {
+                                    ...current[version.id],
+                                    score: event.target.value,
+                                  },
+                                }))}
+                                step="0.1"
+                                type="number"
+                                value={feedbackDrafts[version.id]?.score || ''}
+                              />
+                            </label>
+                            <button disabled={isSubmittingFeedback} type="submit">
+                              {isSubmittingFeedback ? 'Đang gửi...' : 'Gửi nhận xét'}
+                            </button>
+                          </form>
+                        )}
                       </li>
                     ))}
                   </ul>

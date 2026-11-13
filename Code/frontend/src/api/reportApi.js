@@ -13,6 +13,7 @@ import {
   mockReports,
   mockReportVersions,
 } from './mock/reportMock.js'
+import { isStudentRole } from '../utils/roles.js'
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
@@ -175,6 +176,34 @@ const reportApi = {
     }
   },
 
+  async addFeedback(reportVersionId, { content, score }) {
+    if (useMock) {
+      const user = getMockUser()
+      if (user.role !== 'LECTURER') {
+        throw new Error('Chỉ giảng viên mới được nhận xét báo cáo.')
+      }
+      const feedback = {
+        id: nextId(mockReportFeedback),
+        reportVersionId: Number(reportVersionId),
+        lecturerId: user.id,
+        lecturerName: user.fullName,
+        content,
+        score: score === '' ? null : Number(score),
+        createdAt: nowIso(),
+      }
+      mockReportFeedback.push(feedback)
+      return mockResolve(feedback)
+    }
+
+    return unwrap(
+      apiClient.post('/reports.php?action=feedback', {
+        report_version_id: reportVersionId,
+        content,
+        score: score === '' ? null : Number(score),
+      }),
+    )
+  },
+
   async listGrades({ groupId } = {}) {
     if (useMock) {
       const user = getMockUser()
@@ -182,7 +211,7 @@ const reportApi = {
         mockFinalGrades.filter(
           (grade) =>
             (groupId === undefined || grade.groupId === Number(groupId)) &&
-            (user.role !== 'STUDENT' ||
+            (!isStudentRole(user.role) ||
               (grade.studentId === user.id && grade.status === 'published')),
         ),
       )

@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import teamApi from '../../api/teamApi.js'
 import { useAuth } from '../../contexts/useAuth.js'
+import { isStudentRole } from '../../utils/roles.js'
+import InviteMemberForm from './InviteMemberForm.jsx'
+import JoinRequestsPanel from './JoinRequestsPanel.jsx'
+import MyInvitationsPanel from './MyInvitationsPanel.jsx'
 
 const groupStatuses = {
   forming: 'Đang thành lập',
@@ -18,11 +22,7 @@ function TeamsPage() {
   const [isLoadingTeams, setIsLoadingTeams] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [availableStudents, setAvailableStudents] = useState([])
-  const [selectedStudentId, setSelectedStudentId] = useState('')
-  const [isLoadingStudents, setIsLoadingStudents] = useState(false)
-  const [isAddingMember, setIsAddingMember] = useState(false)
-  const [showAddMember, setShowAddMember] = useState(false)
+  const [showInviteForm, setShowInviteForm] = useState(false)
   const [groupCode, setGroupCode] = useState('')
   const [groupName, setGroupName] = useState('')
   const [description, setDescription] = useState('')
@@ -133,52 +133,18 @@ function TeamsPage() {
     }
   }
 
-  async function handleShowAddMember() {
-    setError('')
-    if (showAddMember) {
-      setShowAddMember(false)
-      return
-    }
-
-    setIsLoadingStudents(true)
-    try {
-      const students = await teamApi.listAvailableStudents(selectedTeamId)
-      setAvailableStudents(students)
-      setSelectedStudentId(students[0]?.id?.toString() || '')
-      setShowAddMember(true)
-    } catch (loadError) {
-      setError(loadError.message || 'Không thể tải danh sách sinh viên.')
-    } finally {
-      setIsLoadingStudents(false)
-    }
+  async function handleRequestApproved() {
+    setSelectedTeam(await teamApi.getTeam(selectedTeamId))
+    await refreshTeams()
   }
 
-  async function handleAddMember(event) {
-    event.preventDefault()
-    if (!selectedStudentId) {
-      return
-    }
-
-    setError('')
-    setIsAddingMember(true)
-    try {
-      await teamApi.addMember(selectedTeamId, Number(selectedStudentId))
-      const [updatedTeam, students] = await Promise.all([
-        teamApi.getTeam(selectedTeamId),
-        teamApi.listAvailableStudents(selectedTeamId),
-      ])
-      setSelectedTeam(updatedTeam)
-      setAvailableStudents(students)
-      setSelectedStudentId(students[0]?.id?.toString() || '')
-      await refreshTeams()
-      if (students.length === 0) {
-        setShowAddMember(false)
-      }
-    } catch (addError) {
-      setError(addError.message || 'Không thể thêm sinh viên vào nhóm.')
-    } finally {
-      setIsAddingMember(false)
-    }
+  async function handleInvitationAccepted(groupId) {
+    const [, joinedTeam] = await Promise.all([
+      refreshTeams(),
+      teamApi.getTeam(groupId),
+    ])
+    setSelectedTeam(joinedTeam)
+    setSelectedTeamId(groupId)
   }
 
   return (
@@ -188,7 +154,7 @@ function TeamsPage() {
         description="Danh sách nhóm và thông tin thành viên được tải từ API nhóm."
         status={isLoadingTeams ? 'Đang tải' : `${teams.length} nhóm`}
       />
-      {role === 'STUDENT' && (
+      {isStudentRole(role) && (
         <button
           className="teams-create-toggle"
           onClick={() => setIsCreating((current) => !current)}
@@ -234,6 +200,9 @@ function TeamsPage() {
           </button>
         </form>
       )}
+      {isStudentRole(role) && (
+        <MyInvitationsPanel onAccepted={handleInvitationAccepted} />
+      )}
       {isLoadingTeams ? (
         <p className="teams-message" role="status">
           Đang tải danh sách nhóm...
@@ -251,6 +220,7 @@ function TeamsPage() {
                 key={team.id}
                 onClick={() => {
                   setError('')
+                  setShowInviteForm(false)
                   setSelectedTeamId(team.id)
                 }}
                 type="button"
@@ -310,55 +280,13 @@ function TeamsPage() {
                     <>
                       <button
                         className="button-secondary"
-                        disabled={isLoadingStudents}
-                        onClick={handleShowAddMember}
+                        onClick={() => setShowInviteForm((current) => !current)}
                         type="button"
                       >
-                        {isLoadingStudents
-                          ? 'Đang tải sinh viên...'
-                          : showAddMember
-                            ? 'Đóng thêm thành viên'
-                            : 'Thêm sinh viên'}
+                        {showInviteForm ? 'Đóng mời thành viên' : 'Mời thành viên'}
                       </button>
-                      {showAddMember && (
-                        <form
-                          className="data-form"
-                          onSubmit={handleAddMember}
-                        >
-                          <label className="field-control">
-                            Chọn sinh viên chưa thuộc nhóm trong đợt này
-                            <select
-                              onChange={(event) =>
-                                setSelectedStudentId(event.target.value)
-                              }
-                              required
-                              value={selectedStudentId}
-                            >
-                              {availableStudents.length === 0 ? (
-                                <option value="">
-                                  Không còn sinh viên phù hợp để thêm
-                                </option>
-                              ) : (
-                                availableStudents.map((student) => (
-                                  <option key={student.id} value={student.id}>
-                                    {student.studentCode
-                                      ? `${student.studentCode} - `
-                                      : ''}
-                                    {student.fullName}
-                                  </option>
-                                ))
-                              )}
-                            </select>
-                          </label>
-                          <button
-                            disabled={
-                              isAddingMember || availableStudents.length === 0
-                            }
-                            type="submit"
-                          >
-                            {isAddingMember ? 'Đang thêm...' : 'Thêm vào nhóm'}
-                          </button>
-                        </form>
+                      {showInviteForm && (
+                        <InviteMemberForm teamId={selectedTeam.id} />
                       )}
                     </>
                   )}
@@ -388,6 +316,14 @@ function TeamsPage() {
                 ) : (
                   <p className="muted">Chưa có dữ liệu thành viên.</p>
                 )}
+                {selectedTeam.leaderUserId === user?.id &&
+                  ['forming', 'active'].includes(selectedTeam.status) && (
+                    <JoinRequestsPanel
+                      key={selectedTeam.id}
+                      onApproved={handleRequestApproved}
+                      teamId={selectedTeam.id}
+                    />
+                  )}
               </>
             )}
           </section>

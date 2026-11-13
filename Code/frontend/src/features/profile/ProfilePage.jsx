@@ -4,11 +4,7 @@ import { useAuth } from '../../contexts/useAuth.js'
 import profileApi from '../../api/profileApi.js'
 import './profile-edit.css'
 
-const roleLabels = {
-  ADMIN: 'Quản trị viên',
-  LECTURER: 'Giảng viên',
-  STUDENT: 'Sinh viên',
-}
+import { roleLabel } from '../../utils/roles.js'
 
 function ProfilePage() {
   const { user, updateUser } = useAuth()
@@ -81,7 +77,7 @@ function ProfilePage() {
         eyebrow="Tài khoản"
         title="Hồ sơ cá nhân"
         description="Thông tin tài khoản đang đăng nhập trong hệ thống."
-        status={roleLabels[user?.role] || user?.role || 'Chưa xác định'}
+        status={roleLabel(user?.role) || 'Chưa xác định'}
       />
       {error && <p className="alert-error" role="alert">{error}</p>}
       {success && <p className="success-message" role="status">{success}</p>}
@@ -92,7 +88,9 @@ function ProfilePage() {
           </div>
           <div>
             <h2>{user?.fullName || 'Chưa cập nhật họ tên'}</h2>
-            <p className="muted">{roleLabels[user?.role] || 'Vai trò chưa được xác định'}</p>
+            <p className="muted">
+              {roleLabel(user?.role) || 'Vai trò chưa được xác định'}
+            </p>
           </div>
         </div>
         <dl className="profile-metadata">
@@ -106,7 +104,7 @@ function ProfilePage() {
           </div>
           <div>
             <dt>Vai trò</dt>
-            <dd>{roleLabels[user?.role] || user?.role || 'Chưa có dữ liệu'}</dd>
+            <dd>{roleLabel(user?.role) || 'Chưa có dữ liệu'}</dd>
           </div>
         </dl>
         <form className="profile-edit-form" onSubmit={handleSubmit}>

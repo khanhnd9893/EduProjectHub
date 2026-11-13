@@ -13,11 +13,60 @@ session_start();
 require_once __DIR__ . '/api_common.php';
 
 /** Kiểm tra và chuyển giá trị thành ID báo cáo nguyên dương. */
-function reportId($value): int
+function reportId($value, string $field = 'report_id'): int
 {
     $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    apiRequire($id !== false, 400, 'report_id phải là số nguyên dương.');
+    apiRequire($id !== false, 400, "$field phải là số nguyên dương.");
     return (int) $id;
+}
+
+/** Chuẩn hóa chuỗi văn bản của đợt báo cáo; trả null nếu trường tùy chọn để trống. */
+function reportText(array $body, string $field, int $maxLength, bool $required): ?string
+{
+    $value = $body[$field] ?? null;
+    if (!$required && $value === null) {
+        return null;
+    }
+    apiRequire(is_string($value), 400, "$field phải là chuỗi.");
+    $value = trim($value);
+    apiRequire(!$required || $value !== '', 400, "$field không được để trống.");
+    apiRequire(mb_strlen($value, 'UTF-8') <= $maxLength, 400, "$field vượt quá giới hạn $maxLength ký tự.");
+    return $value === '' ? null : $value;
+}
+
+/** Chuẩn hóa hạn nộp sang định dạng DATETIME; null nghĩa là không có hạn. */
+function reportDeadline($value): ?string
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+    apiRequire(
+        is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?$/', $value) === 1,
+        400,
+        'deadline phải có dạng YYYY-MM-DD HH:MM.'
+    );
+    $normalized = str_replace('T', ' ', $value);
+    if (strlen($normalized) === 16) {
+        $normalized .= ':00';
+    }
+    $date = DateTime::createFromFormat('Y-m-d H:i:s', $normalized);
+    $errors = DateTime::getLastErrors();
+    apiRequire(
+        $date !== false && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0)),
+        400,
+        'deadline không phải ngày giờ hợp lệ.'
+    );
+    return $date->format('Y-m-d H:i:s');
+}
+
+/** Chỉ quản trị viên và giảng viên được tạo hoặc chỉnh sửa đợt báo cáo. */
+function reportRequireManager(array $actor): void
+{
+    apiRequire(
+        in_array($actor['role'], ['admin', 'training_manager', 'lecturer'], true),
+        403,
+        'Chỉ quản trị viên hoặc giảng viên được phân công mới được quản lý đợt báo cáo.'
+    );
 }
 
 /** Xác thực quyền truy cập báo cáo dựa trên quyền truy cập nhóm. */
@@ -40,7 +89,7 @@ try {
                 FROM reports r
                 JOIN student_groups g ON g.id = r.group_id';
         $params = [];
-        if ($actor['role'] === 'student') {
+        if (apiIsStudentRole($actor)) {
             $sql .= " WHERE (g.leader_user_id = ? OR EXISTS (
                 SELECT 1 FROM group_members gm
                 WHERE gm.group_id = g.id AND gm.user_id = ? AND gm.status = 'active'
@@ -109,7 +158,7 @@ try {
 
     if ($method === 'POST' && $action === 'submit') {
         apiRequireCsrf();
-        apiRequire($actor['role'] === 'student', 403, 'Chỉ sinh viên mới được nộp báo cáo.');
+        apiRequire(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới được nộp báo cáo.');
         $id = reportId($_POST['report_id'] ?? null);
         apiRequire(isset($_FILES['file']) && is_array($_FILES['file']), 400, 'Vui lòng chọn tệp báo cáo.');
         $file = $_FILES['file'];
@@ -158,6 +207,11 @@ try {
         $storage = __DIR__ . '/storage/reports';
         if (!is_dir($storage) && !mkdir($storage, 0750, true) && !is_dir($storage)) {
             throw new RuntimeException('Không thể tạo thư mục lưu báo cáo.', 500);
+        }
+        // Thư mục nằm trong web root nên phải chặn tải trực tiếp và liệt kê tệp qua Apache.
+        $guard = __DIR__ . '/storage/.htaccess';
+        if (!is_file($guard)) {
+            file_put_contents($guard, "Require all denied\n");
         }
         $storedName = bin2hex(random_bytes(24)) . '.' . $extension;
         $destination = $storage . DIRECTORY_SEPARATOR . $storedName;
@@ -210,6 +264,114 @@ try {
         apiRespond(201, ['data' => ['id' => $versionId, 'report_id' => $id, 'version_no' => $versionNo]]);
     }
 
+    if ($method === 'POST' && $action === 'create') {
+        $body = apiReadJsonBody();
+        apiRequireCsrf($body);
+        reportRequireManager($actor);
+        $groupId = reportId($body['group_id'] ?? null, 'group_id');
+        $group = reportCanAccess($pdo, $groupId, $actor);
+        apiRequire($group['status'] !== 'dissolved', 409, 'Nhóm đã giải thể, không thể tạo đợt báo cáo.');
+        $title = reportText($body, 'title', 255, true);
+        $reportType = $body['report_type'] ?? 'other';
+        apiRequire(
+            in_array($reportType, ['weekly', 'midterm', 'final', 'other'], true),
+            400,
+            'Loại báo cáo không hợp lệ.'
+        );
+        $description = reportText($body, 'description', 5000, false);
+        $deadline = reportDeadline($body['deadline'] ?? null);
+        $status = $body['status'] ?? 'open';
+        apiRequire(in_array($status, ['open', 'closed'], true), 400, 'Trạng thái ban đầu chỉ có thể là open hoặc closed.');
+        $statement = $pdo->prepare(
+            'INSERT INTO reports (group_id, title, report_type, description, deadline, status, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
+        );
+        $statement->execute([$groupId, $title, $reportType, $description, $deadline, $status, $actor['id']]);
+        apiRespond(201, ['data' => ['id' => (int) $pdo->lastInsertId()]]);
+    }
+
+    if ($method === 'PATCH' && $action === 'update') {
+        $body = apiReadJsonBody();
+        apiRequireCsrf($body);
+        reportRequireManager($actor);
+        $id = reportId($body['id'] ?? null);
+        $statement = $pdo->prepare('SELECT group_id FROM reports WHERE id = ?');
+        $statement->execute([$id]);
+        $groupId = $statement->fetchColumn();
+        apiRequire($groupId !== false, 404, 'Không tìm thấy đợt báo cáo.');
+        reportCanAccess($pdo, (int) $groupId, $actor);
+
+        $updates = [];
+        $params = [];
+        if (array_key_exists('title', $body)) {
+            $updates[] = 'title = ?';
+            $params[] = reportText($body, 'title', 255, true);
+        }
+        if (array_key_exists('report_type', $body)) {
+            apiRequire(
+                in_array($body['report_type'], ['weekly', 'midterm', 'final', 'other'], true),
+                400,
+                'Loại báo cáo không hợp lệ.'
+            );
+            $updates[] = 'report_type = ?';
+            $params[] = $body['report_type'];
+        }
+        if (array_key_exists('description', $body)) {
+            $updates[] = 'description = ?';
+            $params[] = reportText($body, 'description', 5000, false);
+        }
+        if (array_key_exists('deadline', $body)) {
+            $updates[] = 'deadline = ?';
+            $params[] = reportDeadline($body['deadline']);
+        }
+        if (array_key_exists('status', $body)) {
+            apiRequire(
+                in_array($body['status'], ['open', 'closed', 'graded'], true),
+                400,
+                'Trạng thái đợt báo cáo không hợp lệ.'
+            );
+            $updates[] = 'status = ?';
+            $params[] = $body['status'];
+        }
+        apiRequire($updates !== [], 400, 'Không có trường nào để cập nhật.');
+        $params[] = $id;
+        $pdo->prepare('UPDATE reports SET ' . implode(', ', $updates) . ' WHERE id = ?')->execute($params);
+        apiRespond(200, ['message' => 'Đã cập nhật đợt báo cáo.']);
+    }
+
+    if ($method === 'POST' && $action === 'feedback') {
+        $body = apiReadJsonBody();
+        apiRequireCsrf($body);
+        apiRequire($actor['role'] === 'lecturer', 403, 'Chỉ giảng viên mới được nhận xét báo cáo.');
+        $versionId = reportId($body['report_version_id'] ?? null);
+        $content = $body['content'] ?? null;
+        apiRequire(is_string($content), 400, 'content phải là chuỗi.');
+        $content = trim($content);
+        apiRequire($content !== '' && mb_strlen($content, 'UTF-8') <= 5000, 400, 'Nhận xét phải có từ 1 đến 5000 ký tự.');
+        $score = $body['score'] ?? null;
+        apiRequire(
+            $score === null || (is_numeric($score) && (float) $score >= 0 && (float) $score <= 10),
+            400,
+            'Điểm phải nằm trong khoảng từ 0 đến 10.'
+        );
+        $statement = $pdo->prepare(
+            'SELECT r.group_id
+             FROM report_versions rv
+             JOIN reports r ON r.id = rv.report_id
+             WHERE rv.id = ?'
+        );
+        $statement->execute([$versionId]);
+        $reportVersion = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($reportVersion !== false, 404, 'Không tìm thấy phiên bản báo cáo.');
+        reportCanAccess($pdo, (int) $reportVersion['group_id'], $actor);
+        $statement = $pdo->prepare(
+            'INSERT INTO report_feedback (report_version_id, lecturer_user_id, content, score)
+             VALUES (?, ?, ?, ?)'
+        );
+        $statement->execute([$versionId, $actor['id'], $content, $score === null ? null : (float) $score]);
+        apiRespond(201, ['data' => ['id' => (int) $pdo->lastInsertId()]]);
+    }
+
     if ($method === 'GET' && $action === 'grades') {
         $sql = 'SELECT fg.group_id, g.group_name,
                        fg.student_user_id AS student_id, u.full_name AS student_name,
@@ -218,7 +380,7 @@ try {
                 JOIN student_groups g ON g.id = fg.group_id
                 JOIN users u ON u.id = fg.student_user_id';
         $params = [];
-        if ($actor['role'] === 'student') {
+        if (apiIsStudentRole($actor)) {
             $sql .= " WHERE fg.student_user_id = ? AND fg.status = 'published'
                       AND EXISTS (
                           SELECT 1 FROM group_members gm
