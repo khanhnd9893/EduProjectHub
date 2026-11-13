@@ -96,7 +96,7 @@ function TasksPage() {
   }, [teamId])
 
   const canManageTasks =
-    role === 'ADMIN' || selectedTeam?.leaderUserId === user?.id
+    isStudentRole(role) && selectedTeam?.leaderUserId === user?.id
   const canCreateTasks = canManageTasks || role === 'LECTURER'
 
   function canUpdateTaskStatus(task) {

@@ -15,6 +15,7 @@ import GradesPage from '../features/grades/GradesPage.jsx'
 import ChatbotPage from '../features/chatbot/ChatbotPage.jsx'
 import TopicsPage from '../features/topics/TopicsPage.jsx'
 import NotificationsPage from '../features/notifications/NotificationsPage.jsx'
+import UsersPage from '../features/users/UsersPage.jsx'
 // Hết khối M2
 
 function AppRoutes() {
@@ -26,6 +27,14 @@ function AppRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route
+            path="/users"
+            element={
+              <RoleRoute resource="accounts">
+                <UsersPage />
+              </RoleRoute>
+            }
+          />
           <Route
             path="/topics"
             element={

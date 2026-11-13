@@ -59,13 +59,13 @@ function reportDeadline($value): ?string
     return $date->format('Y-m-d H:i:s');
 }
 
-/** Chỉ quản trị viên và người đào tạo được tạo hoặc chỉnh sửa đợt báo cáo. */
+/** Chỉ người đào tạo được tạo hoặc chỉnh sửa đợt báo cáo. */
 function reportRequireManager(array $actor): void
 {
     apiRequireRole(
         $actor,
-        ['admin', 'training_manager'],
-        'Chỉ quản trị viên hoặc người đào tạo mới được quản lý đợt báo cáo.'
+        ['training_manager'],
+        'Chỉ người đào tạo mới được quản lý đợt báo cáo.'
     );
 }
 

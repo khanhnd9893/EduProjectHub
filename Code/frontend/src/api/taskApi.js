@@ -8,8 +8,9 @@ import {
   nowIso,
 } from './mock/helpers.js'
 import { mockTasks } from './mock/taskMock.js'
+import { isMockMode } from '../config/runtime.js'
 
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+const useMock = isMockMode
 
 const taskFieldNames = {
   groupId: 'group_id',

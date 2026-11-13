@@ -39,6 +39,8 @@ try {
             'Tài khoản hoặc mật khẩu không chính xác.'
         );
 
+        $statement = $pdo->prepare('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?');
+        $statement->execute([(int) $user['id']]);
         session_regenerate_id(true);
         $_SESSION['user_id'] = (int) $user['id'];
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

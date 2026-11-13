@@ -12,8 +12,9 @@ import {
   mockFaqs,
 } from './mock/chatbotMock.js'
 import { isStudentRole } from '../utils/roles.js'
+import { isMockMode } from '../config/runtime.js'
 
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+const useMock = isMockMode
 
 const MOCK_FALLBACK_ANSWER =
   'Xin lỗi, mình chưa có thông tin cho câu hỏi này. Bạn hãy liên hệ giảng viên hướng dẫn nhé.'

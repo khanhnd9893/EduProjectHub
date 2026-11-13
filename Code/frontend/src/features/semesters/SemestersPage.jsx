@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import semesterApi from '../../api/semesterApi.js'
+import { useAuth } from '../../contexts/useAuth.js'
+import { isAcademicManagerRole } from '../../utils/roles.js'
 
 const semesterStatuses = {
   draft: 'Bản nháp',
@@ -20,6 +22,8 @@ function formatDate(value) {
 }
 
 function SemestersPage() {
+  const { role } = useAuth()
+  const canManageSemesters = isAcademicManagerRole(role)
   const [semesters, setSemesters] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -132,15 +136,17 @@ function SemestersPage() {
       <PageHeading
         eyebrow="Quản trị"
         title="Quản lý đợt đồ án"
-        description="Danh sách đợt đồ án hiện có."
-        status={isLoading ? 'Đang tải' : 'Quản trị viên / Người đào tạo'}
+        description="Xem các đợt đồ án hiện có."
+        status={isLoading ? 'Đang tải' : canManageSemesters ? 'Có quyền quản lý' : 'Chỉ xem'}
       />
-      <button className="semester-create-button" type="button" onClick={openCreateForm}>
-        Thêm học kỳ
-      </button>
+      {canManageSemesters && (
+        <button className="semester-create-button" type="button" onClick={openCreateForm}>
+          Thêm học kỳ
+        </button>
+      )}
       {error && <p className="alert-error" role="alert">{error}</p>}
       {success && <p className="success-message" role="status">{success}</p>}
-      {isFormOpen && (
+      {isFormOpen && canManageSemesters && (
         <form className="workspace-panel data-form semester-form" onSubmit={handleSubmit}>
           <div className="semester-form-heading">
             <h2>{editingSemester ? 'Chỉnh sửa học kỳ' : 'Thêm học kỳ'}</h2>
@@ -151,11 +157,11 @@ function SemestersPage() {
           <div className="form-grid">
             <label className="field-control">
               Mã đợt
-              <input name="roundCode" value={form.roundCode} onChange={handleChange} />
+              <input maxLength="30" name="roundCode" required value={form.roundCode} onChange={handleChange} />
             </label>
             <label className="field-control">
               Tên đợt
-              <input name="roundName" value={form.roundName} onChange={handleChange} />
+              <input maxLength="150" name="roundName" required value={form.roundName} onChange={handleChange} />
             </label>
             <label className="field-control">
               Học kỳ
@@ -167,7 +173,7 @@ function SemestersPage() {
             </label>
             <label className="field-control">
               Năm học
-              <input name="academicYear" value={form.academicYear} onChange={handleChange} />
+              <input maxLength="20" name="academicYear" required value={form.academicYear} onChange={handleChange} />
             </label>
             <label className="field-control">
               Ngày bắt đầu
@@ -179,11 +185,11 @@ function SemestersPage() {
             </label>
             <label className="field-control">
               Số thành viên tối thiểu
-              <input name="minMembers" type="number" min="1" value={form.minMembers} onChange={handleChange} />
+              <input name="minMembers" type="number" min="1" max="255" value={form.minMembers} onChange={handleChange} />
             </label>
             <label className="field-control">
               Số thành viên tối đa
-              <input name="maxMembers" type="number" min="1" value={form.maxMembers} onChange={handleChange} />
+              <input name="maxMembers" type="number" min="1" max="255" value={form.maxMembers} onChange={handleChange} />
             </label>
             <label className="field-control">
               Trạng thái
@@ -211,9 +217,11 @@ function SemestersPage() {
               <span className="status-chip">
                 {semesterStatuses[semester.status] || semester.status}
               </span>
-              <button className="button-secondary" type="button" onClick={() => openEditForm(semester)}>
-                Chỉnh sửa
-              </button>
+              {canManageSemesters && (
+                <button className="button-secondary" type="button" onClick={() => openEditForm(semester)}>
+                  Chỉnh sửa
+                </button>
+              )}
               <dl className="semester-metadata">
                 <div>
                   <dt>Năm học</dt>
@@ -233,7 +241,7 @@ function SemestersPage() {
         </div>
       ) : (
         <section className="workspace-panel">
-          Chưa có dữ liệu học kỳ. API PHP quản lý học kỳ chưa được triển khai.
+          Chưa có đợt đồ án nào.
         </section>
       )}
     </section>

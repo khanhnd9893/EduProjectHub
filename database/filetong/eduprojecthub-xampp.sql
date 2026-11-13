@@ -558,8 +558,7 @@ VALUES
 INSERT INTO group_members (group_id, user_id, member_role, status) VALUES
 (1, 5, 'member', 'active'),
 (1, 4, 'member', 'active'),
-(2, 7, 'member', 'active'),
-(3, 9, 'leader', 'active');
+(2, 7, 'member', 'active');
 
 INSERT INTO group_lecturers (group_id, lecturer_user_id, assigned_by) VALUES
 (1, 2, 3),

@@ -177,10 +177,10 @@ function defenseLoadSchedule(PDO $pdo, int $id): array
     return $schedule;
 }
 
-/** Quyền xem lịch: admin, thành viên hội đồng, giảng viên được phân công nhóm hoặc thành viên nhóm. */
+/** Quyền xem lịch: quản trị viên, người đào tạo, thành viên hội đồng, giảng viên được phân công hoặc thành viên nhóm. */
 function defenseCanViewSchedule(PDO $pdo, array $schedule, array $actor): bool
 {
-    if (apiIsTrainingManager($actor)) {
+    if (apiCanViewAllData($actor)) {
         return true;
     }
     if ($actor['role'] === 'lecturer'
@@ -212,7 +212,7 @@ function defenseGroupStudents(PDO $pdo, int $groupId): array
     return $statement->fetchAll(PDO::FETCH_ASSOC);
 }
 
-/** Quyền quản lý điểm tổng kết: quản trị viên hoặc chủ tịch hội đồng bảo vệ của nhóm. */
+/** Quyền quản lý điểm tổng kết: người đào tạo hoặc chủ tịch hội đồng bảo vệ của nhóm. */
 function defenseRequireGradeManager(PDO $pdo, int $groupId, array $actor): array
 {
     $statement = $pdo->prepare('SELECT id, group_name, project_round_id, status FROM student_groups WHERE id = ?');
@@ -237,7 +237,7 @@ function defenseRequireGradeManager(PDO $pdo, int $groupId, array $actor): array
     apiRequire(
         $isChair,
         403,
-        'Chỉ quản trị viên hoặc chủ tịch hội đồng bảo vệ của nhóm mới được quản lý điểm tổng kết.'
+        'Chỉ người đào tạo hoặc chủ tịch hội đồng bảo vệ của nhóm mới được quản lý điểm tổng kết.'
     );
     return $group;
 }
@@ -340,7 +340,7 @@ try {
     }
 
     if ($method === 'POST' && $action === 'create_council') {
-        defenseRequireRole($actor, ['admin', 'training_manager'], 'Chỉ quản trị viên hoặc người đào tạo mới được tạo hội đồng bảo vệ.');
+        defenseRequireRole($actor, ['training_manager'], 'Chỉ người đào tạo mới được tạo hội đồng bảo vệ.');
         $roundId = defenseId($body['project_round_id'] ?? null, 'project_round_id');
         $name = defenseText($body, 'name', 150, true);
         $statement = $pdo->prepare('SELECT 1 FROM project_rounds WHERE id = ?');
@@ -362,7 +362,7 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'update_council') {
-        defenseRequireRole($actor, ['admin', 'training_manager'], 'Chỉ quản trị viên hoặc người đào tạo mới được cập nhật hội đồng bảo vệ.');
+        defenseRequireRole($actor, ['training_manager'], 'Chỉ người đào tạo mới được cập nhật hội đồng bảo vệ.');
         $id = defenseId($body['id'] ?? null, 'id');
         defenseLoadCouncil($pdo, $id);
         apiRequire(
@@ -464,7 +464,7 @@ try {
         $schedule['council_members'] = defenseCouncilMembers($pdo, (int) $schedule['council_id']);
         $schedule['students'] = defenseGroupStudents($pdo, (int) $schedule['group_id']);
         $schedule['scores'] = [];
-        if (apiIsTrainingManager($actor) || $councilRole !== null) {
+        if (apiCanViewAllData($actor) || $councilRole !== null) {
             $statement = $pdo->prepare(
                 'SELECT ds.id, ds.student_user_id, student.full_name AS student_name,
                         ds.lecturer_user_id, lecturer.full_name AS lecturer_name,
@@ -482,7 +482,7 @@ try {
     }
 
     if ($method === 'POST' && $action === 'create_schedule') {
-        defenseRequireRole($actor, ['admin', 'training_manager'], 'Chỉ quản trị viên hoặc người đào tạo mới được lên lịch bảo vệ.');
+        defenseRequireRole($actor, ['training_manager'], 'Chỉ người đào tạo mới được lên lịch bảo vệ.');
         $councilId = defenseId($body['council_id'] ?? null, 'council_id');
         $groupId = defenseId($body['group_id'] ?? null, 'group_id');
         $defenseAt = defenseDateTime($body['defense_at'] ?? null, 'defense_at');
@@ -522,7 +522,7 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'update_schedule') {
-        defenseRequireRole($actor, ['admin', 'training_manager'], 'Chỉ quản trị viên hoặc người đào tạo mới được cập nhật lịch bảo vệ.');
+        defenseRequireRole($actor, ['training_manager'], 'Chỉ người đào tạo mới được cập nhật lịch bảo vệ.');
         $id = defenseId($body['id'] ?? null, 'id');
         $pdo->beginTransaction();
         $statement = $pdo->prepare(

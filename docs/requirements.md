@@ -4,7 +4,8 @@
 SPMS hỗ trợ quản lý đề tài/đồ án theo học kỳ, phân công hướng dẫn, giao nhiệm vụ, nộp báo cáo, nhận xét và hỏi đáp. Tài liệu này là cơ sở để thiết kế, phát triển và kiểm thử.
 
 ## 2. Đối tượng sử dụng
-- Quản trị viên: quản lý dữ liệu nền và tài khoản.
+- Quản trị viên: quản lý tài khoản và có phạm vi tra cứu dữ liệu rộng nhất.
+- Người đào tạo: điều phối các nghiệp vụ học kỳ, đề tài, phân công, báo cáo và bảo vệ.
 - Giảng viên: theo dõi các đồ án được phân công.
 - Sinh viên: thực hiện đồ án, nộp bài và tra cứu hướng dẫn.
 
@@ -12,11 +13,11 @@ SPMS hỗ trợ quản lý đề tài/đồ án theo học kỳ, phân công hư
 - FR-01: Người dùng đăng nhập/đăng xuất an toàn.
 - FR-02: Người dùng được phép cập nhật các trường hồ sơ được quy định.
 - FR-03: Admin tạo, cập nhật, vô hiệu hóa tài khoản; không hiển thị mật khẩu dạng rõ.
-- FR-04: Admin quản lý học kỳ và thời gian bắt đầu/kết thúc.
-- FR-05: Admin tạo đề tài, thiết lập trạng thái và thời hạn.
-- FR-06: Admin phân công giảng viên hướng dẫn và quản lý thành viên đồ án.
-- FR-07: Giảng viên chỉ xem/chỉnh sửa đồ án được phân công, trừ quyền Admin được cấp.
-- FR-08: Giảng viên được phân công xem nhiệm vụ, thời hạn, tiêu chí hoàn thành và tiến độ nhóm; quyền tạo/cập nhật nhiệm vụ do trưởng nhóm hoặc quản trị viên thực hiện.
+- FR-04: Người đào tạo quản lý học kỳ và thời gian bắt đầu/kết thúc; Admin chỉ được tra cứu.
+- FR-05: Người đào tạo hoặc giảng viên tạo/cập nhật đề tài; Admin chỉ được tra cứu.
+- FR-06: Người đào tạo phân công giảng viên hướng dẫn; trưởng nhóm quản lý thành viên trong nhóm của mình; Admin chỉ được tra cứu.
+- FR-07: Giảng viên chỉ xem/chỉnh sửa đồ án được phân công; Admin có phạm vi đọc rộng nhưng không được ghi vào nghiệp vụ đồ án.
+- FR-08: Giảng viên được phân công xem nhiệm vụ, thời hạn, tiêu chí hoàn thành và tiến độ nhóm; trưởng nhóm tạo/cập nhật nhiệm vụ, sinh viên được giao cập nhật trạng thái.
 - FR-09: Sinh viên xem đồ án, nhiệm vụ và thời hạn mà mình được phép truy cập.
 - FR-10: Sinh viên nộp phiên bản báo cáo; hệ thống lưu thời điểm và thông tin tệp.
 - FR-11: Giảng viên gửi nhận xét, điểm (nếu áp dụng) và yêu cầu chỉnh sửa.

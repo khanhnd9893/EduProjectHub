@@ -26,6 +26,7 @@ function MainLayout() {
           <NavLink to="/dashboard">Tổng quan</NavLink>
           <NavLink to="/profile">Hồ sơ</NavLink>
           <NavLink to="/notifications">Thông báo</NavLink>
+          {canAccessPage(role, 'accounts') && <NavLink to="/users">Tài khoản</NavLink>}
           {canAccessPage(role, 'semesters') && <NavLink to="/semesters">Đợt đồ án</NavLink>}
           {canAccessPage(role, 'topics') && (
             <NavLink to="/topics">Đề tài</NavLink>

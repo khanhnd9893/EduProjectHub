@@ -1,8 +1,38 @@
 ﻿import apiClient from './client.js'
 import { unwrap } from './response.js'
 import { mockResolve, nextId } from './mock/helpers.js'
+import { isMockMode } from '../config/runtime.js'
 
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+const useMock = isMockMode
+
+function mapSemester(semester) {
+  return {
+    id: Number(semester.id),
+    roundCode: semester.round_code,
+    roundName: semester.round_name,
+    semester: semester.semester,
+    academicYear: semester.academic_year,
+    startDate: semester.start_date,
+    endDate: semester.end_date,
+    minMembers: Number(semester.min_members),
+    maxMembers: Number(semester.max_members),
+    status: semester.status,
+  }
+}
+
+function toBackendSemester(values) {
+  return {
+    round_code: values.roundCode,
+    round_name: values.roundName,
+    semester: values.semester || null,
+    academic_year: values.academicYear || null,
+    start_date: values.startDate || null,
+    end_date: values.endDate || null,
+    min_members: Number(values.minMembers),
+    max_members: Number(values.maxMembers),
+    status: values.status,
+  }
+}
 
 const mockSemesters = [
   {
@@ -28,42 +58,42 @@ const semesterApi = {
     const semesters = await unwrap(
       apiClient.get('/semesters.php', { params: { action: 'semesters' } }),
     )
-    return semesters.map((semester) => ({
-      id: Number(semester.id),
-      roundCode: semester.round_code,
-      roundName: semester.round_name,
-      semester: semester.semester,
-      academicYear: semester.academic_year,
-      startDate: semester.start_date,
-      endDate: semester.end_date,
-      minMembers: Number(semester.min_members),
-      maxMembers: Number(semester.max_members),
-      status: semester.status,
-    }))
+    return semesters.map(mapSemester)
   },
 
   async createSemester(values) {
-    if (!useMock) {
-      throw new Error('Backend hiện chưa hỗ trợ tạo học kỳ.')
+    if (useMock) {
+      const semester = { id: nextId(mockSemesters), ...values }
+      mockSemesters.unshift(semester)
+      return mockResolve(semester)
     }
 
-    const semester = { id: nextId(mockSemesters), ...values }
-    mockSemesters.unshift(semester)
-    return mockResolve(semester)
+    return mapSemester(
+      await unwrap(
+        apiClient.post('/semesters.php?action=create', toBackendSemester(values)),
+      ),
+    )
   },
 
   async updateSemester(id, values) {
-    if (!useMock) {
-      throw new Error('Backend hiện chưa hỗ trợ cập nhật học kỳ.')
+    if (useMock) {
+      const index = mockSemesters.findIndex((semester) => semester.id === Number(id))
+      if (index === -1) {
+        throw new Error('Không tìm thấy học kỳ cần cập nhật.')
+      }
+
+      mockSemesters[index] = { ...mockSemesters[index], ...values }
+      return mockResolve(mockSemesters[index])
     }
 
-    const index = mockSemesters.findIndex((semester) => semester.id === Number(id))
-    if (index === -1) {
-      throw new Error('Không tìm thấy học kỳ cần cập nhật.')
-    }
-
-    mockSemesters[index] = { ...mockSemesters[index], ...values }
-    return mockResolve(mockSemesters[index])
+    return mapSemester(
+      await unwrap(
+        apiClient.patch('/semesters.php?action=update', {
+          id: Number(id),
+          ...toBackendSemester(values),
+        }),
+      ),
+    )
   },
 }
 

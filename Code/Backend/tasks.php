@@ -11,6 +11,7 @@ session_set_cookie_params([
     'samesite' => 'Lax',
 ]);
 session_start();
+require_once __DIR__ . '/api_common.php';
 
 class TaskApiException extends RuntimeException
 {
@@ -156,7 +157,7 @@ function taskIsAssignedLecturer(PDO $pdo, int $groupId, int $userId): bool
 /** Xác thực quyền xem nhiệm vụ của quản trị viên, giảng viên hoặc sinh viên. */
 function taskRequireViewer(PDO $pdo, array $group, array $actor): void
 {
-    if (apiIsTrainingManager($actor)) {
+    if (apiCanViewAllData($actor)) {
         return;
     }
 
@@ -180,30 +181,21 @@ function taskRequireViewer(PDO $pdo, array $group, array $actor): void
     );
 }
 
-/** Yêu cầu người gọi là quản trị viên hoặc trưởng nhóm. */
+/** Yêu cầu người gọi là trưởng nhóm của nhóm tương ứng. */
 function taskRequireManager(array $group, array $actor): void
 {
     taskRequire(
-        $actor['role'] === 'admin'
-            || (
-                apiIsStudentRole($actor)
-                && (int) $group['leader_user_id'] === (int) $actor['id']
-            ),
+        apiIsStudentRole($actor)
+            && (int) $group['leader_user_id'] === (int) $actor['id'],
         403,
-        'Chỉ trưởng nhóm hoặc quản trị viên mới được quản lý nhiệm vụ.'
+        'Chỉ trưởng nhóm của nhóm này mới được quản lý nhiệm vụ.'
     );
 }
 
-/** Yêu cầu trưởng nhóm, quản trị viên hoặc giảng viên được phân công vào nhóm. */
+/** Yêu cầu trưởng nhóm hoặc giảng viên được phân công vào nhóm. */
 function taskRequireEditor(PDO $pdo, array $group, array $actor): void
 {
-    if (
-        $actor['role'] === 'admin'
-        || (
-            apiIsStudentRole($actor)
-            && (int) $group['leader_user_id'] === (int) $actor['id']
-        )
-    ) {
+    if (apiIsStudentRole($actor) && (int) $group['leader_user_id'] === (int) $actor['id']) {
         return;
     }
 
@@ -211,7 +203,7 @@ function taskRequireEditor(PDO $pdo, array $group, array $actor): void
         $actor['role'] === 'lecturer'
             && taskIsAssignedLecturer($pdo, (int) $group['id'], (int) $actor['id']),
         403,
-        'Chỉ giảng viên được phân công, trưởng nhóm hoặc quản trị viên mới được giao và sửa nhiệm vụ.'
+        'Chỉ giảng viên được phân công hoặc trưởng nhóm mới được giao và sửa nhiệm vụ.'
     );
 }
 
@@ -395,11 +387,10 @@ try {
             taskRequireManager($group, $actor);
         } else {
             taskRequire(
-                $actor['role'] === 'admin'
-                    || (
-                        apiIsStudentRole($actor)
-                        && (int) $group['leader_user_id'] === (int) $actor['id']
-                    )
+                (
+                    apiIsStudentRole($actor)
+                    && (int) $group['leader_user_id'] === (int) $actor['id']
+                )
                     || (
                         apiIsStudentRole($actor)
                         && taskIsMember($pdo, (int) $group['id'], (int) $actor['id'])
@@ -407,7 +398,7 @@ try {
                         && (int) $task['assigned_to'] === (int) $actor['id']
                     ),
                 403,
-                'Chỉ sinh viên được giao nhiệm vụ, trưởng nhóm hoặc quản trị viên mới được cập nhật trạng thái.'
+                'Chỉ sinh viên được giao nhiệm vụ hoặc trưởng nhóm mới được cập nhật trạng thái.'
             );
         }
 

@@ -469,6 +469,65 @@ h2 {
   padding: 8px 12px;
 }
 
+.account-toolbar {
+  align-items: flex-end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.account-search {
+  align-items: flex-end;
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  max-width: 820px;
+}
+
+.account-search .field-control {
+  flex: 1;
+}
+
+.account-table-container {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-top: 24px;
+  overflow-x: auto;
+}
+
+.account-table {
+  border-collapse: collapse;
+  min-width: 900px;
+  width: 100%;
+}
+
+.account-table th,
+.account-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 14px 16px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.account-table th {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.account-table-detail {
+  color: var(--muted);
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+.account-form-inline {
+  margin-top: 0;
+}
+
 .task-list {
   display: grid;
   gap: 16px;
@@ -887,6 +946,12 @@ h2 {
   .chatbot-layout,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .account-toolbar,
+  .account-search {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .task-card-heading,

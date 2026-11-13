@@ -84,7 +84,7 @@ try {
     $group = $statement->fetch();
     progressRequire($group !== false, 404, 'Không tìm thấy nhóm.');
 
-    if (!in_array($actor['role'], ['admin', 'training_manager'], true)) {
+    if (!apiCanViewAllData($actor)) {
         if ($actor['role'] === 'lecturer') {
             $statement = $pdo->prepare(
                 'SELECT 1 FROM group_lecturers gl

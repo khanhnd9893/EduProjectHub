@@ -4,8 +4,9 @@ import { mockResolve } from './mock/helpers.js'
 import { mockMembers } from './mock/teamMock.js'
 import { mockTasks } from './mock/taskMock.js'
 import teamApi from './teamApi.js'
+import { isMockMode } from '../config/runtime.js'
 
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+const useMock = isMockMode
 
 function isOverdue(task) {
   return (

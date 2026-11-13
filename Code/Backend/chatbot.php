@@ -225,7 +225,7 @@ try {
     if ($method === 'POST' && $action === 'create_faq') {
         $body = apiReadJsonBody();
         apiRequireCsrf($body);
-        apiRequireRole($actor, ['admin', 'lecturer'], 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
+        apiRequireRole($actor, ['lecturer'], 'Chỉ giảng viên mới được quản lý FAQ.');
         $values = chatbotFaqValues($body, false);
         $values['created_by'] = $actor['id'];
         $statement = $pdo->prepare(
@@ -239,7 +239,7 @@ try {
     if ($method === 'PATCH' && $action === 'update_faq') {
         $body = apiReadJsonBody();
         apiRequireCsrf($body);
-        apiRequireRole($actor, ['admin', 'lecturer'], 'Chỉ quản trị viên hoặc giảng viên mới được quản lý FAQ.');
+        apiRequireRole($actor, ['lecturer'], 'Chỉ giảng viên mới được quản lý FAQ.');
         $id = filter_var($body['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         apiRequire($id !== false, 400, 'id phải là số nguyên dương.');
         $values = chatbotFaqValues($body, true);

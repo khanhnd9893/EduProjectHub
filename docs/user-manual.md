@@ -45,10 +45,11 @@ Các tài khoản trên chỉ là dữ liệu minh họa. Không dùng thông ti
 5. Theo dõi các lần nộp lại.
 
 ## 6. Quản trị viên
-1. Quản lý tài khoản và trạng thái hoạt động.
-2. Tạo học kỳ và xác định thời gian.
-3. Tạo đề tài, thêm thành viên và phân công giảng viên.
-4. Theo dõi thống kê tổng hợp.
+1. Tạo tài khoản bằng thông tin thật; tìm kiếm, cập nhật hồ sơ và gán một trong năm vai trò.
+2. Khóa/mở tài khoản hoặc đặt lại mật khẩu; mật khẩu không được hiển thị lại và chỉ lưu dạng hash.
+3. Tra cứu học kỳ, đề tài, nhóm, nhiệm vụ, báo cáo, hội đồng và lịch bảo vệ trên toàn hệ thống.
+4. Các trang nghiệp vụ của quản trị viên chỉ có quyền xem; người đào tạo quản lý học kỳ, đề tài, phân công, báo cáo và bảo vệ, còn trưởng nhóm quản lý thành viên và nhiệm vụ trong nhóm của mình.
+5. Cấu hình hệ thống, nhật ký hoạt động và sao lưu/khôi phục chưa có API quản trị tương ứng.
 
 ## 7. Chatbot
 - Hỏi câu ngắn, nêu rõ phần cần hỗ trợ.
