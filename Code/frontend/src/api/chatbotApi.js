@@ -30,6 +30,16 @@ function toWords(text) {
     .filter((word) => word && !STOP_WORDS.has(word))
 }
 
+// FAQ chỉ hiện cho vai trò được phép xem; dùng chung cho danh sách FAQ và câu trả lời mock.
+function isFaqVisible(faq, role) {
+  return (
+    !faq.visibility ||
+    faq.visibility === 'all' ||
+    faq.visibility === role.toLowerCase() ||
+    (isStudentRole(role) && faq.visibility === 'student')
+  )
+}
+
 function findMockAnswer(content) {
   const words = new Set(toWords(content))
   const { role } = getMockUser()
@@ -43,15 +53,6 @@ function findMockAnswer(content) {
       bestFaq = faq
       bestScore = score
     }
-  }
-
-  function isFaqVisible(faq, role) {
-    return (
-      !faq.visibility ||
-      faq.visibility === 'all' ||
-      faq.visibility === role.toLowerCase() ||
-      (isStudentRole(role) && faq.visibility === 'student')
-    )
   }
 
   return bestScore >= MIN_MATCHED_WORDS ? bestFaq.answer : MOCK_FALLBACK_ANSWER
