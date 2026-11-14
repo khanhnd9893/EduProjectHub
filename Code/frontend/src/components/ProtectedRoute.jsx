@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth.js'
+import { getLoginPortal } from '../features/auth/loginPortals.js'
 
 function ProtectedRoute() {
   const { user, isLoading, authError, retrySession } = useAuth()
@@ -19,7 +20,7 @@ function ProtectedRoute() {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: location }} />
+    return <Navigate to={getLoginPortal()} replace state={{ from: location }} />
   }
 
   return <Outlet />

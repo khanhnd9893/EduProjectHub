@@ -1,0 +1,114 @@
+.lecturer-login {
+  align-items: stretch;
+  background: #eaf3ff;
+  display: grid;
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.8fr);
+  min-height: 100vh;
+  padding: 7vw;
+}
+
+.lecturer-login__intro {
+  background: #1857a6;
+  border-radius: 18px 0 0 18px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(32px, 6vw, 78px);
+}
+
+.lecturer-login__intro h1 {
+  color: #fff;
+  font-size: clamp(2.4rem, 5vw, 4.5rem);
+}
+
+.lecturer-login__intro p:last-child {
+  line-height: 1.8;
+  max-width: 460px;
+}
+
+.lecturer-login__eyebrow {
+  color: #b9d9ff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lecturer-login__card {
+  background: #fff;
+  border-radius: 0 18px 18px 0;
+  padding: clamp(32px, 5vw, 64px);
+}
+
+.lecturer-login__card h2 {
+  color: #123d75;
+}
+
+.lecturer-login__subtitle {
+  color: #5a6f8b;
+}
+
+.lecturer-login__form {
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.lecturer-login__form label {
+  color: #18395f;
+  font-weight: 700;
+}
+
+.lecturer-login__form input {
+  border: 1px solid #b6cce5;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.lecturer-login__form button {
+  background: #1769c2;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 700;
+  margin-top: 10px;
+  padding: 12px 16px;
+}
+
+.lecturer-login__form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.lecturer-login__error {
+  color: #b42318;
+  margin: 4px 0;
+}
+
+.lecturer-login__hint {
+  color: #5a6f8b;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .lecturer-login {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .lecturer-login__intro {
+    border-radius: 16px 16px 0 0;
+    padding: 34px 26px;
+  }
+
+  .lecturer-login__intro h1 {
+    font-size: 2.5rem;
+  }
+
+  .lecturer-login__card {
+    border-radius: 0 0 16px 16px;
+    padding: 30px 26px;
+  }
+}

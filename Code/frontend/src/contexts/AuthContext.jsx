@@ -89,8 +89,21 @@ export function AuthProvider({ children }) {
     return currentUser
   }
 
-  async function login(credentials) {
+  async function login(credentials, allowedRoles) {
     const result = await authApi.login(credentials)
+    if (allowedRoles && !allowedRoles.includes(result.user?.role)) {
+      if (!isMock) {
+        try {
+          await authApi.logout()
+        } catch (logoutError) {
+          throw new Error(
+            'Tài khoản này không thuộc cổng đăng nhập này.',
+            { cause: logoutError },
+          )
+        }
+      }
+      throw new Error('Tài khoản này không thuộc cổng đăng nhập này.')
+    }
     setAuthError('')
     setUser(result.user)
     if (result.token) {
