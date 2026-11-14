@@ -21,6 +21,8 @@ function AdminLoginPage() {
 
   if (isCheckingSession) {
     return <p role="status">Đang kiểm tra phiên đăng nhập...</p>
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
