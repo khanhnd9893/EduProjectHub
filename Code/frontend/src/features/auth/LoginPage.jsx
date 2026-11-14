@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/useAuth.js'
 import { isMockMode } from '../../config/runtime.js'
 
@@ -78,6 +78,7 @@ function LoginPage() {
             </small>
           )}
         </form>
+        <Link to="/admin-login">Đăng nhập dành cho quản trị</Link>
       </section>
     </main>
   )

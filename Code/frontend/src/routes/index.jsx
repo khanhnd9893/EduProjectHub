@@ -3,6 +3,7 @@ import ProtectedRoute from '../components/ProtectedRoute.jsx'
 import RoleRoute from '../components/RoleRoute.jsx'
 import MainLayout from '../layouts/MainLayout.jsx'
 import LoginPage from '../features/auth/LoginPage.jsx'
+import AdminLoginPage from '../features/auth/AdminLoginPage.jsx'
 import ProfilePage from '../features/profile/ProfilePage.jsx'
 import DashboardPage from '../features/dashboard/DashboardPage.jsx'
 import SemestersPage from '../features/semesters/SemestersPage.jsx'
@@ -22,6 +23,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/admin-login" element={<AdminLoginPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
