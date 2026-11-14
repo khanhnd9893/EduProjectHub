@@ -28,9 +28,17 @@ function AppRoutes() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route
+            path="/users"
+            element={
+              <RoleRoute resource="accounts">
+                <UsersPage />
+              </RoleRoute>
+            }
+          />
+          <Route
             path="/topics"
             element={
-              <RoleRoute allowedRoles={['ADMIN', 'STUDENT', 'TEAM_LEADER', 'LECTURER', 'TRAINING_MANAGER']}>
+              <RoleRoute resource="topics">
                 <TopicsPage />
               </RoleRoute>
             }
@@ -38,29 +46,26 @@ function AppRoutes() {
           <Route
             path="/semesters"
             element={
-              <RoleRoute allowedRoles={['ADMIN', 'TRAINING_MANAGER']}>
+              <RoleRoute resource="semesters">
                 <SemestersPage />
               </RoleRoute>
             }
           />
-          <Route
-            path="/users"
-            element={
-              <RoleRoute allowedRoles={['ADMIN']}>
-                <UsersPage />
-              </RoleRoute>
-            }
-          />
-          {/* Nhóm, nhiệm vụ, báo cáo và chatbot dùng chung cho sinh viên và vai trò hướng dẫn. */}
-          <Route element={<RoleRoute allowedRoles={['STUDENT', 'TEAM_LEADER', 'LECTURER', 'TRAINING_MANAGER']} />}>
+          <Route element={<RoleRoute resource="project-work" />}>
             <Route path="/teams" element={<TeamsPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/grades" element={<GradesPage />} />
-            <Route path="/chatbot" element={<ChatbotPage />} />
           </Route>
-          {/* Hết khối M2 */}
+          <Route
+            path="/chatbot"
+            element={
+              <RoleRoute resource="chatbot">
+                <ChatbotPage />
+              </RoleRoute>
+            }
+          />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -11,6 +11,7 @@ session_set_cookie_params([
     'samesite' => 'Lax',
 ]);
 session_start();
+require_once __DIR__ . '/api_common.php';
 
 class ApiException extends RuntimeException
 {
@@ -105,24 +106,21 @@ function getGroup(PDO $pdo, int $groupId, bool $forUpdate = false): array
     return $group;
 }
 
-/** Yêu cầu người gọi là quản trị viên hoặc trưởng nhóm. */
+/** Yêu cầu người gọi là trưởng nhóm của nhóm tương ứng. */
 function requireGroupManager(array $group, array $actor): void
 {
     requireValue(
-        $actor['role'] === 'admin'
-            || (
-                apiIsStudentRole($actor)
-                && (int) $group['leader_user_id'] === (int) $actor['id']
-            ),
+        apiIsStudentRole($actor)
+            && (int) $group['leader_user_id'] === (int) $actor['id'],
         403,
-        'Chỉ trưởng nhóm hoặc quản trị viên mới được thực hiện thao tác này.'
+        'Chỉ trưởng nhóm của nhóm này mới được thực hiện thao tác này.'
     );
 }
 
 /** Kiểm tra người gọi có quyền xem nhóm theo vai trò của họ. */
 function requireGroupViewer(PDO $pdo, array $group, array $actor): void
 {
-    if (apiIsTrainingManager($actor)) {
+    if (apiCanViewAllData($actor)) {
         return;
     }
 
@@ -283,7 +281,9 @@ try {
     if ($method === 'GET' && $action === 'available_students') {
         $groupId = positiveId($_GET['group_id'] ?? null, 'group_id');
         $group = getGroup($pdo, $groupId);
-        requireGroupManager($group, $actor);
+        if ($actor['role'] !== 'admin') {
+            requireGroupManager($group, $actor);
+        }
         requireValue(in_array($group['status'], ['forming', 'active'], true), 409, 'Nhóm không còn nhận thành viên.');
 
         $statement = queryStatement($pdo, "SELECT u.id, u.student_code, u.full_name
@@ -318,7 +318,9 @@ try {
     if ($method === 'GET' && $action === 'requests') {
         $groupId = positiveId($_GET['group_id'] ?? null, 'group_id');
         $group = getGroup($pdo, $groupId);
-        requireGroupManager($group, $actor);
+        if ($actor['role'] !== 'admin') {
+            requireGroupManager($group, $actor);
+        }
         $statement = queryStatement($pdo, 'SELECT gr.id, gr.group_id, gr.user_id, u.full_name, gr.message,
                     gr.status, gr.requested_at, gr.reviewed_by, gr.reviewed_at, gr.review_note
              FROM group_requests gr
@@ -395,9 +397,9 @@ try {
 
     if ($method === 'GET' && $action === 'sent_invitations') {
         requireValue(
-            apiIsTrainingManager($actor) || apiIsStudentRole($actor),
+            apiCanViewAllData($actor) || apiIsStudentRole($actor),
             403,
-            'Chỉ trưởng nhóm hoặc quản trị viên mới có thể xem lời mời đã gửi.'
+            'Không có quyền xem lời mời đã gửi.'
         );
         $sql = 'SELECT gi.id, gi.group_id, sg.group_name, gi.invited_user_id,
                        invitee.full_name AS invited_name, invitee.student_code AS invited_student_code,
@@ -407,7 +409,7 @@ try {
                 JOIN student_groups sg ON sg.id = gi.group_id
                 JOIN users invitee ON invitee.id = gi.invited_user_id';
         $params = [];
-        if (!apiIsTrainingManager($actor)) {
+        if (!apiCanViewAllData($actor)) {
             $sql .= ' WHERE sg.leader_user_id = ?';
             $params[] = $actor['id'];
         }
@@ -463,8 +465,64 @@ try {
         if ($status === 'accepted') {
             $group = getGroup($pdo, (int) $invitation['group_id'], true);
             requireValue(in_array($group['status'], ['forming', 'active'], true), 409, 'Nhóm không còn nhận thành viên.');
-            $statement = queryStatement($pdo, "INSERT INTO group_members (group_id, user_id, member_role, status)
-                 VALUES (?, ?, 'member', 'active')", [(int) $group['id'], $actor['id']]);
+            $groupId = (int) $group['id'];
+            $statement = queryStatement(
+                $pdo,
+                'SELECT id, status FROM group_members WHERE group_id = ? AND user_id = ? FOR UPDATE',
+                [$groupId, $actor['id']]
+            );
+            $membership = $statement->fetch();
+
+            $statement = queryStatement(
+                $pdo,
+                "SELECT 1 FROM group_members gm
+                 JOIN student_groups sg ON sg.id = gm.group_id
+                 WHERE gm.user_id = ? AND gm.status = 'active'
+                   AND gm.group_id <> ? AND sg.project_round_id = ?
+                   AND sg.status IN ('forming', 'active')",
+                [$actor['id'], $groupId, $group['project_round_id']]
+            );
+            requireValue(
+                $statement->fetchColumn() === false,
+                409,
+                'Bạn đã thuộc một nhóm khác trong đợt đồ án này.'
+            );
+
+            if ($membership === false || $membership['status'] !== 'active') {
+                $statement = queryStatement(
+                    $pdo,
+                    'SELECT pr.max_members,
+                            (SELECT COUNT(*) FROM group_members
+                             WHERE group_id = ? AND status = \'active\') AS active_member_count
+                     FROM project_rounds pr WHERE pr.id = ?',
+                    [$groupId, $group['project_round_id']]
+                );
+                $capacity = $statement->fetch();
+                requireValue($capacity !== false, 409, 'Đợt đồ án của nhóm không còn tồn tại.');
+                requireValue(
+                    (int) $capacity['active_member_count'] < (int) $capacity['max_members'],
+                    409,
+                    'Nhóm đã đạt số lượng thành viên tối đa.'
+                );
+
+                if ($membership === false) {
+                    queryStatement(
+                        $pdo,
+                        "INSERT INTO group_members (group_id, user_id, member_role, status)
+                         VALUES (?, ?, 'member', 'active')",
+                        [$groupId, $actor['id']]
+                    );
+                } else {
+                    queryStatement(
+                        $pdo,
+                        "UPDATE group_members
+                         SET member_role = 'member', status = 'active',
+                             joined_at = CURRENT_TIMESTAMP, left_at = NULL
+                         WHERE id = ?",
+                        [$membership['id']]
+                    );
+                }
+            }
         }
         $statement = queryStatement($pdo, 'UPDATE group_invitations SET status = ?, responded_at = CURRENT_TIMESTAMP WHERE id = ?', [$status, $invitationId]);
         $pdo->commit();
@@ -472,7 +530,7 @@ try {
     }
 
     if ($method === 'POST' && $action === 'assign_lecturer') {
-        requireValue(apiIsTrainingManager($actor), 403, 'Chỉ quản trị viên hoặc người đào tạo mới được phân công giảng viên.');
+        requireValue(apiIsTrainingManager($actor), 403, 'Chỉ người đào tạo mới được phân công giảng viên.');
 
         $lecturerId = positiveId($body['lecturer_user_id'] ?? null, 'lecturer_user_id');
         requireValue(
@@ -526,6 +584,23 @@ try {
         $roundId = positiveId($body['project_round_id'] ?? null, 'project_round_id');
 
         $pdo->beginTransaction();
+        $statement = queryStatement(
+            $pdo,
+            'SELECT role, account_status FROM users WHERE id = ? FOR UPDATE',
+            [$actor['id']]
+        );
+        $creator = $statement->fetch(PDO::FETCH_ASSOC);
+        requireValue(
+            $creator !== false && $creator['account_status'] === 'active',
+            401,
+            'Tài khoản không tồn tại hoặc đã bị khóa.'
+        );
+        requireValue(
+            in_array($creator['role'], ['student', 'team_leader'], true),
+            403,
+            'Chỉ sinh viên mới được tạo nhóm.'
+        );
+
         $statement = queryStatement($pdo, "SELECT id FROM project_rounds WHERE id = ? AND status = 'open' FOR UPDATE", [$roundId]);
         requireValue($statement->fetch() !== false, 409, 'Đợt đồ án không tồn tại hoặc chưa mở đăng ký.');
 
@@ -554,6 +629,14 @@ try {
 
         $statement = queryStatement($pdo, 'SELECT 1 FROM student_groups WHERE project_round_id = ? AND group_code = ?', [$roundId, $groupCode]);
         requireValue($statement->fetchColumn() === false, 409, 'Mã nhóm đã được sử dụng trong đợt đồ án này.');
+
+        if ($creator['role'] === 'student') {
+            queryStatement(
+                $pdo,
+                "UPDATE users SET role = 'team_leader' WHERE id = ? AND role = 'student'",
+                [$actor['id']]
+            );
+        }
 
         $statement = queryStatement($pdo, "INSERT INTO student_groups
                 (group_code, group_name, description, project_round_id, leader_user_id, created_by)
@@ -732,8 +815,24 @@ try {
     error_log($exception->getMessage());
 
     $sqlState = (string) $exception->getCode();
-    if ($sqlState === '23000' || $sqlState === '45000') {
+    if ($sqlState === '23000') {
+        if (($exception->errorInfo[1] ?? null) === 1062) {
+            respond(409, ['error' => 'Sinh viên đã có bản ghi thành viên trong nhóm này. Tải lại trang để kiểm tra.']);
+        }
         respond(409, ['error' => 'Dữ liệu vi phạm ràng buộc hoặc quy tắc nghiệp vụ của cơ sở dữ liệu.']);
+    }
+    if ($sqlState === '45000') {
+        $triggerMessages = [
+            'Chi tai khoan sinh vien moi duoc tham gia nhom' => 'Chỉ tài khoản sinh viên mới được tham gia nhóm.',
+            'Nhom da dat so luong thanh vien toi da' => 'Nhóm đã đạt số lượng thành viên tối đa.',
+            'Sinh vien da thuoc mot nhom khac trong dot do an nay' => 'Bạn đã thuộc một nhóm khác trong đợt đồ án này.',
+            'Nhom khong ton tai hoac khong con nhan thanh vien' => 'Nhóm không tồn tại hoặc không còn nhận thành viên.',
+        ];
+        $triggerMessage = $exception->errorInfo[2] ?? '';
+        respond(409, [
+            'error' => $triggerMessages[$triggerMessage]
+                ?? 'Không thể thay đổi thành viên do quy tắc nghiệp vụ của nhóm.',
+        ]);
     }
     if ($sqlState === '42S02') {
         respond(500, ['error' => 'Thiếu bảng phân công giảng viên. Hãy import phan_cong_giang_vien.sql trước.']);

@@ -51,7 +51,7 @@ try {
                 FROM project_topics t
                 LEFT JOIN users supervisor ON supervisor.id = t.supervisor_user_id';
         $params = [];
-        $canViewAllTopics = apiIsTrainingManager($actor) || $actor['role'] === 'lecturer';
+        $canViewAllTopics = apiCanViewAllData($actor) || $actor['role'] === 'lecturer';
         if (!$canViewAllTopics) {
             $sql .= " WHERE t.status = 'open'";
         }
@@ -117,10 +117,10 @@ try {
     }
 
     if ($method === 'POST' && $action === 'create') {
-        apiRequire(
-            apiIsTrainingManager($actor) || $actor['role'] === 'lecturer',
-            403,
-            'Chỉ người đào tạo, quản trị viên hoặc giảng viên mới được tạo đề tài.'
+        apiRequireRole(
+            $actor,
+            ['training_manager', 'lecturer'],
+            'Chỉ người đào tạo hoặc giảng viên mới được tạo đề tài.'
         );
         $roundId = topicId($body['project_round_id'] ?? null, 'project_round_id');
         $code = topicText($body, 'topic_code', 30);
@@ -152,10 +152,10 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'update') {
-        apiRequire(
-            apiIsTrainingManager($actor) || $actor['role'] === 'lecturer',
-            403,
-            'Chỉ người đào tạo, quản trị viên hoặc giảng viên mới được cập nhật đề tài.'
+        apiRequireRole(
+            $actor,
+            ['training_manager', 'lecturer'],
+            'Chỉ người đào tạo hoặc giảng viên mới được cập nhật đề tài.'
         );
         $id = topicId($body['id'] ?? null, 'id');
         $updates = [];
@@ -257,10 +257,10 @@ try {
     }
 
     if ($method === 'PATCH' && $action === 'review') {
-        apiRequire(
-            in_array($actor['role'], ['admin', 'training_manager', 'lecturer'], true),
-            403,
-            'Chỉ người đào tạo, quản trị viên hoặc giảng viên mới được duyệt đăng ký.'
+        apiRequireRole(
+            $actor,
+            ['training_manager', 'lecturer'],
+            'Chỉ người đào tạo hoặc giảng viên mới được duyệt đăng ký.'
         );
         $registrationId = topicId($body['registration_id'] ?? null, 'registration_id');
         $status = $body['status'] ?? null;

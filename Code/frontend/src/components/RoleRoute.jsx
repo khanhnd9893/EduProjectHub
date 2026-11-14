@@ -1,10 +1,11 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth.js'
+import { canAccessPage } from '../utils/roles.js'
 
-function RoleRoute({ allowedRoles, children }) {
+function RoleRoute({ resource, children }) {
   const { role } = useAuth()
 
-  if (!allowedRoles.includes(role)) {
+  if (!canAccessPage(role, resource)) {
     return <Navigate to="/dashboard" replace />
   }
 

@@ -21,6 +21,50 @@ function formatDate(value) {
     : date.toLocaleString('vi-VN')
 }
 
+// Giới hạn khớp với kiểm tra trong Code/Backend/reports.php.
+const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx']
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+const FILE_RULE_TEXT = 'Định dạng PDF, DOC, DOCX · tối đa 10 MB'
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function validateReportFile(file) {
+  const extension = file.name.split('.').pop()?.toLowerCase()
+  if (!ALLOWED_EXTENSIONS.includes(extension)) {
+    return 'Sai định dạng tệp. Chỉ chấp nhận PDF, DOC hoặc DOCX.'
+  }
+  if (file.size === 0 || file.size > MAX_FILE_SIZE) {
+    return 'Tệp phải có dung lượng từ 1 byte đến 10 MB.'
+  }
+  return ''
+}
+
+function describeDeadline(deadline, now = new Date()) {
+  if (!deadline) {
+    return ''
+  }
+  const time = new Date(deadline).getTime()
+  if (Number.isNaN(time)) {
+    return ''
+  }
+  if (time < now.getTime()) {
+    return `quá hạn ${Math.max(1, Math.floor((now.getTime() - time) / DAY_MS))} ngày`
+  }
+  const days = Math.ceil((time - now.getTime()) / DAY_MS)
+  return days <= 1 ? 'hết hạn trong hôm nay' : `còn ${days} ngày`
+}
+
+// Mốc đang mở có hạn gần nhất chưa qua, dùng cho khối "Sắp đến hạn".
+function findUpcomingReport(reports, now = new Date()) {
+  return reports
+    .filter(
+      (entry) =>
+        entry.status === 'open' &&
+        entry.deadline &&
+        new Date(entry.deadline).getTime() >= now.getTime(),
+    )
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0]
+}
+
 function formatFileSize(size) {
   if (!size) {
     return '0 B'
@@ -39,6 +83,7 @@ function ReportsPage() {
   const [reportId, setReportId] = useState('')
   const [report, setReport] = useState(null)
   const [file, setFile] = useState(null)
+  const [fileError, setFileError] = useState('')
   const [note, setNote] = useState('')
   const [feedbackDrafts, setFeedbackDrafts] = useState({})
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
@@ -47,6 +92,7 @@ function ReportsPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const fileInputRef = useRef(null)
+  const submitFormRef = useRef(null)
 
   useEffect(() => {
     let active = true
@@ -101,6 +147,9 @@ function ReportsPage() {
       setError('Vui lòng chọn tệp báo cáo.')
       return
     }
+    if (fileError) {
+      return
+    }
     setError('')
     setSuccess('')
     setIsSubmitting(true)
@@ -142,7 +191,32 @@ function ReportsPage() {
     }
   }
 
+  function handleFileChange(event) {
+    const selectedFile = event.target.files?.[0] || null
+    setFile(selectedFile)
+    setFileError(selectedFile ? validateReportFile(selectedFile) : '')
+  }
+
+  function selectReport(id) {
+    setError('')
+    setSuccess('')
+    setFile(null)
+    setFileError('')
+    setReportId(String(id))
+  }
+
+  function openUpcomingSubmit(id) {
+    selectReport(id)
+    window.setTimeout(() => {
+      submitFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 300)
+  }
+
   const selectedReport = reports.find((entry) => String(entry.id) === reportId)
+  const upcomingReport = findUpcomingReport(reports)
+  const sortedVersions = [...(report?.versions ?? [])].sort(
+    (a, b) => b.versionNo - a.versionNo,
+  )
   const isLoadingReport = Boolean(reportId) && report?.id !== Number(reportId)
 
   return (
@@ -159,22 +233,46 @@ function ReportsPage() {
       ) : reports.length === 0 ? (
         <section className="workspace-panel">Chưa có đợt báo cáo.</section>
       ) : (
+        <>
+        {upcomingReport && (
+          <section className="workspace-panel report-upcoming">
+            <div>
+              <p className="eyebrow">Sắp đến hạn</p>
+              <h2>{upcomingReport.title}</h2>
+              <p className="muted">
+                Hạn: {formatDate(upcomingReport.deadline)} ·{' '}
+                {describeDeadline(upcomingReport.deadline)} · {FILE_RULE_TEXT}
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                isStudentRole(role)
+                  ? openUpcomingSubmit(upcomingReport.id)
+                  : selectReport(upcomingReport.id)
+              }
+              type="button"
+            >
+              {isStudentRole(role) ? 'Nộp báo cáo' : 'Xem chi tiết'}
+            </button>
+          </section>
+        )}
         <div className="reports-layout">
           <section className="report-list" aria-label="Các đợt báo cáo">
             {reports.map((entry) => (
               <button
                 className={`report-option${String(entry.id) === reportId ? ' is-selected' : ''}`}
                 key={entry.id}
-                onClick={() => {
-                  setError('')
-                  setSuccess('')
-                  setReportId(String(entry.id))
-                }}
+                onClick={() => selectReport(entry.id)}
                 type="button"
               >
                 <strong>{entry.title}</strong>
                 <span className="muted">{reportTypes[entry.reportType] || entry.reportType}</span>
-                <span className="muted">Hạn: {formatDate(entry.deadline)}</span>
+                <span className="muted">
+                  Hạn: {formatDate(entry.deadline)}
+                  {entry.status === 'open' && entry.deadline
+                    ? ` · ${describeDeadline(entry.deadline)}`
+                    : ''}
+                </span>
               </button>
             ))}
           </section>
@@ -186,21 +284,32 @@ function ReportsPage() {
                 <p className="eyebrow">{reportTypes[report.reportType] || report.reportType}</p>
                 <h2>{report.title}</h2>
                 <p className="muted">{report.description}</p>
-                <p><strong>Hạn nộp:</strong> {formatDate(report.deadline)}</p>
+                <p>
+                  <strong>Hạn nộp:</strong> {formatDate(report.deadline)}
+                  {report.status === 'open' && report.deadline
+                    ? ` · ${describeDeadline(report.deadline)}`
+                    : ''}
+                </p>
                 <p><strong>Trạng thái:</strong> {report.status === 'open' ? 'Đang mở' : report.status === 'graded' ? 'Đã chấm' : 'Đã đóng'}</p>
                 {report.status === 'open' && isStudentRole(role) && (
-                  <form className="data-form" onSubmit={handleSubmit}>
+                  <form className="data-form" onSubmit={handleSubmit} ref={submitFormRef}>
                     <h3>Nộp phiên bản</h3>
                     <label className="field-control">
                       Tệp báo cáo
                       <input
                         accept=".pdf,.doc,.docx"
-                        onChange={(event) => setFile(event.target.files?.[0] || null)}
+                        onChange={handleFileChange}
                         ref={fileInputRef}
                         required
                         type="file"
                       />
+                      <span className="muted">{FILE_RULE_TEXT}</span>
                     </label>
+                    {fileError && (
+                      <p className="alert-error" role="alert">
+                        {fileError}
+                      </p>
+                    )}
                     <label className="field-control">
                       Ghi chú
                       <textarea
@@ -209,28 +318,38 @@ function ReportsPage() {
                         value={note}
                       />
                     </label>
-                    <button disabled={isSubmitting} type="submit">
+                    <button disabled={isSubmitting || Boolean(fileError)} type="submit">
                       {isSubmitting ? 'Đang nộp...' : 'Nộp báo cáo'}
                     </button>
                   </form>
                 )}
-                <h3>Phiên bản đã nộp</h3>
-                {report.versions?.length ? (
+                <h3>Lịch sử nộp ({sortedVersions.length} phiên bản)</h3>
+                {sortedVersions.length ? (
                   <ul className="report-version-list">
-                    {report.versions.map((version) => (
+                    {sortedVersions.map((version, index) => (
                       <li key={version.id}>
                         <div>
-                          <strong>Phiên bản {version.versionNo}: {version.originalFilename}</strong>
+                          <strong>Phiên bản {version.versionNo}: {version.originalFilename}</strong>{' '}
+                          <span className="status-chip report-version-chip">
+                            {index === 0 ? 'Mới nhất' : 'Đã thay thế'}
+                          </span>
                           <p className="muted">
                             {formatDate(version.submittedAt)} · {formatFileSize(version.fileSize)}
                             {version.note ? ` · ${version.note}` : ''}
                           </p>
                         </div>
                         {version.feedback?.map((feedback) => (
-                          <p className="feedback-note" key={feedback.id}>
-                            {feedback.lecturerName}: {feedback.content}
-                            {feedback.score != null ? ` · ${feedback.score}/10` : ''}
-                          </p>
+                          <div className="feedback-note report-feedback" key={feedback.id}>
+                            <div>
+                              <strong>{feedback.lecturerName}</strong>
+                              <p>{feedback.content}</p>
+                            </div>
+                            {feedback.score != null && (
+                              <span className="report-feedback-score">
+                                {Number(feedback.score).toFixed(1)}/10
+                              </span>
+                            )}
+                          </div>
                         ))}
                         {role === 'LECTURER' && (
                           <form
@@ -286,6 +405,7 @@ function ReportsPage() {
             )}
           </section>
         </div>
+        </>
       )}
     </section>
   )

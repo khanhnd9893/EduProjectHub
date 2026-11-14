@@ -17,21 +17,43 @@ function apiRequire(bool $condition, int $status, string $message): void
     }
 }
 
+/** Kiểm tra tài khoản có một trong các vai trò được phép. */
+function apiHasRole(array $actor, array $roles): bool
+{
+    return isset($actor['role']) && in_array($actor['role'], $roles, true);
+}
+
+/** Từ chối yêu cầu nếu vai trò tài khoản không được phép thực hiện thao tác. */
+function apiRequireRole(array $actor, array $roles, string $message): void
+{
+    apiRequire(apiHasRole($actor, $roles), 403, $message);
+}
+
 /** Kiểm tra tài khoản thuộc nhóm sinh viên, gồm cả trưởng nhóm. */
 function apiIsStudentRole(array $actor): bool
 {
-    return in_array($actor['role'], ['student', 'team_leader'], true);
+    return apiHasRole($actor, ['student', 'team_leader']);
 }
 
 /** Kiểm tra tài khoản có quyền điều phối nghiệp vụ đào tạo. */
 function apiIsTrainingManager(array $actor): bool
 {
-    return in_array($actor['role'], ['admin', 'training_manager'], true);
+    return apiHasRole($actor, ['training_manager']);
+}
+
+/** Kiểm tra tài khoản có quyền xem dữ liệu nghiệp vụ trên toàn hệ thống. */
+function apiCanViewAllData(array $actor): bool
+{
+    return apiHasRole($actor, ['admin', 'training_manager']);
 }
 
 /** Trả các phạm vi FAQ mà vai trò hiện tại được phép đọc. */
 function apiFaqVisibilities(array $actor): array
 {
+    if ($actor['role'] === 'admin') {
+        return ['all', 'admin', 'student', 'team_leader', 'lecturer', 'training_manager'];
+    }
+
     $visibilities = ['all', $actor['role']];
     if ($actor['role'] === 'team_leader') {
         $visibilities[] = 'student';
@@ -92,7 +114,7 @@ function apiRequireGroupAccess(PDO $pdo, int $groupId, array $actor): array
     $group = $statement->fetch(PDO::FETCH_ASSOC);
     apiRequire($group !== false, 404, 'Không tìm thấy nhóm.');
 
-    if (apiIsTrainingManager($actor)) {
+    if (apiCanViewAllData($actor)) {
         return $group;
     }
 
@@ -122,13 +144,12 @@ function apiRequireGroupAccess(PDO $pdo, int $groupId, array $actor): array
     return $group;
 }
 
-/** Yêu cầu người gọi là quản trị viên hoặc trưởng nhóm. */
+/** Yêu cầu người gọi là trưởng nhóm của nhóm tương ứng. */
 function apiRequireGroupManager(array $group, array $actor): void
 {
     apiRequire(
-        $actor['role'] === 'admin'
-            || (apiIsStudentRole($actor) && (int) $group['leader_user_id'] === $actor['id']),
+        apiIsStudentRole($actor) && (int) $group['leader_user_id'] === $actor['id'],
         403,
-        'Chỉ trưởng nhóm hoặc quản trị viên mới được thực hiện thao tác này.'
+        'Chỉ trưởng nhóm của nhóm này mới được thực hiện thao tác này.'
     );
 }

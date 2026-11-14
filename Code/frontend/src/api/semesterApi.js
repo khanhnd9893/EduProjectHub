@@ -1,8 +1,9 @@
 ﻿import apiClient from './client.js'
 import { unwrap } from './response.js'
 import { mockResolve, nextId } from './mock/helpers.js'
+import { isMockMode } from '../config/runtime.js'
 
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+const useMock = isMockMode
 export const semesterStatuses = ['draft', 'open', 'in_progress', 'closed']
 
 const mockSemesters = [
@@ -86,7 +87,11 @@ const semesterApi = {
 
   async createSemester(values) {
     validateSemester(values)
-    if (!useMock) {
+    if (useMock) {
+      const semester = { id: nextId(mockSemesters), ...values }
+      mockSemesters.unshift(semester)
+      return mockResolve(semester)
+    } else {
       // TODO: Chờ backend triển khai POST /semesters.php?action=create.
       return mapSemester(
         await unwrap(
@@ -96,15 +101,19 @@ const semesterApi = {
         ),
       )
     }
-
-    const semester = { id: nextId(mockSemesters), ...values }
-    mockSemesters.unshift(semester)
-    return mockResolve(semester)
   },
 
   async updateSemester(id, values) {
     validateSemester(values, id)
-    if (!useMock) {
+    if (useMock) {
+      const index = mockSemesters.findIndex((semester) => semester.id === Number(id))
+      if (index === -1) {
+        throw new Error('Không tìm thấy học kỳ cần cập nhật.')
+      }
+
+      mockSemesters[index] = { ...mockSemesters[index], ...values }
+      return mockResolve(mockSemesters[index])
+    } else {
       // TODO: Chờ backend triển khai PATCH /semesters.php?action=update.
       return mapSemester(
         await unwrap(
@@ -114,14 +123,6 @@ const semesterApi = {
         ),
       )
     }
-
-    const index = mockSemesters.findIndex((semester) => semester.id === Number(id))
-    if (index === -1) {
-      throw new Error('Không tìm thấy học kỳ cần cập nhật.')
-    }
-
-    mockSemesters[index] = { ...mockSemesters[index], ...values }
-    return mockResolve(mockSemesters[index])
   },
 }
 

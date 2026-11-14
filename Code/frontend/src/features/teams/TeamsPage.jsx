@@ -3,6 +3,7 @@ import PageHeading from '../../components/PageHeading.jsx'
 import teamApi from '../../api/teamApi.js'
 import { useAuth } from '../../contexts/useAuth.js'
 import { isStudentRole } from '../../utils/roles.js'
+import AddMemberForm from './AddMemberForm.jsx'
 import InviteMemberForm from './InviteMemberForm.jsx'
 import JoinRequestsPanel from './JoinRequestsPanel.jsx'
 import MyInvitationsPanel from './MyInvitationsPanel.jsx'
@@ -15,13 +16,14 @@ const groupStatuses = {
 }
 
 function TeamsPage() {
-  const { user, role } = useAuth()
+  const { user, role, refreshCurrentUser } = useAuth()
   const [teams, setTeams] = useState([])
   const [selectedTeamId, setSelectedTeamId] = useState(null)
   const [selectedTeam, setSelectedTeam] = useState(null)
   const [isLoadingTeams, setIsLoadingTeams] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showAddMemberForm, setShowAddMemberForm] = useState(false)
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [groupCode, setGroupCode] = useState('')
   const [groupName, setGroupName] = useState('')
@@ -94,6 +96,8 @@ function TeamsPage() {
   const selectedLeader =
     selectedTeam?.members?.find((member) => member.memberRole === 'leader')
       ?.fullName || selectedTeam?.leaderName
+  const canManageSelectedTeam =
+    isStudentRole(role) && selectedTeam?.leaderUserId === user?.id
   const isSelectedTeamLoading =
     selectedTeamId !== null && selectedTeam?.id !== selectedTeamId && !error
 
@@ -114,6 +118,13 @@ function TeamsPage() {
       setGroupCode('')
       setGroupName('')
       setDescription('')
+      try {
+        await refreshCurrentUser()
+      } catch (refreshError) {
+        setError(
+          `Nhóm đã được tạo nhưng không thể cập nhật vai trò hiển thị. Vui lòng tải lại trang. ${refreshError.message || ''}`,
+        )
+      }
     } catch (saveError) {
       setError(saveError.message || 'Không thể tạo nhóm.')
     } finally {
@@ -131,6 +142,11 @@ function TeamsPage() {
     } catch (removeError) {
       setError(removeError.message || 'Không thể xóa thành viên.')
     }
+  }
+
+  async function handleMemberAdded() {
+    setSelectedTeam(await teamApi.getTeam(selectedTeamId))
+    await refreshTeams()
   }
 
   async function handleRequestApproved() {
@@ -220,6 +236,7 @@ function TeamsPage() {
                 key={team.id}
                 onClick={() => {
                   setError('')
+                  setShowAddMemberForm(false)
                   setShowInviteForm(false)
                   setSelectedTeamId(team.id)
                 }}
@@ -275,16 +292,35 @@ function TeamsPage() {
                   </div>
                 </dl>
                 <h3>Thành viên</h3>
-                {selectedTeam.leaderUserId === user?.id &&
+                {canManageSelectedTeam &&
                   ['forming', 'active'].includes(selectedTeam.status) && (
                     <>
                       <button
                         className="button-secondary"
-                        onClick={() => setShowInviteForm((current) => !current)}
+                        onClick={() => {
+                          setShowAddMemberForm((current) => !current)
+                          setShowInviteForm(false)
+                        }}
+                        type="button"
+                      >
+                        {showAddMemberForm ? 'Đóng thêm thành viên' : 'Thêm trực tiếp'}
+                      </button>
+                      <button
+                        className="button-secondary"
+                        onClick={() => {
+                          setShowInviteForm((current) => !current)
+                          setShowAddMemberForm(false)
+                        }}
                         type="button"
                       >
                         {showInviteForm ? 'Đóng mời thành viên' : 'Mời thành viên'}
                       </button>
+                      {showAddMemberForm && (
+                        <AddMemberForm
+                          onAdded={handleMemberAdded}
+                          teamId={selectedTeam.id}
+                        />
+                      )}
                       {showInviteForm && (
                         <InviteMemberForm teamId={selectedTeam.id} />
                       )}
@@ -300,7 +336,7 @@ function TeamsPage() {
                             ? 'Trưởng nhóm'
                             : 'Thành viên'}
                         </span>
-                        {selectedTeam.leaderUserId === user?.id &&
+                        {canManageSelectedTeam &&
                           member.userId !== selectedTeam.leaderUserId && (
                             <button
                               className="button-secondary"
@@ -316,7 +352,7 @@ function TeamsPage() {
                 ) : (
                   <p className="muted">Chưa có dữ liệu thành viên.</p>
                 )}
-                {selectedTeam.leaderUserId === user?.id &&
+                {canManageSelectedTeam &&
                   ['forming', 'active'].includes(selectedTeam.status) && (
                     <JoinRequestsPanel
                       key={selectedTeam.id}

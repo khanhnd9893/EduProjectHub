@@ -538,7 +538,9 @@ VALUES
 (5, 'sv3', 'SV003', 'Phạm Minh Đức', 'sv3@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active'),
 (6, 'sv4', 'SV004', 'Võ Thanh Hà', 'sv4@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active'),
 (7, 'sv5', 'SV005', 'Trần Minh Phúc', 'sv5@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active'),
-(8, 'sv6', 'SV006', 'Hoàng Gia Bảo', 'sv6@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active');
+(8, 'sv6', 'SV006', 'Hoàng Gia Bảo', 'sv6@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'student', 'active'),
+(9, 'truongnhom', 'SV007', 'Trưởng nhóm demo', 'truongnhom@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'team_leader', 'active'),
+(10, 'daotao', NULL, 'Người đào tạo demo', 'daotao@example.com', '$2y$12$1WpK276evKl3axMgnB97ke0BQAUCECdTwIp7lPeCtSPt1S/uioKGy', 'training_manager', 'active');
 
 INSERT INTO project_rounds
 (id, round_code, round_name, semester, academic_year, start_date, end_date, min_members, max_members, status)
@@ -550,7 +552,8 @@ INSERT INTO student_groups
 (id, group_code, group_name, description, project_round_id, leader_user_id, created_by, status)
 VALUES
 (1, 'N01', 'Nhóm EduProjectHub', 'Xây dựng hệ thống quản lý đồ án sinh viên.', 1, 1, 1, 'active'),
-(2, 'N02', 'Nhóm Thư viện số', 'Ứng dụng tra cứu tài liệu.', 1, 6, 6, 'forming');
+(2, 'N02', 'Nhóm Thư viện số', 'Ứng dụng tra cứu tài liệu.', 1, 6, 6, 'forming'),
+(3, 'N03', 'Nhóm trưởng nhóm demo', 'Nhóm minh họa quyền trưởng nhóm.', 1, 9, 9, 'forming');
 
 INSERT INTO group_members (group_id, user_id, member_role, status) VALUES
 (1, 5, 'member', 'active'),

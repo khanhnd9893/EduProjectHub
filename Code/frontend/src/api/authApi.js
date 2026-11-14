@@ -1,5 +1,6 @@
 import apiClient from './client.js'
 import { unwrap } from './response.js'
+import { isMockMode } from '../config/runtime.js'
 
 const mockUsers = {
   sv: { id: 1, fullName: 'Nguyễn Văn A', role: 'STUDENT' },
@@ -12,7 +13,7 @@ const mockUsers = {
 
 const authApi = {
   async login({ username, password }) {
-    if (import.meta.env.VITE_USE_MOCK === 'true') {
+    if (isMockMode) {
       const user = mockUsers[username]
 
       if (!user || password !== '123456') {
@@ -28,7 +29,7 @@ const authApi = {
   },
 
   async getCurrentUser() {
-    if (import.meta.env.VITE_USE_MOCK === 'true') {
+    if (isMockMode) {
       return JSON.parse(localStorage.getItem('user') || 'null')
     }
 
@@ -36,7 +37,7 @@ const authApi = {
   },
 
   async logout() {
-    if (import.meta.env.VITE_USE_MOCK !== 'true') {
+    if (!isMockMode) {
       await unwrap(apiClient.post('/auth.php?action=logout', {}))
     }
   },

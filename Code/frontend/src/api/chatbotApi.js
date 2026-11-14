@@ -12,8 +12,9 @@ import {
   mockFaqs,
 } from './mock/chatbotMock.js'
 import { isStudentRole } from '../utils/roles.js'
+import { isMockMode } from '../config/runtime.js'
 
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+const useMock = isMockMode
 
 const MOCK_FALLBACK_ANSWER =
   'Xin lỗi, mình chưa có thông tin cho câu hỏi này. Bạn hãy liên hệ giảng viên hướng dẫn nhé.'
@@ -30,6 +31,16 @@ function toWords(text) {
     .filter((word) => word && !STOP_WORDS.has(word))
 }
 
+// FAQ chỉ hiện cho vai trò được phép xem; dùng chung cho danh sách FAQ và câu trả lời mock.
+function isFaqVisible(faq, role) {
+  return (
+    !faq.visibility ||
+    faq.visibility === 'all' ||
+    faq.visibility === role.toLowerCase() ||
+    (isStudentRole(role) && faq.visibility === 'student')
+  )
+}
+
 function findMockAnswer(content) {
   const words = new Set(toWords(content))
   const { role } = getMockUser()
@@ -43,15 +54,6 @@ function findMockAnswer(content) {
       bestFaq = faq
       bestScore = score
     }
-  }
-
-  function isFaqVisible(faq, role) {
-    return (
-      !faq.visibility ||
-      faq.visibility === 'all' ||
-      faq.visibility === role.toLowerCase() ||
-      (isStudentRole(role) && faq.visibility === 'student')
-    )
   }
 
   return bestScore >= MIN_MATCHED_WORDS ? bestFaq.answer : MOCK_FALLBACK_ANSWER

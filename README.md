@@ -67,7 +67,7 @@ Các vấn đề cần giải quyết bao gồm:
 - Sinh viên khó theo dõi trạng thái và thời hạn hoàn thành đồ án.
 - Giảng viên cần một công cụ thống nhất để theo dõi sinh viên được phân công hướng dẫn.
 - Việc trao đổi tài liệu và nhận xét có thể thiếu tính tập trung.
-- Quản trị viên cần quản lý người dùng, đề tài và học kỳ hiệu quả hơn.
+- Quản trị viên cần quản lý tài khoản và tra cứu dữ liệu toàn hệ thống; người đào tạo điều phối học kỳ, đề tài và các nghiệp vụ đồ án.
 - Sinh viên có thể mất thời gian tìm kiếm hướng dẫn sử dụng hoặc câu trả lời cho các câu hỏi thường gặp.
 
 Việc xây dựng hệ thống giúp chuẩn hóa quy trình, tập trung dữ liệu và cải thiện khả năng trao đổi thông tin giữa các bên.
@@ -145,9 +145,8 @@ Hệ thống có năm vai trò tài khoản. Các quyền dưới đây mô tả
 Quản trị viên phụ trách kiểm soát hệ thống và có phạm vi xem dữ liệu rộng nhất.
 
 - Đăng nhập, đăng xuất và xem hồ sơ tài khoản.
-- Backend cho phép quyền quản trị rộng với dữ liệu nhóm và các nghiệp vụ liên quan; giao diện quản trị tập trung để tra cứu toàn bộ dữ liệu chưa được xây dựng.
-- Xem các đợt đồ án; quản lý một số nghiệp vụ phân công, đề tài và hội đồng hiện có.
-- Quản lý tài khoản, cấu hình hệ thống, nhật ký hoạt động và sao lưu/khôi phục là các yêu cầu mở rộng, chưa có API quản trị tương ứng.
+- Tạo/cập nhật tài khoản, nhập thông tin thật, gán một trong năm vai trò và khóa/mở tài khoản. Mật khẩu được băm và không hiển thị lại.
+- Cấu hình hệ thống, nhật ký hoạt động và sao lưu/khôi phục là các yêu cầu mở rộng, chưa có API quản trị tương ứng.
 
 5.2. Sinh viên — Student
 
@@ -155,7 +154,7 @@ Sinh viên tham gia nhóm, thực hiện nhiệm vụ và nộp báo cáo.
 
 - Đăng nhập, đăng xuất và xem hồ sơ hiện tại.
 - Xem đề tài đang mở; trưởng nhóm gửi đăng ký đại diện cho nhóm.
-- Tạo nhóm, gửi yêu cầu tham gia, nhận lời mời và xem thông tin thành viên nhóm.
+- Tạo nhóm, gửi yêu cầu tham gia, nhận lời mời và xem thông tin thành viên nhóm. Khi tạo nhóm thành công, vai trò tài khoản được nâng từ Sinh viên lên Trưởng nhóm.
 - Xem nhiệm vụ, cập nhật trạng thái nhiệm vụ được giao và theo dõi tiến độ nhóm.
 - Nộp phiên bản báo cáo; xem phản hồi, thông báo, lịch bảo vệ và điểm đã công bố.
 - Sử dụng chatbot FAQ và xem lịch sử hội thoại cá nhân.
@@ -178,6 +177,7 @@ Giảng viên hướng dẫn và đánh giá các nhóm trong phạm vi được
 
 - Xem nhóm được phân công theo chính sách truy cập hiện tại.
 - Xem tiến độ, nhiệm vụ và báo cáo trong phạm vi được phép.
+- Tạo và cập nhật nhiệm vụ cho nhóm được phân công.
 - Tạo/cập nhật đề tài và xử lý đăng ký đề tài.
 - Gửi nhận xét, điểm phản hồi báo cáo; tham gia hội đồng và chấm điểm bảo vệ nếu là thành viên hội đồng.
 - Quản lý FAQ chatbot.
@@ -186,12 +186,12 @@ Giảng viên hướng dẫn và đánh giá các nhóm trong phạm vi được
 
 Người đào tạo điều phối nghiệp vụ đồ án, không quản trị kỹ thuật tài khoản.
 
-- Xem các đợt đồ án, danh sách nhóm và tình hình tiến độ.
+- Xem, tạo và cập nhật đợt đồ án; xem danh sách nhóm và tình hình tiến độ.
 - Quản lý đề tài và xử lý đăng ký đề tài.
 - Phân công giảng viên hướng dẫn.
 - Truy cập các luồng báo cáo, hội đồng và lịch bảo vệ hiện có.
 
-Tạo/cập nhật đợt đồ án, cấu hình thời hạn, xuất báo cáo tổng kết và thống kê chuyên biệt cần được triển khai thêm nếu cần.
+Cấu hình thời hạn đăng ký/nộp báo cáo, xuất báo cáo tổng kết và thống kê chuyên biệt cần được triển khai thêm nếu cần.
 
 ⚙️ 6. CHỨC NĂNG HỆ THỐNG
 
@@ -202,16 +202,18 @@ Mục này ghi rõ chức năng đang được hỗ trợ bởi API/giao diện 
 - Đăng nhập bằng tài khoản và mật khẩu đã băm; phiên PHP dùng để xác thực yêu cầu.
 - Đăng xuất và bảo vệ thao tác thay đổi dữ liệu bằng CSRF token.
 - Lấy thông tin người dùng hiện tại và hiển thị hồ sơ cơ bản.
-- Đổi mật khẩu, tự cập nhật hồ sơ và trang quản trị tạo/khóa/mở khóa tài khoản chưa được triển khai đầy đủ.
+- Quản trị viên có thể tạo, tìm kiếm, cập nhật tài khoản, gán vai trò, khóa/mở khóa và đặt mật khẩu khởi tạo; mật khẩu chỉ lưu dưới dạng hash.
+- Người dùng tự cập nhật hồ sơ/đổi mật khẩu và khôi phục mật khẩu chưa được triển khai.
 
 6.2. Đợt đồ án
 
-- Các vai trò quản lý học vụ được xem danh sách đợt đồ án.
-- Tạo, cập nhật, đóng đợt và cấu hình các mốc thời gian chưa có API hoàn chỉnh.
+- Người đào tạo được tạo và cập nhật đợt đồ án; quản trị viên được xem toàn bộ đợt ở chế độ chỉ đọc; giảng viên được xem danh sách đợt.
+- Sinh viên chỉ xem các đợt đang mở hoặc đang diễn ra.
+- Có thể cập nhật trạng thái đợt; cấu hình riêng hạn đăng ký, hạn nộp báo cáo và lịch bảo vệ chưa có API hoàn chỉnh.
 
 6.3. Đề tài và đăng ký
 
-- Quản lý/hiển thị đề tài theo vai trò; quản trị viên, người đào tạo và giảng viên có thể tạo/cập nhật theo API hiện tại.
+- Quản lý/hiển thị đề tài theo vai trò; người đào tạo và giảng viên có thể tạo/cập nhật, quản trị viên được xem toàn bộ đề tài và đăng ký ở chế độ chỉ đọc.
 - Trưởng nhóm đăng ký đề tài cho nhóm thuộc cùng đợt; người có quyền xử lý đăng ký có thể duyệt hoặc từ chối.
 - Hệ thống kiểm tra trạng thái đề tài, nhóm, đợt và sức chứa.
 - Trạng thái đề tài hiện dùng `draft`, `open`, `closed`; đăng ký dùng `pending`, `approved`, `rejected`, `cancelled`.
@@ -219,15 +221,17 @@ Mục này ghi rõ chức năng đang được hỗ trợ bởi API/giao diện 
 
 6.4. Nhóm và phân công giảng viên
 
-- Tạo nhóm; xem nhóm và thành viên trong phạm vi quyền.
+- Tạo nhóm; khi sinh viên tạo nhóm thành công, hệ thống cập nhật vai trò tài khoản thành Trưởng nhóm. Xem nhóm và thành viên trong phạm vi quyền.
 - Gửi/duyệt yêu cầu tham gia, gửi/nhận lời mời và quản lý thành viên.
 - Ràng buộc trưởng nhóm phải là thành viên đang hoạt động; kiểm tra giới hạn thành viên và không cho sinh viên thuộc nhiều nhóm đang hoạt động trong cùng đợt.
-- Phân công giảng viên cho nhóm do quản trị viên/người đào tạo có quyền thực hiện.
+- Phân công giảng viên cho nhóm do người đào tạo thực hiện; quản trị viên được xem dữ liệu nhóm và phân công ở chế độ chỉ đọc.
+- Chỉ trưởng nhóm của nhóm tương ứng mới được quản lý thành viên; quản trị viên không thêm, xóa hoặc đổi trưởng nhóm.
 - Quyền nhóm trưởng được xác thực theo từng nhóm, không chỉ dựa vào giá trị vai trò tài khoản.
 
 6.5. Nhiệm vụ và tiến độ
 
-- Tạo, sửa, xóa, phân công nhiệm vụ và cập nhật trạng thái theo quyền.
+- Trưởng nhóm và giảng viên được phân công tạo/sửa nhiệm vụ theo quyền; trưởng nhóm có thể xóa hoặc hủy nhiệm vụ. Quản trị viên chỉ xem dữ liệu nhiệm vụ.
+- Sinh viên được giao nhiệm vụ cập nhật trạng thái của mình; quản trị viên không thay đổi trạng thái nhiệm vụ.
 - Xem tổng hợp tiến độ nhiệm vụ theo nhóm và thành viên; hỗ trợ nhận biết nhiệm vụ quá hạn.
 - Trạng thái nhiệm vụ hiện dùng `todo`, `in_progress`, `completed`, `cancelled`.
 - Nhật ký tiến độ tự do và xuất báo cáo tiến độ chưa được triển khai như một chức năng riêng.
@@ -241,7 +245,7 @@ Mục này ghi rõ chức năng đang được hỗ trợ bởi API/giao diện 
 
 6.7. Hội đồng và lịch bảo vệ
 
-- Quản lý hội đồng, thành viên hội đồng và lịch bảo vệ theo quyền được cấp.
+- Người đào tạo quản lý hội đồng, thành viên hội đồng và lịch bảo vệ; quản trị viên được xem dữ liệu hội đồng, lịch và điểm ở chế độ chỉ đọc.
 - Thành viên hội đồng có thể chấm điểm bảo vệ; người học xem lịch và kết quả được công bố.
 - Tự động xếp lịch tối ưu và xuất biên bản/tổng kết chưa được triển khai.
 
@@ -255,17 +259,16 @@ Mục này ghi rõ chức năng đang được hỗ trợ bởi API/giao diện 
 
 - Người dùng gửi câu hỏi, xem các phiên và tin nhắn hội thoại của chính mình.
 - Chatbot tìm câu trả lời trong FAQ đã công bố; nội dung được lọc theo quyền hiển thị.
-- Giảng viên và quản trị viên có thể quản lý FAQ; người đào tạo và trưởng nhóm có phạm vi FAQ riêng, trưởng nhóm cũng xem được FAQ dành cho sinh viên.
+- Giảng viên quản lý FAQ; quản trị viên được xem FAQ ở mọi phạm vi hiển thị nhưng không chỉnh sửa. Người đào tạo và trưởng nhóm có phạm vi FAQ riêng, trưởng nhóm cũng xem được FAQ dành cho sinh viên.
 - Kết nối mô hình AI bên ngoài, tra cứu dữ liệu đồ án trực tiếp và cấu hình kết nối chatbot chưa được triển khai.
 
 6.10. Chức năng quản trị chưa triển khai
 
 Các yêu cầu sau cần bổ sung API và giao diện trước khi giới thiệu là chức năng đang hoạt động:
 
-- CRUD tài khoản, đổi vai trò, khóa/mở khóa tài khoản và phân quyền chi tiết.
 - Nhật ký đăng nhập/hoạt động, cấu hình trạng thái hệ thống và sao lưu/khôi phục.
 - Dashboard thống kê tổng quan và báo cáo xuất theo đợt.
-- Tạo/cập nhật đợt đồ án, cấu hình hạn đăng ký/nộp báo cáo.
+- Cấu hình riêng hạn đăng ký/nộp báo cáo theo từng đợt.
 
 6.11. Thống kê và báo cáo
 
@@ -443,7 +446,7 @@ Các tệp SQL tạo toàn bộ bảng trong một database `eduprojecthub`; xem
  11.1. Quy trình đăng ký đồ án
 
 1. Người đào tạo hoặc tài khoản được phân quyền chuẩn bị đợt đồ án và thời gian đăng ký. (Hiện API mới hỗ trợ xem danh sách đợt.)
-2. Người đào tạo, giảng viên hoặc quản trị viên tạo danh sách đề tài theo quyền hiện có.
+2. Người đào tạo hoặc giảng viên tạo danh sách đề tài theo quyền hiện có; quản trị viên chỉ tra cứu.
 3. Sinh viên đăng nhập hệ thống.
 4. Sinh viên xem danh sách đề tài có thể đăng ký.
 5. Sinh viên gửi yêu cầu đăng ký.

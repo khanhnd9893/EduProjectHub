@@ -11,6 +11,7 @@ session_set_cookie_params([
     'samesite' => 'Lax',
 ]);
 session_start();
+require_once __DIR__ . '/api_common.php';
 
 class TaskApiException extends RuntimeException
 {
@@ -138,25 +139,31 @@ function taskIsMember(PDO $pdo, int $groupId, int $userId): bool
     return $statement->fetchColumn() !== false;
 }
 
+/** Kiểm tra giảng viên có được phân công hướng dẫn nhóm theo chính sách workload. */
+function taskIsAssignedLecturer(PDO $pdo, int $groupId, int $userId): bool
+{
+    $statement = $pdo->prepare(
+        'SELECT 1 FROM group_lecturers gl
+         WHERE gl.group_id = ? AND gl.lecturer_user_id = ?
+           AND (
+             SELECT COUNT(*) FROM group_lecturers workload
+             WHERE workload.lecturer_user_id = gl.lecturer_user_id
+           ) >= 2'
+    );
+    $statement->execute([$groupId, $userId]);
+    return $statement->fetchColumn() !== false;
+}
+
 /** Xác thực quyền xem nhiệm vụ của quản trị viên, giảng viên hoặc sinh viên. */
 function taskRequireViewer(PDO $pdo, array $group, array $actor): void
 {
-    if (apiIsTrainingManager($actor)) {
+    if (apiCanViewAllData($actor)) {
         return;
     }
 
     if ($actor['role'] === 'lecturer') {
-        $statement = $pdo->prepare(
-            'SELECT 1 FROM group_lecturers gl
-             WHERE gl.group_id = ? AND gl.lecturer_user_id = ?
-               AND (
-                 SELECT COUNT(*) FROM group_lecturers workload
-                 WHERE workload.lecturer_user_id = gl.lecturer_user_id
-               ) >= 2'
-        );
-        $statement->execute([$group['id'], $actor['id']]);
         taskRequire(
-            $statement->fetchColumn() !== false,
+            taskIsAssignedLecturer($pdo, (int) $group['id'], (int) $actor['id']),
             403,
             'Bạn không có quyền xem nhiệm vụ của nhóm này.'
         );
@@ -174,17 +181,29 @@ function taskRequireViewer(PDO $pdo, array $group, array $actor): void
     );
 }
 
-/** Yêu cầu người gọi là quản trị viên hoặc trưởng nhóm. */
+/** Yêu cầu người gọi là trưởng nhóm của nhóm tương ứng. */
 function taskRequireManager(array $group, array $actor): void
 {
     taskRequire(
-        $actor['role'] === 'admin'
-            || (
-                apiIsStudentRole($actor)
-                && (int) $group['leader_user_id'] === (int) $actor['id']
-            ),
+        apiIsStudentRole($actor)
+            && (int) $group['leader_user_id'] === (int) $actor['id'],
         403,
-        'Chỉ trưởng nhóm hoặc quản trị viên mới được quản lý nhiệm vụ.'
+        'Chỉ trưởng nhóm của nhóm này mới được quản lý nhiệm vụ.'
+    );
+}
+
+/** Yêu cầu trưởng nhóm hoặc giảng viên được phân công vào nhóm. */
+function taskRequireEditor(PDO $pdo, array $group, array $actor): void
+{
+    if (apiIsStudentRole($actor) && (int) $group['leader_user_id'] === (int) $actor['id']) {
+        return;
+    }
+
+    taskRequire(
+        $actor['role'] === 'lecturer'
+            && taskIsAssignedLecturer($pdo, (int) $group['id'], (int) $actor['id']),
+        403,
+        'Chỉ giảng viên được phân công hoặc trưởng nhóm mới được giao và sửa nhiệm vụ.'
     );
 }
 
@@ -276,7 +295,7 @@ try {
     if ($method === 'POST' && $action === 'create') {
         $groupId = taskId($body['group_id'] ?? null, 'group_id');
         $group = taskGroup($pdo, $groupId);
-        taskRequireManager($group, $actor);
+        taskRequireEditor($pdo, $group, $actor);
         taskRequire(in_array($group['status'], ['forming', 'active'], true), 409, 'Không thể giao nhiệm vụ cho nhóm đã kết thúc hoặc giải tán.');
 
         $title = taskText($body, 'title', 200, true);
@@ -309,7 +328,7 @@ try {
         $task = $statement->fetch();
         taskRequire($task !== false, 404, 'Không tìm thấy nhiệm vụ.');
         $group = taskGroup($pdo, (int) $task['group_id']);
-        taskRequireManager($group, $actor);
+        taskRequireEditor($pdo, $group, $actor);
         taskRequire(in_array($group['status'], ['forming', 'active'], true), 409, 'Không thể sửa nhiệm vụ của nhóm đã kết thúc hoặc giải tán.');
         taskRequire($task['status'] !== 'cancelled', 409, 'Không thể sửa nhiệm vụ đã hủy.');
 
@@ -368,11 +387,10 @@ try {
             taskRequireManager($group, $actor);
         } else {
             taskRequire(
-                $actor['role'] === 'admin'
-                    || (
-                        apiIsStudentRole($actor)
-                        && (int) $group['leader_user_id'] === (int) $actor['id']
-                    )
+                (
+                    apiIsStudentRole($actor)
+                    && (int) $group['leader_user_id'] === (int) $actor['id']
+                )
                     || (
                         apiIsStudentRole($actor)
                         && taskIsMember($pdo, (int) $group['id'], (int) $actor['id'])
@@ -380,7 +398,7 @@ try {
                         && (int) $task['assigned_to'] === (int) $actor['id']
                     ),
                 403,
-                'Chỉ sinh viên được giao nhiệm vụ, trưởng nhóm hoặc quản trị viên mới được cập nhật trạng thái.'
+                'Chỉ sinh viên được giao nhiệm vụ hoặc trưởng nhóm mới được cập nhật trạng thái.'
             );
         }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/useAuth.js'
+import { isMockMode } from '../../config/runtime.js'
 
 function LoginPage() {
   const { isAuthenticated, isLoading: isCheckingSession, login } = useAuth()
@@ -71,9 +72,9 @@ function LoginPage() {
           <button type="submit" disabled={isLoading}>
             {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
-          {import.meta.env.VITE_USE_MOCK === 'true' && (
+          {isMockMode && (
             <small className="mock-hint">
-              Chế độ mock: sv / sv2 / gv / admin, mật khẩu 123456
+              Mock: sv / sv2 / truongnhom / gv / daotao / admin · mật khẩu 123456
             </small>
           )}
         </form>

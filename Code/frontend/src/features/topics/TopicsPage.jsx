@@ -49,7 +49,9 @@ function TopicsPage() {
     () => Promise.all([
       topicApi.listTopics(),
       teamApi.listTeams(),
-      topicManagerRoles.includes(role) ? semesterApi.listSemesters() : Promise.resolve([]),
+      (topicManagerRoles.includes(role) || role === 'STUDENT' || role === 'TEAM_LEADER')
+        ? semesterApi.listSemesters()
+        : Promise.resolve([]),
       topicApi.listRegistrations(),
     ]),
     [role],

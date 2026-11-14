@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { AuthContext } from './authContext.js'
 import authApi from '../api/authApi.js'
+import { isMockMode } from '../config/runtime.js'
 
 export function AuthProvider({ children }) {
-  const isMock = import.meta.env.VITE_USE_MOCK === 'true'
+  const isMock = isMockMode
   const [user, setUser] = useState(() => {
     if (!isMock) {
       return null
@@ -81,6 +82,13 @@ export function AuthProvider({ children }) {
     }
   }
 
+  async function refreshCurrentUser() {
+    const currentUser = await authApi.getCurrentUser()
+    setUser(currentUser)
+    localStorage.setItem('user', JSON.stringify(currentUser))
+    return currentUser
+  }
+
   async function login(credentials) {
     const result = await authApi.login(credentials)
     setAuthError('')
@@ -115,6 +123,7 @@ export function AuthProvider({ children }) {
         isLoading,
         authError,
         retrySession,
+        refreshCurrentUser,
         login,
         logout,
         updateUser,

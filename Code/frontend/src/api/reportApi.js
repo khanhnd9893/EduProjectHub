@@ -14,8 +14,9 @@ import {
   mockReportVersions,
 } from './mock/reportMock.js'
 import { isStudentRole } from '../utils/roles.js'
+import { isMockMode } from '../config/runtime.js'
 
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+const useMock = isMockMode
 
 function mapFeedback(feedback) {
   return {
