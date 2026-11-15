@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
+import { useAuth } from '../../contexts/useAuth.js'
 import usersApi from '../../api/usersApi.js'
 import './users.css'
 
@@ -27,6 +28,7 @@ const emptyForm = {
 }
 
 function UsersPage() {
+  const { user } = useAuth()
   const [users, setUsers] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingUser, setEditingUser] = useState(null)
@@ -92,10 +94,14 @@ function UsersPage() {
       const saved = editingUser
         ? await usersApi.updateUser(editingUser.id, form)
         : await usersApi.createUser(form)
+      const { temporaryPassword, ...savedUser } = saved
+      if (temporaryPassword) {
+        setTemporaryPassword(`${savedUser.username}: ${temporaryPassword}`)
+      }
       setUsers((current) =>
         editingUser
-          ? current.map((user) => (user.id === saved.id ? saved : user))
-          : [...current, saved],
+          ? current.map((user) => (user.id === savedUser.id ? savedUser : user))
+          : [...current, savedUser],
       )
       setEditingUser(null)
       setForm(emptyForm)
@@ -112,6 +118,14 @@ function UsersPage() {
     setError('')
     setIsSaving(true)
     const nextStatus = statusTarget.accountStatus === 'active' ? 'locked' : 'active'
+    if (
+      Number(statusTarget.id) === Number(user?.id) &&
+      nextStatus !== 'active'
+    ) {
+      setError('Không thể khóa hoặc vô hiệu hóa chính tài khoản đang đăng nhập.')
+      setIsSaving(false)
+      return
+    }
     try {
       const saved = await usersApi.updateStatus(statusTarget.id, nextStatus)
       setUsers((current) => current.map((user) => (user.id === saved.id ? saved : user)))

@@ -10,7 +10,7 @@ function mapUser(user) {
     email: user.email,
     phone: user.phone,
     department: user.department,
-    role: user.role,
+    role: user.role?.toUpperCase(),
     accountStatus: user.account_status,
     lastLoginAt: user.last_login_at,
     createdAt: user.created_at,
@@ -26,7 +26,7 @@ function toBackendUser(user) {
     email: user.email,
     phone: user.phone || null,
     department: user.department || null,
-    role: user.role,
+    role: user.role?.toLowerCase(),
     account_status: user.accountStatus,
   }
 }
@@ -63,6 +63,26 @@ const userApi = {
 
     return mapUser(
       await unwrap(apiClient.patch('/users.php?action=update', payload)),
+    )
+  },
+
+  async updateStatus(id, accountStatus) {
+    return mapUser(
+      await unwrap(
+        apiClient.patch('/users.php?action=update', {
+          id: Number(id),
+          account_status: accountStatus,
+        }),
+      ),
+    )
+  },
+
+  async updatePassword(id, password) {
+    await unwrap(
+      apiClient.patch('/users.php?action=update', {
+        id: Number(id),
+        password,
+      }),
     )
   },
 

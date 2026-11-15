@@ -1,4 +1,7 @@
 import { getMockUser, mockResolve, nextId } from './mock/helpers.js'
+import userApi from './userApi.js'
+
+const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
 const mockUsers = [
   {
@@ -76,26 +79,44 @@ function validate(values, id = null) {
   assertUnique(values, id)
 }
 
-function unsupportedBackend() {
-  // TODO: Chờ M3 triển khai API quản lý tài khoản trong users.php.
-  throw new Error('Backend chưa hỗ trợ quản lý tài khoản. Vui lòng thử lại sau.')
+function generateTemporaryPassword() {
+  const bytes = new Uint8Array(12)
+  crypto.getRandomValues(bytes)
+  return `Edu${Array.from(bytes, (byte) => (byte % 36).toString(36)).join('').slice(0, 8)}!`
+}
+
+async function callRealApi(request) {
+  try {
+    return await request()
+  } catch (error) {
+    if (!error.cause?.response) {
+      throw new Error('Không thể kết nối tới máy chủ. Vui lòng kiểm tra backend và mạng.', {
+        cause: error,
+      })
+    }
+    throw error
+  }
 }
 
 const usersApi = {
   async listUsers() {
-    assertMockAdmin()
-    if (import.meta.env.VITE_USE_MOCK !== 'true') {
-      unsupportedBackend()
+    if (!useMock) {
+      return callRealApi(() => userApi.listUsers())
     }
+    assertMockAdmin()
     return mockResolve(mockUsers)
   },
 
   async createUser(values) {
+    if (!useMock) {
+      const temporaryPassword = generateTemporaryPassword()
+      const user = await callRealApi(() =>
+        userApi.createUser({ ...values, password: temporaryPassword }),
+      )
+      return { ...user, temporaryPassword }
+    }
     assertMockAdmin()
     validate(values)
-    if (import.meta.env.VITE_USE_MOCK !== 'true') {
-      unsupportedBackend()
-    }
     const user = {
       ...values,
       id: nextId(mockUsers),
@@ -109,11 +130,11 @@ const usersApi = {
   },
 
   async updateUser(id, values) {
+    if (!useMock) {
+      return callRealApi(() => userApi.updateUser(id, values))
+    }
     assertMockAdmin()
     validate(values, id)
-    if (import.meta.env.VITE_USE_MOCK !== 'true') {
-      unsupportedBackend()
-    }
     const index = mockUsers.findIndex((user) => user.id === Number(id))
     if (index === -1) {
       throw new Error('Không tìm thấy tài khoản.')
@@ -123,6 +144,9 @@ const usersApi = {
   },
 
   async updateStatus(id, accountStatus) {
+    if (!useMock) {
+      return callRealApi(() => userApi.updateStatus(id, accountStatus))
+    }
     assertMockAdmin()
     const currentUser = getMockUser()
     if (Number(id) === Number(currentUser.id)) {
@@ -130,9 +154,6 @@ const usersApi = {
     }
     if (!accountStatuses.includes(accountStatus)) {
       throw new Error('Trạng thái tài khoản không hợp lệ.')
-    }
-    if (import.meta.env.VITE_USE_MOCK !== 'true') {
-      unsupportedBackend()
     }
     const user = mockUsers.find((entry) => entry.id === Number(id))
     if (!user) {
@@ -143,10 +164,12 @@ const usersApi = {
   },
 
   async resetPassword(id) {
-    assertMockAdmin()
-    if (import.meta.env.VITE_USE_MOCK !== 'true') {
-      unsupportedBackend()
+    if (!useMock) {
+      const temporaryPassword = generateTemporaryPassword()
+      await callRealApi(() => userApi.updatePassword(id, temporaryPassword))
+      return { userId: Number(id), temporaryPassword }
     }
+    assertMockAdmin()
     const user = mockUsers.find((entry) => entry.id === Number(id))
     if (!user) {
       throw new Error('Không tìm thấy tài khoản.')
