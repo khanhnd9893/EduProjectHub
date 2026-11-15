@@ -40,6 +40,7 @@ function chatbotMessage(array $message): array
         'sessionId' => (int) $message['session_id'],
         'sender' => $message['sender'],
         'content' => $message['content'],
+        'answerFeedback' => $message['answer_feedback'],
         'createdAt' => $message['created_at'],
     ];
 }
@@ -111,9 +112,10 @@ try {
 
     if ($method === 'GET' && $action === 'sessions') {
         $statement = $pdo->prepare(
-            'SELECT id, user_id, title, created_at, updated_at
-             FROM chat_sessions WHERE user_id = ?
-             ORDER BY updated_at DESC, id DESC'
+            'SELECT cs.id, cs.user_id, cs.title, cs.created_at, cs.updated_at,
+                    (SELECT COUNT(*) FROM chat_messages cm WHERE cm.session_id = cs.id) AS message_count
+             FROM chat_sessions cs WHERE cs.user_id = ?
+             ORDER BY cs.updated_at DESC, cs.id DESC'
         );
         $statement->execute([$actor['id']]);
         apiRespond(200, ['data' => $statement->fetchAll(PDO::FETCH_ASSOC)]);
@@ -126,7 +128,7 @@ try {
         $statement->execute([(int) $sessionId, $actor['id']]);
         apiRequire($statement->fetchColumn() !== false, 404, 'Không tìm thấy hội thoại.');
         $statement = $pdo->prepare(
-            'SELECT id, session_id, sender, content, created_at
+            'SELECT id, session_id, sender, content, answer_feedback, created_at
              FROM chat_messages WHERE session_id = ?
              ORDER BY created_at, id'
         );
@@ -206,6 +208,35 @@ try {
                     'content' => $bestAnswer,
                     'createdAt' => $createdAt,
                 ],
+            ],
+        ]);
+    }
+
+    if ($method === 'POST' && $action === 'answer_feedback') {
+        $body = apiReadJsonBody();
+        apiRequireCsrf($body);
+        $messageId = filter_var($body['message_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        apiRequire($messageId !== false, 400, 'message_id phải là số nguyên dương.');
+
+        $pdo->beginTransaction();
+        $statement = $pdo->prepare(
+            "SELECT cm.id
+             FROM chat_messages cm
+             JOIN chat_sessions cs ON cs.id = cm.session_id
+             WHERE cm.id = ? AND cs.user_id = ? AND cm.sender = 'assistant'
+             FOR UPDATE"
+        );
+        $statement->execute([(int) $messageId, $actor['id']]);
+        apiRequire($statement->fetchColumn() !== false, 404, 'Không tìm thấy câu trả lời trong hội thoại của bạn.');
+
+        $pdo->prepare(
+            "UPDATE chat_messages SET answer_feedback = 'incorrect' WHERE id = ?"
+        )->execute([(int) $messageId]);
+        $pdo->commit();
+        apiRespond(200, [
+            'data' => [
+                'message_id' => (int) $messageId,
+                'answer_feedback' => 'incorrect',
             ],
         ]);
     }

@@ -34,6 +34,30 @@ function reportText(array $body, string $field, int $maxLength, bool $required):
     return $value === '' ? null : $value;
 }
 
+/** Kiểm tra liên kết đính kèm tùy chọn, chỉ chấp nhận URL HTTP(S). */
+function reportAttachmentLink($value): ?string
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+    apiRequire(is_string($value), 400, 'attachment_link phải là chuỗi.');
+    $value = trim($value);
+    if ($value === '') {
+        return null;
+    }
+    apiRequire(mb_strlen($value, 'UTF-8') <= 2048, 400, 'Liên kết đính kèm vượt quá 2048 ký tự.');
+    $parts = parse_url($value);
+    apiRequire(
+        filter_var($value, FILTER_VALIDATE_URL) !== false
+            && is_array($parts)
+            && in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)
+            && isset($parts['host']),
+        400,
+        'Liên kết đính kèm phải là URL HTTP hoặc HTTPS hợp lệ.'
+    );
+    return $value;
+}
+
 /** Chuẩn hóa hạn nộp sang định dạng DATETIME; null nghĩa là không có hạn. */
 function reportDeadline($value): ?string
 {
@@ -115,6 +139,49 @@ try {
         apiRespond(200, ['data' => $statement->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
+    if ($method === 'GET' && $action === 'download') {
+        $versionId = reportId($_GET['version_id'] ?? null, 'version_id');
+        $statement = $pdo->prepare(
+            'SELECT rv.stored_filename, rv.original_filename, rv.mime_type, r.group_id
+             FROM report_versions rv
+             JOIN reports r ON r.id = rv.report_id
+             WHERE rv.id = ?'
+        );
+        $statement->execute([$versionId]);
+        $version = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($version !== false, 404, 'Không tìm thấy phiên bản báo cáo.');
+        reportCanAccess($pdo, (int) $version['group_id'], $actor);
+
+        $storage = realpath(__DIR__ . '/storage/reports');
+        apiRequire($storage !== false, 404, 'Không tìm thấy tệp báo cáo.');
+        $storedName = basename((string) $version['stored_filename']);
+        $filePath = realpath($storage . DIRECTORY_SEPARATOR . $storedName);
+        $storagePrefix = $storage . DIRECTORY_SEPARATOR;
+        apiRequire(
+            $filePath !== false
+                && strncasecmp($filePath, $storagePrefix, strlen($storagePrefix)) === 0
+                && is_file($filePath)
+                && is_readable($filePath),
+            404,
+            'Không tìm thấy tệp báo cáo.'
+        );
+        $fileSize = filesize($filePath);
+        apiRequire($fileSize !== false, 500, 'Không thể đọc thông tin tệp báo cáo.');
+
+        $originalName = basename((string) $version['original_filename']);
+        $asciiName = preg_replace('/[^A-Za-z0-9._-]/', '_', $originalName) ?: 'report';
+        header_remove('Content-Type');
+        header('Content-Type: ' . ($version['mime_type'] ?: 'application/octet-stream'));
+        header('Content-Length: ' . $fileSize);
+        header(
+            'Content-Disposition: attachment; filename="' . $asciiName
+            . '"; filename*=UTF-8\'\'' . rawurlencode($originalName)
+        );
+        header('X-Content-Type-Options: nosniff');
+        readfile($filePath);
+        exit;
+    }
+
     if ($method === 'GET' && $action === 'report') {
         $id = reportId($_GET['id'] ?? null);
         $statement = $pdo->prepare(
@@ -130,7 +197,8 @@ try {
         $statement = $pdo->prepare(
             'SELECT rv.id, rv.report_id, rv.version_no, rv.submitted_by,
                     submitter.full_name AS submitted_by_name, rv.original_filename,
-                    rv.stored_filename, rv.mime_type, rv.file_size, rv.note, rv.submitted_at
+                    rv.stored_filename, rv.mime_type, rv.file_size, rv.note,
+                    rv.attachment_link, rv.submitted_at
              FROM report_versions rv
              JOIN users submitter ON submitter.id = rv.submitted_by
              WHERE rv.report_id = ?
@@ -143,13 +211,41 @@ try {
                     lecturer.full_name AS lecturer_name, rf.content, rf.score, rf.created_at
              FROM report_feedback rf
              JOIN users lecturer ON lecturer.id = rf.lecturer_user_id
-             WHERE rf.report_version_id = ?
+             JOIN report_versions rv ON rv.id = rf.report_version_id
+             WHERE rv.report_id = ?
              ORDER BY rf.created_at DESC'
         );
+        $feedbackQuery->execute([$id]);
+        $feedbackById = [];
+        $feedbackByVersion = [];
+        foreach ($feedbackQuery->fetchAll(PDO::FETCH_ASSOC) as $feedback) {
+            $feedback['replies'] = [];
+            $feedbackId = (int) $feedback['id'];
+            $versionId = (int) $feedback['report_version_id'];
+            $feedbackById[$feedbackId] = $feedback;
+            $feedbackByVersion[$versionId][] = $feedbackId;
+        }
+        if ($feedbackById !== []) {
+            $replyQuery = $pdo->prepare(
+                'SELECT reply.id, reply.feedback_id, reply.student_user_id,
+                        student.full_name AS student_name, reply.content, reply.created_at
+                 FROM report_feedback_replies reply
+                 JOIN users student ON student.id = reply.student_user_id
+                 JOIN report_feedback rf ON rf.id = reply.feedback_id
+                 JOIN report_versions rv ON rv.id = rf.report_version_id
+                 WHERE rv.report_id = ?
+                 ORDER BY reply.created_at, reply.id'
+            );
+            $replyQuery->execute([$id]);
+            foreach ($replyQuery->fetchAll(PDO::FETCH_ASSOC) as $reply) {
+                $feedbackById[(int) $reply['feedback_id']]['replies'][] = $reply;
+            }
+        }
         foreach ($versions as &$version) {
-            $version['feedback'] = [];
-            $feedbackQuery->execute([(int) $version['id']]);
-            $version['feedback'] = $feedbackQuery->fetchAll(PDO::FETCH_ASSOC);
+            $version['feedback'] = array_map(
+                static fn (int $feedbackId): array => $feedbackById[$feedbackId],
+                $feedbackByVersion[(int) $version['id']] ?? []
+            );
         }
         unset($version);
         $report['versions'] = $versions;
@@ -234,7 +330,6 @@ try {
         $versionQuery->execute([$id]);
         $versionNo = (int) $versionQuery->fetchColumn();
 
-        apiRequire(move_uploaded_file($file['tmp_name'], $destination), 500, 'Không thể lưu tệp báo cáo.');
         $note = $_POST['note'] ?? null;
         apiRequire($note === null || is_string($note), 400, 'Ghi chú không hợp lệ.');
         $note = $note === null ? null : trim($note);
@@ -244,10 +339,13 @@ try {
             400,
             'Ghi chú không được vượt quá 1000 ký tự.'
         );
+        $attachmentLink = reportAttachmentLink($_POST['attachment_link'] ?? null);
+        apiRequire(move_uploaded_file($file['tmp_name'], $destination), 500, 'Không thể lưu tệp báo cáo.');
         $insert = $pdo->prepare(
             'INSERT INTO report_versions
-                (report_id, version_no, submitted_by, original_filename, stored_filename, mime_type, file_size, note)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+                (report_id, version_no, submitted_by, original_filename, stored_filename,
+                 mime_type, file_size, note, attachment_link)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $insert->execute([
             $id,
@@ -258,6 +356,7 @@ try {
             $mimeType,
             (int) $file['size'],
             $note,
+            $attachmentLink,
         ]);
         $versionId = (int) $pdo->lastInsertId();
         $pdo->commit();
@@ -370,6 +469,44 @@ try {
         );
         $statement->execute([$versionId, $actor['id'], $content, $score === null ? null : (float) $score]);
         apiRespond(201, ['data' => ['id' => (int) $pdo->lastInsertId()]]);
+    }
+
+    if ($method === 'POST' && $action === 'reply_feedback') {
+        $body = apiReadJsonBody();
+        apiRequireCsrf($body);
+        apiRequire(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới được phản hồi nhận xét.');
+        $feedbackId = reportId($body['feedback_id'] ?? null, 'feedback_id');
+        $content = $body['content'] ?? null;
+        apiRequire(is_string($content), 400, 'content phải là chuỗi.');
+        $content = trim($content);
+        apiRequire($content !== '' && mb_strlen($content, 'UTF-8') <= 5000, 400, 'Phản hồi phải có từ 1 đến 5000 ký tự.');
+
+        $statement = $pdo->prepare(
+            'SELECT r.group_id
+             FROM report_feedback rf
+             JOIN report_versions rv ON rv.id = rf.report_version_id
+             JOIN reports r ON r.id = rv.report_id
+             WHERE rf.id = ?'
+        );
+        $statement->execute([$feedbackId]);
+        $feedback = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($feedback !== false, 404, 'Không tìm thấy nhận xét.');
+        $groupId = (int) $feedback['group_id'];
+        reportCanAccess($pdo, $groupId, $actor);
+
+        $membership = $pdo->prepare(
+            "SELECT 1 FROM group_members
+             WHERE group_id = ? AND user_id = ? AND status = 'active'"
+        );
+        $membership->execute([$groupId, $actor['id']]);
+        apiRequire($membership->fetchColumn() !== false, 403, 'Bạn không phải thành viên đang hoạt động của nhóm.');
+
+        $statement = $pdo->prepare(
+            'INSERT INTO report_feedback_replies (feedback_id, student_user_id, content)
+             VALUES (?, ?, ?)'
+        );
+        $statement->execute([$feedbackId, $actor['id'], $content]);
+        apiRespond(201, ['data' => ['id' => (int) $pdo->lastInsertId(), 'feedback_id' => $feedbackId]]);
     }
 
     if ($method === 'GET' && $action === 'grades') {

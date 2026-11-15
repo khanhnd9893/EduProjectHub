@@ -57,6 +57,8 @@ For an existing database, back it up and run [`upgrade-user-roles.sql`](./upgrad
 
 For existing databases, first ensure the reports, defense schedules, tasks, and chatbot tables are installed, then back up and run [`danh_sach_de_tai.sql`](./danh_sach_de_tai.sql). It creates `project_topics`, `topic_registrations`, and `notifications`, adds FAQ visibility by role, repairs missing group-leader memberships, and installs leader-integrity and notification triggers. Newly created database packages already include these changes.
 
+For an existing database, run [`upgrade-m6-wireframe-support.sql`](./upgrade-m6-wireframe-support.sql) after the report and chatbot schemas are installed. It adds report attachment links and student replies, plus chatbot answer-feedback storage. The migration is additive and safe to re-run.
+
 Do not import `xac_thuc.sql`: it is retired because its previous version created a second database, dropped `users`, and used a conflicting role/status schema. Do not import `file examp.sql` more than once.
 
 ## PHP connection
@@ -71,6 +73,8 @@ The frontend uses camelCase models; PHP and MySQL use snake_case fields. `src/ap
 
 Topics use `topics.php` actions `GET topics/registrations`, `POST create/register`, and `PATCH update/review`. Notifications use `notifications.php` actions `GET notifications` and `PATCH read/read_all`. `POST reports.php?action=feedback` lets an assigned lecturer submit report feedback; database triggers notify group members when feedback or defense schedules change. FAQ rows default to visibility `all`; set `visibility` to one of the five roles to restrict the audience. Team leaders can also view FAQs scoped to students.
 
+Report submission accepts an optional `attachment_link` URL. `GET reports.php?action=report` returns it with each version and includes student replies under each feedback item. `GET reports.php?action=download&version_id=...` checks group access before streaming the file. Chatbot session listings include `message_count`; `POST chatbot.php?action=answer_feedback` records that an assistant answer was marked incorrect by the owner of its conversation.
+
 | Feature | PHP endpoint | Actions |
 |---|---|---|
 | Authentication | `auth.php` | `POST login`, `GET me`, `POST logout` |
@@ -81,8 +85,8 @@ Topics use `topics.php` actions `GET topics/registrations`, `POST create/registe
 | Tasks | `tasks.php` | tasks, task, create/update/status/delete |
 | Progress | `progress.php` | group progress |
 | Semester rounds | `semesters.php` | `GET semesters` (admin read-only), `POST create`, `PATCH update` (training manager) |
-| Reports and grades | `reports.php` | `GET reports`, `GET report`, `POST submit`, `GET grades` |
-| Chatbot | `chatbot.php` | `GET faqs/sessions/messages`, `POST send` |
+| Reports and grades | `reports.php` | `GET reports/report/download/grades`, `POST submit/feedback/reply_feedback` |
+| Chatbot | `chatbot.php` | `GET faqs/sessions/messages`, `POST send/answer_feedback` |
 
 Report uploads accept PDF/DOC/DOCX up to 10 MB. Files are stored under `Code/Backend/storage/reports`, which denies direct Apache access; only metadata is returned by the API. Configure PHP's `file_uploads` and `upload_max_filesize` to permit files of the desired size.
 

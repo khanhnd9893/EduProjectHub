@@ -602,6 +602,7 @@ CREATE TABLE IF NOT EXISTS report_versions (
     mime_type VARCHAR(150) NULL,
     file_size BIGINT UNSIGNED NOT NULL DEFAULT 0,
     note TEXT NULL,
+    attachment_link VARCHAR(2048) NULL,
     submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_report_versions (report_id, version_no),
     INDEX idx_report_versions_submitter (submitted_by, submitted_at),
@@ -620,6 +621,17 @@ CREATE TABLE IF NOT EXISTS report_feedback (
     CONSTRAINT fk_report_feedback_version FOREIGN KEY (report_version_id) REFERENCES report_versions(id) ON DELETE CASCADE,
     CONSTRAINT fk_report_feedback_lecturer FOREIGN KEY (lecturer_user_id) REFERENCES users(id) ON DELETE RESTRICT,
     CONSTRAINT chk_report_feedback_score CHECK (score IS NULL OR (score >= 0 AND score <= 10))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS report_feedback_replies (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    feedback_id BIGINT UNSIGNED NOT NULL,
+    student_user_id BIGINT UNSIGNED NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_report_feedback_replies_feedback (feedback_id, created_at),
+    CONSTRAINT fk_report_feedback_replies_feedback FOREIGN KEY (feedback_id) REFERENCES report_feedback(id) ON DELETE CASCADE,
+    CONSTRAINT fk_report_feedback_replies_student FOREIGN KEY (student_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 -- ===== schema-defense-grades.sql =====
@@ -729,6 +741,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     session_id BIGINT UNSIGNED NOT NULL,
     sender ENUM('user','assistant') NOT NULL,
     content TEXT NOT NULL,
+    answer_feedback ENUM('incorrect') NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_chat_messages_session (session_id, created_at),
     CONSTRAINT fk_chat_messages_session FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE

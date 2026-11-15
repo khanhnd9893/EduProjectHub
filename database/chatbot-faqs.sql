@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     session_id BIGINT UNSIGNED NOT NULL,
     sender ENUM('user','assistant') NOT NULL,
     content TEXT NOT NULL,
+    answer_feedback ENUM('incorrect') NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_chat_messages_session (session_id, created_at),
     CONSTRAINT fk_chat_messages_session FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
