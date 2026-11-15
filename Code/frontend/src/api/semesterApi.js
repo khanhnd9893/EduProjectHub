@@ -116,11 +116,11 @@ const semesterApi = {
     } else {
       // TODO: Chờ backend triển khai PATCH /semesters.php?action=update.
       return mapSemester(
-        await unwrap(
-          apiClient.patch('/semesters.php', mapSemesterPayload(values), {
-            params: { action: 'update', id },
-          }),
-        ),
+        await unwrap(apiClient.patch(
+          '/semesters.php',
+          { id: Number(id), ...mapSemesterPayload(values) },
+          { params: { action: 'update' } },
+        )),
       )
     }
   },

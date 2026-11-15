@@ -160,9 +160,9 @@ function TopicsPage() {
     }
   }
 
-  const canCreate = role === 'ADMIN'
-  const canEdit = role === 'ADMIN' || role === 'LECTURER'
-  const canReview = canEdit
+  const canCreate = topicManagerRoles.includes(role)
+  const canEdit = topicManagerRoles.includes(role)
+  const canReview = topicManagerRoles.includes(role)
   const filteredTopics = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase()
     if (!normalizedKeyword) {
