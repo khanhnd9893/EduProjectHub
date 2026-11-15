@@ -86,6 +86,7 @@ try {
     $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
     $action = $_GET['action'] ?? ($method === 'GET' ? 'semesters' : '');
 
+    // 1. Lấy danh sách đợt đồ án / học kỳ
     if ($method === 'GET' && $action === 'semesters') {
         $sql = 'SELECT id, round_code, round_name, semester, academic_year,
                        start_date, end_date, min_members, max_members, status
@@ -98,6 +99,25 @@ try {
         apiRespond(200, ['data' => $statement->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
+    // 2. Lấy chi tiết 1 đợt đồ án / học kỳ
+    if ($method === 'GET' && $action === 'semester') {
+        $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        apiRequire($id !== false, 400, 'id phải là số nguyên dương.');
+        $statement = $pdo->prepare(
+            'SELECT id, round_code, round_name, semester, academic_year,
+                    start_date, end_date, min_members, max_members, status
+             FROM project_rounds WHERE id = ?'
+        );
+        $statement->execute([(int) $id]);
+        $round = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($round !== false, 404, 'Không tìm thấy đợt đồ án.');
+        if (!apiCanViewAllData($actor) && $actor['role'] !== 'lecturer') {
+            apiRequire(in_array($round['status'], ['open', 'in_progress'], true), 403, 'Bạn không có quyền xem đợt đồ án này.');
+        }
+        apiRespond(200, ['data' => $round]);
+    }
+
+    // 3. Tạo mới đợt đồ án
     if ($method === 'POST' && $action === 'create') {
         apiRequire(apiIsTrainingManager($actor), 403, 'Chỉ người đào tạo mới được tạo đợt đồ án.');
         $body = apiReadJsonBody();
@@ -120,11 +140,12 @@ try {
         apiRespond(201, ['data' => $statement->fetch(PDO::FETCH_ASSOC)]);
     }
 
+    // 4. Cập nhật đợt đồ án (hỗ trợ id từ cả body và query string)
     if ($method === 'PATCH' && $action === 'update') {
         apiRequire(apiIsTrainingManager($actor), 403, 'Chỉ người đào tạo mới được cập nhật đợt đồ án.');
         $body = apiReadJsonBody();
         apiRequireCsrf($body);
-        $id = filter_var($body['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $id = filter_var($body['id'] ?? ($_GET['id'] ?? null), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         apiRequire($id !== false, 400, 'id phải là số nguyên dương.');
         $statement = $pdo->prepare('SELECT 1 FROM project_rounds WHERE id = ?');
         $statement->execute([(int) $id]);
@@ -144,6 +165,44 @@ try {
         );
         $statement->execute([(int) $id]);
         apiRespond(200, ['data' => $statement->fetch(PDO::FETCH_ASSOC)]);
+    }
+
+    // 5. Xóa / vô hiệu hóa đợt đồ án
+    if (($method === 'DELETE' || $method === 'POST') && $action === 'delete') {
+        apiRequire(apiIsTrainingManager($actor), 403, 'Chỉ người đào tạo mới được xóa đợt đồ án.');
+        $rawInput = file_get_contents('php://input');
+        $body = !empty($rawInput) ? json_decode($rawInput, true) : [];
+        if (!is_array($body)) {
+            $body = [];
+        }
+        apiRequireCsrf($body);
+        $id = filter_var($_GET['id'] ?? ($body['id'] ?? null), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        apiRequire($id !== false, 400, 'id phải là số nguyên dương.');
+
+        $statement = $pdo->prepare('SELECT id, status FROM project_rounds WHERE id = ?');
+        $statement->execute([(int) $id]);
+        $round = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($round !== false, 404, 'Không tìm thấy đợt đồ án.');
+
+        // Kiểm tra xem có nhóm sinh viên tham gia không
+        $statement = $pdo->prepare('SELECT COUNT(*) FROM student_groups WHERE project_round_id = ?');
+        $statement->execute([(int) $id]);
+        $groupCount = (int) $statement->fetchColumn();
+
+        // Kiểm tra xem có đề tài nào thuộc đợt này không
+        $statement = $pdo->prepare('SELECT COUNT(*) FROM project_topics WHERE project_round_id = ?');
+        $statement->execute([(int) $id]);
+        $topicCount = (int) $statement->fetchColumn();
+
+        apiRequire(
+            $groupCount === 0 && ($round['status'] === 'draft' || $topicCount === 0),
+            409,
+            'Không thể xóa đợt đồ án đang có nhóm sinh viên hoặc đề tài tham gia.'
+        );
+
+        $statement = $pdo->prepare('DELETE FROM project_rounds WHERE id = ?');
+        $statement->execute([(int) $id]);
+        apiRespond(200, ['message' => 'Đã xóa đợt đồ án thành công.']);
     }
 
     apiRespond(404, ['error' => 'Không tìm thấy thao tác API.']);
