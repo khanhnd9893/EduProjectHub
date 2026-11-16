@@ -37,11 +37,23 @@ try {
     $actor = apiRequireActor($pdo);
     $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
     $action = $_GET['action'] ?? ($method === 'GET' ? 'topics' : '');
-    $body = in_array($method, ['POST', 'PATCH'], true) ? apiReadJsonBody() : [];
+
+    // Đọc body cho POST / PATCH / DELETE
     if (in_array($method, ['POST', 'PATCH'], true)) {
+        $body = apiReadJsonBody();
         apiRequireCsrf($body);
+    } elseif ($method === 'DELETE') {
+        $rawInput = file_get_contents('php://input');
+        $body = !empty($rawInput) ? json_decode($rawInput, true) : [];
+        if (!is_array($body)) {
+            $body = [];
+        }
+        apiRequireCsrf($body);
+    } else {
+        $body = [];
     }
 
+    // 1. Danh sách đề tài
     if ($method === 'GET' && $action === 'topics') {
         $sql = 'SELECT t.id, t.project_round_id, t.topic_code, t.title, t.description,
                        t.supervisor_user_id, supervisor.full_name AS supervisor_name,
@@ -66,6 +78,33 @@ try {
         apiRespond(200, ['data' => $statement->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
+    // 2. Chi tiết 1 đề tài
+    if ($method === 'GET' && $action === 'topic') {
+        $id = topicId($_GET['id'] ?? null, 'id');
+        $sql = 'SELECT t.id, t.project_round_id, pr.round_name, pr.status AS round_status,
+                       t.topic_code, t.title, t.description,
+                       t.supervisor_user_id, supervisor.full_name AS supervisor_name,
+                       t.max_groups, t.status, t.created_by, creator.full_name AS creator_name,
+                       t.created_at, t.updated_at,
+                       (SELECT COUNT(*) FROM topic_registrations tr WHERE tr.topic_id = t.id) AS total_registrations,
+                       (SELECT COUNT(*) FROM topic_registrations tr WHERE tr.topic_id = t.id AND tr.status = \'approved\') AS approved_groups
+                FROM project_topics t
+                LEFT JOIN project_rounds pr ON pr.id = t.project_round_id
+                LEFT JOIN users supervisor ON supervisor.id = t.supervisor_user_id
+                LEFT JOIN users creator ON creator.id = t.created_by
+                WHERE t.id = ?';
+        $statement = $pdo->prepare($sql);
+        $statement->execute([$id]);
+        $topic = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($topic !== false, 404, 'Không tìm thấy đề tài.');
+        $canViewAllTopics = apiCanViewAllData($actor) || $actor['role'] === 'lecturer';
+        if (!$canViewAllTopics) {
+            apiRequire($topic['status'] === 'open', 403, 'Bạn không có quyền xem đề tài này.');
+        }
+        apiRespond(200, ['data' => $topic]);
+    }
+
+    // 3. Danh sách đăng ký đề tài
     if ($method === 'GET' && $action === 'registrations') {
         $topicId = isset($_GET['topic_id']) ? topicId($_GET['topic_id'], 'topic_id') : null;
         $groupId = isset($_GET['group_id']) ? topicId($_GET['group_id'], 'group_id') : null;
@@ -116,6 +155,7 @@ try {
         apiRespond(200, ['data' => $statement->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
+    // 4. Tạo đề tài mới
     if ($method === 'POST' && $action === 'create') {
         apiRequireRole(
             $actor,
@@ -151,13 +191,29 @@ try {
         apiRespond(201, ['data' => ['id' => (int) $pdo->lastInsertId()]]);
     }
 
+    // 5. Cập nhật đề tài (có kiểm tra quyền phụ trách/tạo đề tài cho giảng viên)
     if ($method === 'PATCH' && $action === 'update') {
         apiRequireRole(
             $actor,
             ['training_manager', 'lecturer'],
             'Chỉ người đào tạo hoặc giảng viên mới được cập nhật đề tài.'
         );
-        $id = topicId($body['id'] ?? null, 'id');
+        $id = topicId($body['id'] ?? ($_GET['id'] ?? null), 'id');
+
+        $statement = $pdo->prepare('SELECT id, created_by, supervisor_user_id FROM project_topics WHERE id = ?');
+        $statement->execute([$id]);
+        $existingTopic = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($existingTopic !== false, 404, 'Không tìm thấy đề tài.');
+
+        // Giảng viên chỉ được cập nhật đề tài do chính mình tạo hoặc được phân công hướng dẫn
+        if ($actor['role'] === 'lecturer') {
+            apiRequire(
+                (int) $existingTopic['created_by'] === $actor['id'] || (int) $existingTopic['supervisor_user_id'] === $actor['id'],
+                403,
+                'Giảng viên chỉ được chỉnh sửa đề tài do chính mình tạo hoặc phụ trách.'
+            );
+        }
+
         $updates = [];
         $params = [];
         foreach (['topic_code' => 30, 'title' => 200] as $field => $limit) {
@@ -211,10 +267,44 @@ try {
         $params[] = $id;
         $statement = $pdo->prepare('UPDATE project_topics SET ' . implode(', ', $updates) . ' WHERE id = ?');
         $statement->execute($params);
-        apiRequire($statement->rowCount() > 0, 404, 'Không tìm thấy đề tài hoặc không có thay đổi.');
         apiRespond(200, ['message' => 'Đã cập nhật đề tài.']);
     }
 
+    // 6. Xóa đề tài (chỉ xóa được bản nháp chưa có nhóm đăng ký)
+    if (($method === 'DELETE' || $method === 'POST') && $action === 'delete') {
+        apiRequireRole(
+            $actor,
+            ['training_manager', 'lecturer'],
+            'Chỉ người đào tạo hoặc giảng viên mới được xóa đề tài.'
+        );
+        $id = topicId($_GET['id'] ?? ($body['id'] ?? null), 'id');
+
+        $statement = $pdo->prepare('SELECT id, status, created_by, supervisor_user_id FROM project_topics WHERE id = ?');
+        $statement->execute([$id]);
+        $topic = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($topic !== false, 404, 'Không tìm thấy đề tài.');
+
+        if ($actor['role'] === 'lecturer') {
+            apiRequire(
+                (int) $topic['created_by'] === $actor['id'] || (int) $topic['supervisor_user_id'] === $actor['id'],
+                403,
+                'Giảng viên chỉ được xóa đề tài do chính mình tạo hoặc phụ trách.'
+            );
+        }
+
+        apiRequire($topic['status'] === 'draft', 409, 'Chỉ được xóa đề tài đang ở trạng thái bản nháp (draft).');
+
+        $statement = $pdo->prepare('SELECT COUNT(*) FROM topic_registrations WHERE topic_id = ?');
+        $statement->execute([$id]);
+        $registrationCount = (int) $statement->fetchColumn();
+        apiRequire($registrationCount === 0, 409, 'Không thể xóa đề tài đã có nhóm sinh viên đăng ký.');
+
+        $statement = $pdo->prepare('DELETE FROM project_topics WHERE id = ?');
+        $statement->execute([$id]);
+        apiRespond(200, ['message' => 'Đã xóa đề tài thành công.']);
+    }
+
+    // 7. Đăng ký đề tài (kiểm tra đợt đồ án đang mở)
     if ($method === 'POST' && $action === 'register') {
         apiRequire(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới được đăng ký đề tài.');
         $topicId = topicId($body['topic_id'] ?? null, 'topic_id');
@@ -228,6 +318,13 @@ try {
         $statement->execute([$topicId]);
         $topic = $statement->fetch(PDO::FETCH_ASSOC);
         apiRequire($topic !== false && $topic['status'] === 'open', 409, 'Đề tài không còn nhận đăng ký.');
+
+        // Kiểm tra đợt đồ án tương ứng có đang mở hay không
+        $statement = $pdo->prepare('SELECT id, status FROM project_rounds WHERE id = ? FOR UPDATE');
+        $statement->execute([(int) $topic['project_round_id']]);
+        $round = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($round !== false && $round['status'] === 'open', 409, 'Đợt đồ án chưa mở hoặc đã đóng, không thể đăng ký đề tài.');
+
         $statement = $pdo->prepare('SELECT * FROM student_groups WHERE id = ? FOR UPDATE');
         $statement->execute([$groupId]);
         $group = $statement->fetch(PDO::FETCH_ASSOC);
@@ -256,6 +353,7 @@ try {
         apiRespond(201, ['data' => ['id' => $registrationId, 'status' => 'pending']]);
     }
 
+    // 8. Duyệt đăng ký đề tài
     if ($method === 'PATCH' && $action === 'review') {
         apiRequireRole(
             $actor,
