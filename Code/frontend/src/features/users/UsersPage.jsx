@@ -32,6 +32,7 @@ function UsersPage() {
   const [users, setUsers] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingUser, setEditingUser] = useState(null)
+  const [isFormOpen, setIsFormOpen] = useState(false)
   const [statusTarget, setStatusTarget] = useState(null)
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
@@ -46,7 +47,7 @@ function UsersPage() {
     usersApi
       .listUsers()
       .then(setUsers)
-      .catch((loadError) => setError(loadError.message || 'Không thể tải tài khoản.'))
+      .catch((loadError) => setError(getListErrorMessage(loadError)))
       .finally(() => setIsLoading(false))
   }, [])
 
@@ -68,16 +69,26 @@ function UsersPage() {
 
   function openCreateForm() {
     setEditingUser(null)
-    setForm(emptyForm)
+    setForm({ ...emptyForm })
+    setIsFormOpen(true)
     setError('')
     setSuccess('')
+    setTemporaryPassword('')
   }
 
   function openEditForm(user) {
     setEditingUser(user)
     setForm({ ...user })
+    setIsFormOpen(true)
     setError('')
     setSuccess('')
+    setTemporaryPassword('')
+  }
+
+  function closeForm() {
+    setIsFormOpen(false)
+    setEditingUser(null)
+    setForm({ ...emptyForm })
   }
 
   function handleChange(event) {
@@ -103,8 +114,9 @@ function UsersPage() {
           ? current.map((user) => (user.id === savedUser.id ? savedUser : user))
           : [...current, savedUser],
       )
+      setIsFormOpen(false)
       setEditingUser(null)
-      setForm(emptyForm)
+      setForm({ ...emptyForm })
       setSuccess(editingUser ? 'Đã cập nhật tài khoản.' : 'Đã tạo tài khoản.')
     } catch (saveError) {
       setError(saveError.message || 'Không thể lưu tài khoản.')
@@ -160,11 +172,11 @@ function UsersPage() {
         </p>
       )}
       <button type="button" onClick={openCreateForm}>Thêm tài khoản</button>
-      {(editingUser || form === emptyForm) && (
+      {isFormOpen && (
         <form className="workspace-panel data-form users-form" onSubmit={handleSubmit}>
           <div className="users-form-heading">
             <h2>{editingUser ? 'Chỉnh sửa tài khoản' : 'Tạo tài khoản'}</h2>
-            <button className="button-secondary" type="button" onClick={() => setEditingUser(null)}>Đóng</button>
+            <button className="button-secondary" type="button" onClick={closeForm}>Đóng</button>
           </div>
           <div className="form-grid">
             <label className="field-control">Username<input name="username" value={form.username} onChange={handleChange} required /></label>
@@ -218,6 +230,20 @@ function UsersPage() {
       )}
     </section>
   )
+}
+
+function getListErrorMessage(error) {
+  const status = error?.cause?.response?.status
+  if (status === 401) {
+    return 'Phiên đăng nhập không còn hợp lệ, vui lòng đăng nhập lại.'
+  }
+  if (status === 403) {
+    return 'Bạn không có quyền xem danh sách tài khoản.'
+  }
+  if (!error?.cause?.response) {
+    return 'Không kết nối được máy chủ.'
+  }
+  return error.message || 'Không thể tải tài khoản.'
 }
 
 export default UsersPage
