@@ -11,26 +11,11 @@ session_set_cookie_params([
 ]);
 session_start();
 require_once __DIR__ . '/api_common.php';
+require_once __DIR__ . '/gemini_service.php';
+require_once __DIR__ . '/chatbot_context.php';
 
-/** Chuẩn hóa câu hỏi thành các từ khóa để so khớp câu hỏi thường gặp. */
-function chatbotNormalize(string $text): array
-{
-    static $map = null;
-    if ($map === null) {
-        // Không dùng iconv //TRANSLIT vì libiconv trên XAMPP Windows làm hỏng tiếng Việt.
-        $from = mb_str_split('àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ', 1, 'UTF-8');
-        $to = str_split(
-            str_repeat('a', 17) . str_repeat('e', 11) . str_repeat('i', 5) . str_repeat('o', 17)
-            . str_repeat('u', 11) . str_repeat('y', 5) . 'd'
-        );
-        $map = array_combine($from, $to);
-    }
-    $text = mb_strtolower($text, 'UTF-8');
-    $text = preg_replace('/\p{Mn}/u', '', $text) ?? $text;
-    $words = preg_split('/[^a-z0-9]+/', strtr($text, $map), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-    $stopWords = ['lam', 'sao', 'de', 'toi', 'o', 'dau', 'khi', 'nao', 'the', 'va', 'cho', 'cua'];
-    return array_values(array_diff(array_unique($words), $stopWords));
-}
+const CHATBOT_HISTORY_LIMIT = 10;
+const CHATBOT_RATE_LIMIT = 20; // số câu hỏi tối đa mỗi người dùng trong 10 phút
 
 /** Chuyển tin nhắn từ cấu trúc cơ sở dữ liệu sang định dạng API. */
 function chatbotMessage(array $message): array
@@ -150,26 +135,50 @@ try {
             apiRequire($sessionId !== false, 400, 'session_id không hợp lệ.');
         }
 
-        $questionWords = chatbotNormalize($content);
+        $statement = $pdo->prepare(
+            "SELECT COUNT(*) FROM chat_messages m
+             JOIN chat_sessions s ON s.id = m.session_id
+             WHERE s.user_id = ? AND m.sender = 'user' AND m.created_at > (NOW() - INTERVAL 10 MINUTE)"
+        );
+        $statement->execute([$actor['id']]);
+        apiRequire((int) $statement->fetchColumn() < CHATBOT_RATE_LIMIT, 429, 'Bạn gửi câu hỏi quá nhanh. Vui lòng thử lại sau ít phút.');
+
+        $history = [];
+        if ($sessionId !== null) {
+            $statement = $pdo->prepare('SELECT id FROM chat_sessions WHERE id = ? AND user_id = ?');
+            $statement->execute([(int) $sessionId, $actor['id']]);
+            apiRequire($statement->fetchColumn() !== false, 404, 'Không tìm thấy hội thoại.');
+            $statement = $pdo->prepare(
+                'SELECT sender, content FROM chat_messages
+                 WHERE session_id = ? ORDER BY id DESC LIMIT ' . CHATBOT_HISTORY_LIMIT
+            );
+            $statement->execute([(int) $sessionId]);
+            foreach (array_reverse($statement->fetchAll(PDO::FETCH_ASSOC)) as $row) {
+                $role = $row['sender'] === 'user' ? 'user' : 'model';
+                // Gemini yêu cầu hội thoại bắt đầu bằng lượt của người dùng.
+                if ($history === [] && $role !== 'user') {
+                    continue;
+                }
+                $history[] = ['role' => $role, 'text' => $row['content']];
+            }
+        }
+        $history[] = ['role' => 'user', 'text' => $content];
+
         $visibilities = apiFaqVisibilities($actor);
         $sql = "SELECT question, answer FROM chatbot_faqs
                 WHERE status = 'published' AND visibility IN ("
             . implode(', ', array_fill(0, count($visibilities), '?'))
-            . ')';
+            . ') ORDER BY category, id';
         $statement = $pdo->prepare($sql);
         $statement->execute($visibilities);
-        $bestAnswer = 'Xin lỗi, mình chưa có thông tin cho câu hỏi này. Bạn hãy liên hệ giảng viên hướng dẫn nhé.';
-        $bestScore = 0;
-        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $faq) {
-            $score = count(array_intersect($questionWords, chatbotNormalize($faq['question'])));
-            if ($score > $bestScore) {
-                $bestScore = $score;
-                $bestAnswer = $faq['answer'];
-            }
-        }
-        if ($bestScore < 2) {
-            $bestAnswer = 'Xin lỗi, mình chưa có thông tin cho câu hỏi này. Bạn hãy liên hệ giảng viên hướng dẫn nhé.';
-        }
+        $aiAnswer = geminiGenerate(
+            geminiBuildSystemPrompt(
+                $statement->fetchAll(PDO::FETCH_ASSOC),
+                $actor['role'],
+                chatbotBuildUserContext($pdo, $actor)
+            ),
+            $history
+        );
 
         $pdo->beginTransaction();
         if ($sessionId === null) {
@@ -185,7 +194,7 @@ try {
         $insert = $pdo->prepare('INSERT INTO chat_messages (session_id, sender, content) VALUES (?, ?, ?)');
         $insert->execute([(int) $sessionId, 'user', $content]);
         $userMessageId = (int) $pdo->lastInsertId();
-        $insert->execute([(int) $sessionId, 'assistant', $bestAnswer]);
+        $insert->execute([(int) $sessionId, 'assistant', $aiAnswer]);
         $assistantMessageId = (int) $pdo->lastInsertId();
         $pdo->prepare('UPDATE chat_sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([(int) $sessionId]);
         $pdo->commit();
@@ -205,7 +214,7 @@ try {
                     'id' => $assistantMessageId,
                     'sessionId' => (int) $sessionId,
                     'sender' => 'assistant',
-                    'content' => $bestAnswer,
+                    'content' => $aiAnswer,
                     'createdAt' => $createdAt,
                 ],
             ],
