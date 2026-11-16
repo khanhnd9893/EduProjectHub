@@ -4,6 +4,7 @@ import { isMockMode } from '../config/runtime.js'
 import { getMockUser, mockResolve } from './mock/helpers.js'
 
 const mockProfiles = new Map()
+export const PASSWORD_MIN_LENGTH = 8
 
 function getProfile(user) {
   return {
@@ -65,8 +66,6 @@ const profileApi = {
       email: values.email.trim(),
       phone: values.phone?.trim() || '',
       department: values.department?.trim() || '',
-      studentCode: values.studentCode?.trim() || '',
-      avatarUrl: values.avatarUrl?.trim() || '',
     }
 
     const data = await unwrap(apiClient.patch('/auth.php?action=profile', payload))
@@ -77,8 +76,11 @@ const profileApi = {
     if (!currentPassword) {
       throw new Error('Vui lòng nhập mật khẩu hiện tại.')
     }
-    if (!newPassword || newPassword.length < 6) {
-      throw new Error('Mật khẩu mới phải có ít nhất 6 ký tự.')
+    if (!newPassword || newPassword.length < PASSWORD_MIN_LENGTH) {
+      throw new Error(`Mật khẩu mới phải có ít nhất ${PASSWORD_MIN_LENGTH} ký tự.`)
+    }
+    if (newPassword === currentPassword) {
+      throw new Error('Mật khẩu mới phải khác mật khẩu hiện tại.')
     }
     if (confirmPassword && newPassword !== confirmPassword) {
       throw new Error('Mật khẩu xác nhận không khớp.')
@@ -93,9 +95,9 @@ const profileApi = {
 
     return unwrap(
       apiClient.post('/auth.php?action=change_password', {
-        currentPassword,
-        newPassword,
-        confirmPassword,
+        current_password: currentPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
       }),
     )
   },

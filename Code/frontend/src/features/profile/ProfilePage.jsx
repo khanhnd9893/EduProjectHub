@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import { useAuth } from '../../contexts/useAuth.js'
-import profileApi from '../../api/profileApi.js'
+import profileApi, { PASSWORD_MIN_LENGTH } from '../../api/profileApi.js'
 import './profile-edit.css'
 
 import { roleLabel } from '../../utils/roles.js'
@@ -17,8 +17,16 @@ function ProfilePage() {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [profileError, setProfileError] = useState('')
+  const [profileSuccess, setProfileSuccess] = useState('')
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
 
   useEffect(() => {
     let active = true
@@ -37,7 +45,7 @@ function ProfilePage() {
       })
       .catch((loadError) => {
         if (active) {
-          setError(loadError.message || 'Không thể tải hồ sơ.')
+          setProfileError(getErrorMessage(loadError, 'Không thể tải hồ sơ.'))
         }
       })
       .finally(() => {
@@ -57,17 +65,71 @@ function ProfilePage() {
 
   async function handleSubmit(event) {
     event.preventDefault()
-    setError('')
-    setSuccess('')
+    setProfileError('')
+    setProfileSuccess('')
     setIsSaving(true)
     try {
       const profile = await profileApi.updateProfile(form)
       updateUser({ ...user, ...profile })
-      setSuccess('Đã cập nhật hồ sơ.')
+      setProfileSuccess('Đã cập nhật hồ sơ.')
     } catch (saveError) {
-      setError(saveError.message || 'Không thể cập nhật hồ sơ.')
+      setProfileError(getErrorMessage(saveError, 'Không thể cập nhật hồ sơ.'))
     } finally {
       setIsSaving(false)
+    }
+
+  }
+
+  function handlePasswordChange(event) {
+    setPasswordForm((current) => ({
+      ...current,
+      [event.target.name]: event.target.value,
+    }))
+  }
+
+  async function handlePasswordSubmit(event) {
+    event.preventDefault()
+    setPasswordError('')
+    setPasswordSuccess('')
+
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
+      setPasswordError('Vui lòng nhập đầy đủ thông tin đổi mật khẩu.')
+      return
+    }
+    if (passwordForm.newPassword.length < PASSWORD_MIN_LENGTH) {
+      setPasswordError(
+        `Mật khẩu mới phải có ít nhất ${PASSWORD_MIN_LENGTH} ký tự.`,
+      )
+      return
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('Mật khẩu xác nhận không khớp.')
+      return
+    }
+    if (passwordForm.newPassword === passwordForm.currentPassword) {
+      setPasswordError('Mật khẩu mới phải khác mật khẩu hiện tại.')
+      return
+    }
+
+    setIsChangingPassword(true)
+    try {
+      await profileApi.changePassword(passwordForm)
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      })
+      setPasswordSuccess('Đã đổi mật khẩu thành công.')
+    } catch (changeError) {
+      setPasswordError(
+        getErrorMessage(changeError, 'Không thể đổi mật khẩu.'),
+      )
+    } finally {
+      setIsChangingPassword(false)
     }
   }
 
@@ -79,8 +141,8 @@ function ProfilePage() {
         description="Thông tin tài khoản đang đăng nhập trong hệ thống."
         status={roleLabel(user?.role) || 'Chưa xác định'}
       />
-      {error && <p className="alert-error" role="alert">{error}</p>}
-      {success && <p className="success-message" role="status">{success}</p>}
+      {profileError && <p className="alert-error" role="alert">{profileError}</p>}
+      {profileSuccess && <p className="success-message" role="status">{profileSuccess}</p>}
       <section className="workspace-panel profile-panel">
         <div className="profile-summary">
           <div className="profile-avatar" aria-hidden="true">
@@ -132,7 +194,7 @@ function ProfilePage() {
                 </label>
                 <label className="field-control">
                   Mã sinh viên
-                  <input name="studentCode" value={form.studentCode} onChange={handleChange} />
+                  <input name="studentCode" value={form.studentCode} readOnly />
                 </label>
               </div>
               <div className="profile-edit-actions">
@@ -143,9 +205,58 @@ function ProfilePage() {
             </>
           )}
         </form>
+        <form className="profile-edit-form password-form" onSubmit={handlePasswordSubmit}>
+          <h2>Đổi mật khẩu</h2>
+          {passwordError && <p className="alert-error" role="alert">{passwordError}</p>}
+          {passwordSuccess && <p className="success-message" role="status">{passwordSuccess}</p>}
+          <div className="form-grid">
+            <label className="field-control">
+              Mật khẩu hiện tại
+              <input
+                name="currentPassword"
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={handlePasswordChange}
+                autoComplete="current-password"
+              />
+            </label>
+            <label className="field-control">
+              Mật khẩu mới
+              <input
+                name="newPassword"
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={handlePasswordChange}
+                autoComplete="new-password"
+              />
+            </label>
+            <label className="field-control">
+              Nhập lại mật khẩu mới
+              <input
+                name="confirmPassword"
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={handlePasswordChange}
+                autoComplete="new-password"
+              />
+            </label>
+          </div>
+          <div className="profile-edit-actions">
+            <button type="submit" disabled={isChangingPassword}>
+              {isChangingPassword ? 'Đang đổi...' : 'Đổi mật khẩu'}
+            </button>
+          </div>
+        </form>
       </section>
     </section>
   )
+}
+
+function getErrorMessage(error, fallback) {
+  if (!error?.cause?.response && error?.cause) {
+    return 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra backend và mạng.'
+  }
+  return error?.message || fallback
 }
 
 export default ProfilePage

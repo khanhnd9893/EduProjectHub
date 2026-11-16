@@ -174,7 +174,7 @@ const usersApi = {
     if (!user) {
       throw new Error('Không tìm thấy tài khoản.')
     }
-    const temporaryPassword = `Edu${Math.random().toString(36).slice(2, 8)}!`
+    const temporaryPassword = generateTemporaryPassword()
     return mockResolve({ userId: user.id, temporaryPassword })
   },
 }
