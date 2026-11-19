@@ -34,7 +34,7 @@ Import in phpMyAdmin in this order:
 12. `bao_cao_do_an.sql`
 13. `bao_ve_diem_so.sql`
 14. `chatbot-faqs.sql`
-15. Optional demo data: `examp bao_cao_do_an.sql`, `expam_bao_ve_diem_so.sql`, and `exam_chatbot-faqs.sql`.
+15. Optional demo data: `expam_bao_ve_diem_so.sql` and `exam_chatbot-faqs.sql`. Report periods are created by the training manager in the application.
 16. `danh_sach_de_tai.sql` — topic/registration tables, notifications, FAQ audience scopes, leader integrity triggers, and notification triggers.
 
 The demo accounts are `sv`, `truongnhom`, `gv`, `daotao`, and `admin`; each has password `123456`. The `truongnhom` account leads the demo group `N03`, and the demo lecturer is assigned two groups, as required by the API access policy. Change these passwords before exposing the site outside a local development machine.

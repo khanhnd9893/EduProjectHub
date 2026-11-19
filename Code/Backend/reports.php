@@ -109,7 +109,8 @@ try {
     if ($method === 'GET' && $action === 'reports') {
         $sql = 'SELECT r.id, r.group_id, g.group_name, r.title, r.report_type,
                        r.description, r.deadline, r.status, r.created_by,
-                       r.created_at, r.updated_at
+                       r.created_at, r.updated_at,
+                       EXISTS (SELECT 1 FROM report_versions rv WHERE rv.report_id = r.id) AS has_submission
                 FROM reports r
                 JOIN student_groups g ON g.id = r.group_id';
         $params = [];

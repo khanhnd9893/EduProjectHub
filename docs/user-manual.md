@@ -33,7 +33,7 @@ Các tài khoản trên chỉ là dữ liệu minh họa. Không dùng thông ti
 1. Xem thông tin đồ án và thành viên.
 2. Khi tạo nhóm thành công, tài khoản tự chuyển sang vai trò Trưởng nhóm; quyền quản lý chỉ áp dụng cho nhóm vừa tạo.
 3. Mở danh sách nhiệm vụ để xem trạng thái và hạn nộp.
-4. Tải báo cáo đúng định dạng và dung lượng quy định.
+4. Vào Báo cáo, tìm hoặc lọc đợt theo trạng thái nộp của nhóm, rồi chọn **Xem chi tiết**. Với đợt đang mở, chọn hoặc kéo thả tệp PDF, DOC, DOCX (tối đa 10 MB) để nộp.
 5. Ghi chú cho lần nộp nếu cần.
 6. Xem lịch sử nộp và nhận xét của giảng viên.
 7. Dùng chatbot để hỏi về quy trình, hướng dẫn và dữ liệu mà mình có quyền xem.
@@ -51,6 +51,7 @@ Các tài khoản trên chỉ là dữ liệu minh họa. Không dùng thông ti
 3. Có thể xóa tài khoản sau khi xác nhận; thao tác bị từ chối nếu tài khoản còn liên kết với nhóm hoặc dữ liệu nghiệp vụ. Hãy chuyển quyền hay xử lý liên kết trước khi thử lại. Không thể tự xóa hoặc xóa quản trị viên hoạt động cuối cùng.
 4. Tra cứu học kỳ, đề tài, nhóm, nhiệm vụ, báo cáo, hội đồng và lịch bảo vệ trên toàn hệ thống.
 5. Các trang nghiệp vụ của quản trị viên chỉ có quyền xem; người đào tạo quản lý học kỳ, đề tài, phân công, báo cáo và bảo vệ, còn trưởng nhóm quản lý thành viên và nhiệm vụ trong nhóm của mình.
+6. Người đào tạo vào mục Báo cáo, chọn **Tạo đợt báo cáo**, chọn nhóm, nhập thông tin và lưu. Có thể chọn một đợt để chỉnh sửa; sinh viên nộp báo cáo ở đợt đang mở và giảng viên nhận xét phiên bản đã nộp.
 6. Cấu hình hệ thống, nhật ký hoạt động và sao lưu/khôi phục chưa có API quản trị tương ứng.
 
 ## 7. Chatbot
