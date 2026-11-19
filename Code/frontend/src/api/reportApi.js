@@ -60,6 +60,7 @@ function mapReport(report) {
     createdBy: Number(report.created_by),
     createdAt: report.created_at,
     updatedAt: report.updated_at,
+    hasSubmission: Number(report.has_submission) === 1,
     versions: report.versions?.map(mapVersion),
   }
 }
@@ -79,13 +80,63 @@ function mapGrade(grade) {
 }
 
 const reportApi = {
+  async createReport(values) {
+    if (useMock) {
+      if (getMockUser().role !== 'TRAINING_MANAGER') {
+        throw new Error('Chỉ người đào tạo mới được quản lý đợt báo cáo.')
+      }
+      const report = {
+        id: nextId(mockReports),
+        ...values,
+        groupId: Number(values.groupId),
+        createdBy: getMockUser().id,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      }
+      mockReports.push(report)
+      return { id: report.id }
+    }
+
+    return unwrap(apiClient.post('/reports.php?action=create', {
+      group_id: Number(values.groupId),
+      title: values.title,
+      report_type: values.reportType,
+      description: values.description || null,
+      deadline: values.deadline || null,
+      status: values.status,
+    }))
+  },
+
+  async updateReport(id, values) {
+    if (useMock) {
+      if (getMockUser().role !== 'TRAINING_MANAGER') {
+        throw new Error('Chỉ người đào tạo mới được quản lý đợt báo cáo.')
+      }
+      const report = findOrThrow(mockReports, id, 'Không tìm thấy đợt báo cáo')
+      Object.assign(report, values, { updatedAt: nowIso() })
+      return
+    }
+
+    await unwrap(apiClient.patch('/reports.php?action=update', {
+      id: Number(id),
+      title: values.title,
+      report_type: values.reportType,
+      description: values.description || null,
+      deadline: values.deadline || null,
+      status: values.status,
+    }))
+  },
+
   async listReports({ groupId } = {}) {
     if (useMock) {
       return mockResolve(
         mockReports.filter(
           (report) =>
             groupId === undefined || report.groupId === Number(groupId),
-        ),
+        ).map((report) => ({
+          ...report,
+          hasSubmission: mockReportVersions.some((version) => version.reportId === report.id),
+        })),
       )
     }
 

@@ -1,14 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import reportApi from '../../api/reportApi.js'
+import teamApi from '../../api/teamApi.js'
 import { useAuth } from '../../contexts/useAuth.js'
-import { isStudentRole } from '../../utils/roles.js'
+import { isAcademicManagerRole, isStudentRole } from '../../utils/roles.js'
 
 const reportTypes = {
   weekly: 'Hàng tuần',
   midterm: 'Giữa kỳ',
   final: 'Cuối kỳ',
   other: 'Khác',
+}
+
+const emptyReportForm = {
+  groupId: '',
+  title: '',
+  reportType: 'other',
+  description: '',
+  deadline: '',
+  status: 'open',
 }
 
 function formatDate(value) {
@@ -53,18 +63,6 @@ function describeDeadline(deadline, now = new Date()) {
   return days <= 1 ? 'hết hạn trong hôm nay' : `còn ${days} ngày`
 }
 
-// Mốc đang mở có hạn gần nhất chưa qua, dùng cho khối "Sắp đến hạn".
-function findUpcomingReport(reports, now = new Date()) {
-  return reports
-    .filter(
-      (entry) =>
-        entry.status === 'open' &&
-        entry.deadline &&
-        new Date(entry.deadline).getTime() >= now.getTime(),
-    )
-    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0]
-}
-
 function formatFileSize(size) {
   if (!size) {
     return '0 B'
@@ -82,6 +80,10 @@ function ReportsPage() {
   const [reports, setReports] = useState([])
   const [reportId, setReportId] = useState('')
   const [report, setReport] = useState(null)
+  const [search, setSearch] = useState('')
+  const [submissionFilter, setSubmissionFilter] = useState('all')
+  const [detailError, setDetailError] = useState('')
+  const [detailRequest, setDetailRequest] = useState(0)
   const [file, setFile] = useState(null)
   const [fileError, setFileError] = useState('')
   const [note, setNote] = useState('')
@@ -91,8 +93,15 @@ function ReportsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [teams, setTeams] = useState([])
+  const [isLoadingTeams, setIsLoadingTeams] = useState(true)
+  const [teamError, setTeamError] = useState('')
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingReport, setEditingReport] = useState(null)
+  const [reportForm, setReportForm] = useState(emptyReportForm)
+  const [isSavingReport, setIsSavingReport] = useState(false)
+  const canManageReports = isAcademicManagerRole(role)
   const fileInputRef = useRef(null)
-  const submitFormRef = useRef(null)
 
   useEffect(() => {
     let active = true
@@ -101,7 +110,6 @@ function ReportsPage() {
       .then((result) => {
         if (active) {
           setReports(result)
-          setReportId(result[0] ? String(result[0].id) : '')
         }
       })
       .catch((loadError) => {
@@ -120,6 +128,29 @@ function ReportsPage() {
   }, [])
 
   useEffect(() => {
+    if (!canManageReports) {
+      return undefined
+    }
+    let active = true
+    teamApi.listTeams()
+      .then((result) => {
+        if (active) {
+          setTeams(result.filter((team) => team.status !== 'dissolved'))
+          setTeamError('')
+        }
+      })
+      .catch((loadError) => {
+        if (active) {
+          setTeamError(loadError.message || 'Không thể tải danh sách nhóm.')
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoadingTeams(false)
+      })
+    return () => { active = false }
+  }, [canManageReports])
+
+  useEffect(() => {
     if (!reportId) {
       return undefined
     }
@@ -133,13 +164,73 @@ function ReportsPage() {
       })
       .catch((loadError) => {
         if (active) {
-          setError(loadError.message || 'Không thể tải chi tiết báo cáo.')
+          setDetailError(loadError.message || 'Không thể tải chi tiết báo cáo.')
         }
       })
     return () => {
       active = false
     }
-  }, [reportId])
+  }, [reportId, detailRequest])
+
+  function openReportForm(entry = null) {
+    setEditingReport(entry)
+    setReportForm(entry ? {
+      groupId: String(entry.groupId),
+      title: entry.title,
+      reportType: entry.reportType,
+      description: entry.description || '',
+      deadline: entry.deadline ? entry.deadline.replace(' ', 'T') : '',
+      status: entry.status,
+    } : emptyReportForm)
+    setError('')
+    setSuccess('')
+    setIsFormOpen(true)
+  }
+
+  async function handleReportSave(event) {
+    event.preventDefault()
+    const title = reportForm.title.trim()
+    if (!title || !reportForm.groupId) {
+      setError('Vui lòng chọn nhóm và nhập tên đợt báo cáo.')
+      return
+    }
+    setError('')
+    setSuccess('')
+    setIsSavingReport(true)
+    let savedId
+    try {
+      const values = {
+        ...reportForm,
+        title,
+        description: reportForm.description.trim(),
+        groupName: teams.find((team) => team.id === Number(reportForm.groupId))?.groupName,
+      }
+      if (editingReport) {
+        await reportApi.updateReport(editingReport.id, values)
+        savedId = editingReport.id
+      } else {
+        const created = await reportApi.createReport(values)
+        savedId = created.id
+      }
+    } catch (saveError) {
+      setError(saveError.message || 'Không thể lưu đợt báo cáo.')
+      setIsSavingReport(false)
+      return
+    }
+    setIsFormOpen(false)
+    setSuccess(editingReport ? 'Đã cập nhật đợt báo cáo.' : 'Đã tạo đợt báo cáo.')
+    try {
+      const updatedReports = await reportApi.listReports()
+      setReports(updatedReports)
+      if (editingReport) {
+        setReport(await reportApi.getReport(savedId))
+      }
+    } catch (loadError) {
+      setError(loadError.message || 'Đã lưu nhưng không thể tải lại danh sách báo cáo.')
+    } finally {
+      setIsSavingReport(false)
+    }
+  }
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -155,16 +246,24 @@ function ReportsPage() {
     setIsSubmitting(true)
     try {
       await reportApi.submitVersion(Number(reportId), { file, note: note.trim() })
-      const updatedReport = await reportApi.getReport(reportId)
-      setReport(updatedReport)
-      setFile(null)
-      setNote('')
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-      setSuccess('Đã nộp phiên bản báo cáo.')
     } catch (submitError) {
       setError(submitError.message || 'Không thể nộp báo cáo.')
+      setIsSubmitting(false)
+      return
+    }
+    setReports((current) => current.map((entry) =>
+      entry.id === Number(reportId) ? { ...entry, hasSubmission: true } : entry,
+    ))
+    setFile(null)
+    setNote('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    setSuccess('Đã nộp phiên bản báo cáo.')
+    try {
+      setReport(await reportApi.getReport(reportId))
+    } catch (loadError) {
+      setDetailError(`Đã nộp báo cáo nhưng không thể tải lại chi tiết: ${loadError.message || 'Lỗi không xác định'}. Bấm Xem chi tiết để thử lại.`)
     } finally {
       setIsSubmitting(false)
     }
@@ -191,10 +290,21 @@ function ReportsPage() {
     }
   }
 
-  function handleFileChange(event) {
-    const selectedFile = event.target.files?.[0] || null
+  function chooseFile(selectedFile) {
     setFile(selectedFile)
     setFileError(selectedFile ? validateReportFile(selectedFile) : '')
+  }
+
+  function handleFileDrop(event) {
+    event.preventDefault()
+    const files = event.dataTransfer.files
+    if (files.length !== 1) {
+      chooseFile(null)
+      setFileError('Vui lòng chọn một tệp báo cáo.')
+      return
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    chooseFile(files[0])
   }
 
   function selectReport(id) {
@@ -202,87 +312,176 @@ function ReportsPage() {
     setSuccess('')
     setFile(null)
     setFileError('')
+    setNote('')
+    setDetailError('')
+    setReport(null)
     setReportId(String(id))
-  }
-
-  function openUpcomingSubmit(id) {
-    selectReport(id)
-    window.setTimeout(() => {
-      submitFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 300)
+    setDetailRequest((current) => current + 1)
   }
 
   const selectedReport = reports.find((entry) => String(entry.id) === reportId)
-  const upcomingReport = findUpcomingReport(reports)
+  const visibleReports = reports.filter((entry) => {
+    const matchesSearch = `${entry.title} ${entry.groupName || ''}`.toLocaleLowerCase('vi')
+      .includes(search.trim().toLocaleLowerCase('vi'))
+    return matchesSearch && (
+      submissionFilter === 'all' ||
+      (submissionFilter === 'submitted' ? entry.hasSubmission : !entry.hasSubmission)
+    )
+  })
   const sortedVersions = [...(report?.versions ?? [])].sort(
     (a, b) => b.versionNo - a.versionNo,
   )
+  const isSelectedReportVisible = visibleReports.some((entry) => String(entry.id) === reportId)
   const isLoadingReport = Boolean(reportId) && report?.id !== Number(reportId)
 
   return (
     <section className="dashboard-page">
       <PageHeading
         title="Báo cáo"
-        description="Nộp báo cáo theo đợt, xem các phiên bản và phản hồi của giảng viên."
+        description={isStudentRole(role)
+          ? 'Nộp báo cáo theo đợt và theo dõi phản hồi của giảng viên.'
+          : role === 'LECTURER'
+            ? 'Xem báo cáo của nhóm hướng dẫn và gửi nhận xét.'
+            : canManageReports
+              ? 'Tạo, quản lý các đợt báo cáo và theo dõi bài nộp.'
+              : 'Xem các đợt báo cáo và bài nộp.'}
         status={isLoading ? 'Đang tải' : `${reports.length} đợt báo cáo`}
       />
       {error && <p className="alert-error" role="alert">{error}</p>}
       {success && <p className="success-message" role="status">{success}</p>}
+      {canManageReports && (
+        <section className="workspace-panel">
+          <button className="report-action report-action-primary" type="button" onClick={() => openReportForm()}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Tạo đợt báo cáo
+          </button>
+          {isFormOpen && (
+            <form className="data-form" onSubmit={handleReportSave}>
+              <h2>{editingReport ? 'Chỉnh sửa đợt báo cáo' : 'Tạo đợt báo cáo'}</h2>
+              {teamError && !editingReport && <p className="alert-error" role="alert">{teamError}</p>}
+              <label className="field-control">
+                Nhóm
+                <select
+                  disabled={Boolean(editingReport) || isLoadingTeams}
+                  onChange={(event) => setReportForm((current) => ({ ...current, groupId: event.target.value }))}
+                  required
+                  value={reportForm.groupId}
+                >
+                  <option value="">Chọn nhóm</option>
+                  {editingReport && !teams.some((team) => team.id === editingReport.groupId) && (
+                    <option value={editingReport.groupId}>{editingReport.groupName}</option>
+                  )}
+                  {teams.map((team) => <option key={team.id} value={team.id}>{team.groupCode} — {team.groupName}</option>)}
+                </select>
+              </label>
+              <label className="field-control">
+                Tên đợt báo cáo
+                <input maxLength="255" required value={reportForm.title}
+                  onChange={(event) => setReportForm((current) => ({ ...current, title: event.target.value }))} />
+              </label>
+              <label className="field-control">
+                Loại báo cáo
+                <select value={reportForm.reportType}
+                  onChange={(event) => setReportForm((current) => ({ ...current, reportType: event.target.value }))}>
+                  {Object.entries(reportTypes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+              <label className="field-control">
+                Mô tả
+                <textarea maxLength="5000" rows="2" value={reportForm.description}
+                  onChange={(event) => setReportForm((current) => ({ ...current, description: event.target.value }))} />
+              </label>
+              <label className="field-control">
+                Hạn nộp (tùy chọn)
+                <input type="datetime-local" step="1" value={reportForm.deadline}
+                  onChange={(event) => setReportForm((current) => ({ ...current, deadline: event.target.value }))} />
+              </label>
+              <label className="field-control">
+                Trạng thái
+                <select value={reportForm.status}
+                  onChange={(event) => setReportForm((current) => ({ ...current, status: event.target.value }))}>
+                  <option value="open">Đang mở</option>
+                  <option value="closed">Đã đóng</option>
+                  {editingReport && <option value="graded">Đã chấm</option>}
+                </select>
+              </label>
+              <button disabled={isSavingReport || (!editingReport && (isLoadingTeams || Boolean(teamError)))} type="submit">
+                {isSavingReport ? 'Đang lưu...' : 'Lưu đợt báo cáo'}
+              </button>
+              <button className="button-secondary" disabled={isSavingReport} onClick={() => setIsFormOpen(false)} type="button">
+                Hủy
+              </button>
+            </form>
+          )}
+        </section>
+      )}
+      {!isLoading && reports.length > 0 && (
+        <div className="reports-toolbar">
+          <label className="reports-search">
+            <span className="reports-search-label">Tìm báo cáo</span>
+            <input type="search" placeholder="Tìm kiếm báo cáo hoặc nhóm"
+              value={search} onChange={(event) => setSearch(event.target.value)} />
+          </label>
+          <div className="reports-filters" role="group" aria-label="Lọc theo bài nộp của nhóm">
+            {[['all', 'Tất cả'], ['submitted', 'Đã nộp'], ['missing', 'Chưa nộp']].map(([value, label]) => (
+              <button key={value} type="button" aria-pressed={submissionFilter === value}
+                onClick={() => setSubmissionFilter(value)}>{label}</button>
+            ))}
+          </div>
+          <span className="muted reports-filter-note">Trạng thái nộp của nhóm</span>
+        </div>
+      )}
       {isLoading ? (
         <p role="status">Đang tải danh sách báo cáo...</p>
       ) : reports.length === 0 ? (
         <section className="workspace-panel">Chưa có đợt báo cáo.</section>
       ) : (
-        <>
-        {upcomingReport && (
-          <section className="workspace-panel report-upcoming">
-            <div>
-              <p className="eyebrow">Sắp đến hạn</p>
-              <h2>{upcomingReport.title}</h2>
-              <p className="muted">
-                Hạn: {formatDate(upcomingReport.deadline)} ·{' '}
-                {describeDeadline(upcomingReport.deadline)} · {FILE_RULE_TEXT}
-              </p>
-            </div>
-            <button
-              onClick={() =>
-                isStudentRole(role)
-                  ? openUpcomingSubmit(upcomingReport.id)
-                  : selectReport(upcomingReport.id)
-              }
-              type="button"
-            >
-              {isStudentRole(role) ? 'Nộp báo cáo' : 'Xem chi tiết'}
-            </button>
-          </section>
-        )}
         <div className="reports-layout">
           <section className="report-list" aria-label="Các đợt báo cáo">
-            {reports.map((entry) => (
-              <button
+            {visibleReports.length === 0 && <p className="muted">Không tìm thấy đợt báo cáo phù hợp.</p>}
+            {visibleReports.map((entry) => (
+              <article
                 className={`report-option${String(entry.id) === reportId ? ' is-selected' : ''}`}
                 key={entry.id}
-                onClick={() => selectReport(entry.id)}
-                type="button"
               >
-                <strong>{entry.title}</strong>
-                <span className="muted">{reportTypes[entry.reportType] || entry.reportType}</span>
+                <div className="report-option-heading">
+                  <strong>{entry.title}</strong>
+                  <span className="report-type-badge">{reportTypes[entry.reportType] || entry.reportType}</span>
+                </div>
+                {entry.groupName && <span className="muted">Nhóm: {entry.groupName}</span>}
+                <span className={`report-submission-badge ${entry.hasSubmission ? 'is-submitted' : 'is-missing'}`}>
+                  {entry.hasSubmission ? 'Đã nộp' : 'Chưa nộp'}
+                </span>
                 <span className="muted">
                   Hạn: {formatDate(entry.deadline)}
                   {entry.status === 'open' && entry.deadline
                     ? ` · ${describeDeadline(entry.deadline)}`
                     : ''}
                 </span>
-              </button>
+                <button className="report-action report-action-secondary" disabled={isSubmitting} onClick={() => selectReport(entry.id)} type="button">
+                  Xem chi tiết
+                </button>
+              </article>
             ))}
           </section>
           <section className="workspace-panel report-details">
-            {isLoadingReport ? (
+            {!reportId ? (
+              <p className="muted">Chọn “Xem chi tiết” để xem nội dung báo cáo.</p>
+            ) : !isSelectedReportVisible ? (
+              <p className="muted">Báo cáo đang xem không phù hợp với bộ lọc. Chọn “Xem chi tiết” trong danh sách để xem báo cáo khác.</p>
+            ) : detailError ? (
+              <p className="alert-error" role="alert">{detailError}</p>
+            ) : isLoadingReport ? (
               <p role="status">Đang tải chi tiết báo cáo...</p>
             ) : report ? (
               <>
                 <p className="eyebrow">{reportTypes[report.reportType] || report.reportType}</p>
-                <h2>{report.title}</h2>
+                <h2>{report.title}{report.groupName ? ` — ${report.groupName}` : ''}</h2>
+                <span className={`report-submission-badge ${selectedReport?.hasSubmission ? 'is-submitted' : 'is-missing'}`}>
+                  {selectedReport?.hasSubmission ? 'Đã nộp' : 'Chưa nộp'}
+                </span>
                 <p className="muted">{report.description}</p>
                 <p>
                   <strong>Hạn nộp:</strong> {formatDate(report.deadline)}
@@ -291,20 +490,27 @@ function ReportsPage() {
                     : ''}
                 </p>
                 <p><strong>Trạng thái:</strong> {report.status === 'open' ? 'Đang mở' : report.status === 'graded' ? 'Đã chấm' : 'Đã đóng'}</p>
+                {canManageReports && (
+                  <button className="report-action report-action-secondary" type="button" onClick={() => openReportForm(report)}>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+                    </svg>
+                    Chỉnh sửa đợt báo cáo
+                  </button>
+                )}
                 {report.status === 'open' && isStudentRole(role) && (
-                  <form className="data-form" onSubmit={handleSubmit} ref={submitFormRef}>
+                  <form className="data-form" onSubmit={handleSubmit}>
                     <h3>Nộp phiên bản</h3>
-                    <label className="field-control">
-                      Tệp báo cáo
-                      <input
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleFileChange}
-                        ref={fileInputRef}
-                        required
-                        type="file"
-                      />
-                      <span className="muted">{FILE_RULE_TEXT}</span>
-                    </label>
+                    <div className="report-upload" onDragOver={(event) => event.preventDefault()} onDrop={handleFileDrop}>
+                      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 16V4m-4 4 4-4 4 4M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+                      </svg>
+                      <input id="report-file" className="report-file-input" accept=".pdf,.doc,.docx"
+                        onChange={(event) => chooseFile(event.target.files?.[0] || null)}
+                        ref={fileInputRef} type="file" />
+                      <p>Kéo thả tệp vào đây hoặc <label className="report-file-label" htmlFor="report-file">Chọn tệp</label></p>
+                      <span className="muted">{file ? file.name : FILE_RULE_TEXT}</span>
+                    </div>
                     {fileError && (
                       <p className="alert-error" role="alert">
                         {fileError}
@@ -405,7 +611,6 @@ function ReportsPage() {
             )}
           </section>
         </div>
-        </>
       )}
     </section>
   )
