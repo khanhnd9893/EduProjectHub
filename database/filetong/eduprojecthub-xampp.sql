@@ -418,7 +418,9 @@ BEGIN
     IF (NEW.group_id <> OLD.group_id OR NEW.status <> 'active' OR NEW.member_role <> 'leader')
        AND EXISTS (
            SELECT 1 FROM student_groups
-           WHERE id = OLD.group_id AND leader_user_id = OLD.user_id
+           WHERE id = OLD.group_id
+             AND leader_user_id = OLD.user_id
+             AND status IN ('forming', 'active')
        )
        AND NOT EXISTS (
            SELECT 1 FROM group_members
