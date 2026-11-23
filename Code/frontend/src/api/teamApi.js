@@ -356,6 +356,81 @@ const teamApi = {
     )
   },
 
+  async leaveGroup(teamId) {
+    if (useMock) {
+      const team = findMockTeam(teamId)
+      const currentUser = getMockUser()
+      if (!isStudentRole(currentUser.role)) {
+        throw new Error('Chỉ sinh viên mới được rời khỏi nhóm.')
+      }
+      if (currentUser.id === team.leaderUserId) {
+        throw new Error('Trưởng nhóm không thể rời nhóm.')
+      }
+      if (!['forming', 'active'].includes(team.status)) {
+        throw new Error('Không thể rời nhóm đã kết thúc hoặc giải tán.')
+      }
+      const member = mockMembers.find(
+        (entry) =>
+          entry.groupId === Number(teamId) &&
+          entry.userId === currentUser.id &&
+          entry.status === 'active',
+      )
+      if (!member) {
+        throw new Error('Bạn không phải là thành viên của nhóm.')
+      }
+      member.status = 'removed'
+      member.leftAt = nowIso()
+      return mockResolve(member)
+    }
+
+    return unwrap(
+      apiClient.delete('/groups.php?action=leave_group', {
+        data: { group_id: teamId },
+      }),
+    )
+  },
+
+  async dissolveTeam(teamId) {
+    if (useMock) {
+      const team = findMockTeam(teamId)
+      const currentUser = getMockUser()
+      if (!isStudentRole(currentUser.role) || currentUser.id !== team.leaderUserId) {
+        throw new Error('Chỉ trưởng nhóm của nhóm này mới được xóa nhóm.')
+      }
+      if (!['forming', 'active'].includes(team.status)) {
+        throw new Error('Chỉ nhóm đang thành lập hoặc hoạt động mới có thể xóa.')
+      }
+      team.status = 'dissolved'
+      team.dissolvedAt = nowIso()
+      team.updatedAt = nowIso()
+      mockMembers.forEach((member) => {
+        if (member.groupId === team.id && member.status === 'active') {
+          member.status = 'removed'
+          member.leftAt = nowIso()
+        }
+      })
+      mockRequests.forEach((request) => {
+        if (request.groupId === team.id && request.status === 'pending') {
+          request.status = 'cancelled'
+          request.reviewedAt = nowIso()
+        }
+      })
+      mockInvitations.forEach((invitation) => {
+        if (invitation.groupId === team.id && invitation.status === 'pending') {
+          invitation.status = 'cancelled'
+          invitation.respondedAt = nowIso()
+        }
+      })
+      return mockResolve(team)
+    }
+
+    return unwrap(
+      apiClient.delete('/groups.php?action=dissolve', {
+        data: { id: teamId },
+      }),
+    )
+  },
+
   async listRequests(teamId) {
     if (useMock) {
       return mockResolve(
