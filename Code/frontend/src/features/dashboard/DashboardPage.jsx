@@ -10,6 +10,41 @@ import { isStudentRole } from '../../utils/roles.js'
 
 const openTaskStatuses = ['todo', 'in_progress']
 const activeRoundStatuses = ['open', 'in_progress']
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function getLocalDayTimestamp(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+}
+
+function formatDeadline(value, now = new Date()) {
+  if (!value) return { date: 'Chưa có hạn', detail: 'Chưa có hạn', tone: 'neutral' }
+
+  const dueDate = new Date(value)
+  if (Number.isNaN(dueDate.getTime())) {
+    return { date: 'Chưa có hạn', detail: 'Chưa có hạn', tone: 'neutral' }
+  }
+
+  const dayDifference = Math.round(
+    (getLocalDayTimestamp(dueDate) - getLocalDayTimestamp(now)) / DAY_MS,
+  )
+  const dateLabel = dueDate.toLocaleDateString('vi-VN')
+
+  if (dayDifference < 0) {
+    return {
+      date: dateLabel,
+      detail: `Quá hạn ${Math.abs(dayDifference)} ngày`,
+      tone: 'danger',
+    }
+  }
+  if (dayDifference === 0) {
+    return { date: dateLabel, detail: 'Hôm nay', tone: 'danger' }
+  }
+  return {
+    date: dateLabel,
+    detail: `Còn ${dayDifference} ngày`,
+    tone: dayDifference <= 3 ? 'warning' : 'neutral',
+  }
+}
 
 function DashboardPage() {
   const { user, role } = useAuth()
@@ -82,7 +117,7 @@ function DashboardPage() {
         .toSorted((left, right) => new Date(left.dueAt) - new Date(right.dueAt))[0],
     [openTasks],
   )
-  const nextTaskDueDate = nextTask?.dueAt?.slice(0, 10)
+  const deadline = formatDeadline(nextTask?.dueAt)
   const openTopics = topics.filter((topic) => topic.status === 'open')
   const activeRounds = semesters.filter((semester) =>
     activeRoundStatuses.includes(semester.status),
@@ -143,8 +178,15 @@ function DashboardPage() {
           />
           <StatCard
             label="Hạn gần nhất"
-            value={isLoading ? '…' : nextTaskDueDate || '—'}
-            detail={nextTask?.title || 'Không có nhiệm vụ sắp đến hạn'}
+            value={isLoading ? '…' : deadline.date}
+            detail={
+              isLoading
+                ? 'Đang tải hạn nhiệm vụ'
+                : nextTask?.title
+                  ? `${nextTask.title} · ${deadline.detail}`
+                  : deadline.detail
+            }
+            detailTone={isLoading ? 'neutral' : deadline.tone}
           />
         </div>
       ) : (

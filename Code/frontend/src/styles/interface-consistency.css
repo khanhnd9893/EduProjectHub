@@ -2,6 +2,58 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.app-shell .muted {
+  color: #46545d;
+  font-weight: 400;
+}
+
+.app-shell .stat-card {
+  align-content: start;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.app-shell .stat-icon {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 10px;
+  color: var(--accent-dark);
+  display: inline-flex;
+  grid-row: span 3;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.app-shell .stat-icon svg {
+  height: 21px;
+  width: 21px;
+}
+
+.app-shell .stat-label,
+.app-shell .stat-detail {
+  color: #46545d;
+  font-weight: 400;
+}
+
+.app-shell .stat-value {
+  font-weight: 700;
+}
+
+.app-shell .stat-detail--warning {
+  color: #a34b00;
+  font-weight: 600;
+}
+
+.app-shell .stat-detail--danger {
+  color: #b42318;
+  font-weight: 600;
+}
+
+.student-login__brand,
+.admin-login__brand {
+  line-height: 1.4;
+}
+
 @media (max-width: 900px) {
   .dashboard-stats-grid--four {
     grid-template-columns: repeat(2, minmax(0, 1fr));
