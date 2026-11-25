@@ -45,8 +45,10 @@ function LecturerLoginPage() {
         </p>
       </section>
       <section className="lecturer-login__card">
-        <h2>Đăng nhập giảng viên</h2>
-        <p className="lecturer-login__subtitle">Sử dụng tài khoản giảng viên của bạn.</p>
+        <div className="lecturer-login__form-heading">
+          <h2>Đăng nhập giảng viên</h2>
+          <p className="lecturer-login__welcome">Sử dụng tài khoản giảng viên của bạn.</p>
+        </div>
         <form className="lecturer-login__form" onSubmit={handleSubmit}>
           <label htmlFor="lecturer-username">Tài khoản</label>
           <input

@@ -10,32 +10,20 @@
 }
 
 .lecturer-login__panel {
-  align-items: stretch;
+  background: #fff;
   border-radius: 18px;
   box-shadow: 0 22px 60px rgba(24, 54, 91, 0.12);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.8fr);
   max-width: 1520px;
   min-height: min(680px, calc(100vh - 14vw));
   min-height: min(680px, calc(100svh - 14vw));
-  overflow: hidden;
   width: 100%;
-}
-
-.lecturer-login__panel > .lecturer-login__intro,
-.lecturer-login__panel > .lecturer-login__card {
-  min-height: 0;
-}
-
-.lecturer-login__panel > .lecturer-login__intro {
-  flex: 1.25 1 0;
-}
-
-.lecturer-login__panel > .lecturer-login__card {
-  flex: 1 1 0;
 }
 
 .lecturer-login__intro {
   background: linear-gradient(135deg, #174b91, #236dbb);
+  border-radius: 18px 0 0 18px;
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -67,39 +55,30 @@
 }
 
 .lecturer-login__card {
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: clamp(32px, 5vw, 64px);
-}
-
-.lecturer-login__form {
-  margin-left: auto;
-  margin-right: auto;
+  align-self: center;
+  justify-self: center;
   max-width: 540px;
+  padding: clamp(32px, 5vw, 64px);
   width: 100%;
 }
 
-.lecturer-login__card h2 {
+.lecturer-login__form-heading h2 {
   color: #123d75;
   font-size: clamp(1.6rem, 2.4vw, 2.1rem);
   line-height: 1.2;
   margin-bottom: 10px;
 }
 
-.lecturer-login__subtitle {
+.lecturer-login__welcome {
   color: #4c6079;
   font-weight: 400;
   line-height: 1.6;
   margin-bottom: 28px;
 }
 
-
 .lecturer-login__form {
   display: grid;
-  gap: 8px;
-  margin-top: 28px;
+  gap: 10px;
 }
 
 .lecturer-login__form label {
@@ -224,19 +203,13 @@
   }
 
   .lecturer-login__panel {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     max-width: 560px;
     min-height: 0;
   }
 
-  .lecturer-login__panel > .lecturer-login__intro,
-  .lecturer-login__panel > .lecturer-login__card {
-    max-width: none;
-    min-height: auto;
-    width: 100%;
-  }
-
   .lecturer-login__intro {
+    border-radius: 16px 16px 0 0;
     padding: 30px 28px;
   }
 
