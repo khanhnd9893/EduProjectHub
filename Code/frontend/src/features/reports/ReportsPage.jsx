@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
+import ReportsCalendar from './ReportsCalendar.jsx'
 import reportApi from '../../api/reportApi.js'
 import teamApi from '../../api/teamApi.js'
 import { useAuth } from '../../contexts/useAuth.js'
@@ -25,7 +26,7 @@ function formatDate(value) {
   if (!value) {
     return 'Không có hạn'
   }
-  const date = new Date(value)
+  const date = new Date(value.replace(' ', 'T'))
   return Number.isNaN(date.getTime())
     ? 'Ngày không hợp lệ'
     : date.toLocaleString('vi-VN')
@@ -52,7 +53,7 @@ function describeDeadline(deadline, now = new Date()) {
   if (!deadline) {
     return ''
   }
-  const time = new Date(deadline).getTime()
+  const time = new Date(deadline.replace(' ', 'T')).getTime()
   if (Number.isNaN(time)) {
     return ''
   }
@@ -82,12 +83,16 @@ function ReportsPage() {
   const [report, setReport] = useState(null)
   const [search, setSearch] = useState('')
   const [submissionFilter, setSubmissionFilter] = useState('all')
+  const [view, setView] = useState('calendar')
+  const [focusDeadline, setFocusDeadline] = useState(null)
   const [detailError, setDetailError] = useState('')
   const [detailRequest, setDetailRequest] = useState(0)
   const [file, setFile] = useState(null)
   const [fileError, setFileError] = useState('')
   const [note, setNote] = useState('')
   const [feedbackDrafts, setFeedbackDrafts] = useState({})
+  const [downloadingVersionId, setDownloadingVersionId] = useState(null)
+  const [downloadError, setDownloadError] = useState(null)
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -102,6 +107,8 @@ function ReportsPage() {
   const [isSavingReport, setIsSavingReport] = useState(false)
   const canManageReports = isAcademicManagerRole(role)
   const fileInputRef = useRef(null)
+  const detailRef = useRef(null)
+  const reportFormRef = useRef(null)
 
   useEffect(() => {
     let active = true
@@ -222,6 +229,10 @@ function ReportsPage() {
     try {
       const updatedReports = await reportApi.listReports()
       setReports(updatedReports)
+      const savedReport = updatedReports.find((entry) => entry.id === savedId)
+      if (savedReport?.deadline) {
+        setFocusDeadline((current) => ({ value: savedReport.deadline, revision: (current?.revision || 0) + 1 }))
+      }
       if (editingReport) {
         setReport(await reportApi.getReport(savedId))
       }
@@ -290,6 +301,29 @@ function ReportsPage() {
     }
   }
 
+  async function handleDownload(version) {
+    setDownloadError(null)
+    setDownloadingVersionId(version.id)
+    try {
+      const file = await reportApi.downloadVersion(version.id)
+      const url = URL.createObjectURL(file)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = version.originalFilename
+      document.body.appendChild(link)
+      try {
+        link.click()
+      } finally {
+        link.remove()
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+      }
+    } catch (error) {
+      setDownloadError({ versionId: version.id, message: error.message || 'Không thể tải tệp báo cáo.' })
+    } finally {
+      setDownloadingVersionId(null)
+    }
+  }
+
   function chooseFile(selectedFile) {
     setFile(selectedFile)
     setFileError(selectedFile ? validateReportFile(selectedFile) : '')
@@ -314,9 +348,20 @@ function ReportsPage() {
     setFileError('')
     setNote('')
     setDetailError('')
+    setDownloadError(null)
     setReport(null)
     setReportId(String(id))
     setDetailRequest((current) => current + 1)
+  }
+
+  function selectCalendarReport(id) {
+    selectReport(id)
+    window.requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  function createCalendarReport() {
+    openReportForm()
+    window.requestAnimationFrame(() => reportFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
   const selectedReport = reports.find((entry) => String(entry.id) === reportId)
@@ -335,7 +380,7 @@ function ReportsPage() {
   const isLoadingReport = Boolean(reportId) && report?.id !== Number(reportId)
 
   return (
-    <section className="dashboard-page">
+    <section className="dashboard-page reports-page">
       <PageHeading
         title="Báo cáo"
         description={isStudentRole(role)
@@ -349,14 +394,16 @@ function ReportsPage() {
       />
       {error && <p className="alert-error" role="alert">{error}</p>}
       {success && <p className="success-message" role="status">{success}</p>}
-      {canManageReports && (
-        <section className="workspace-panel">
+      {canManageReports && (view === 'list' || isFormOpen || reports.length === 0) && (
+        <section className="workspace-panel" ref={reportFormRef}>
+          {view === 'list' || reports.length === 0 ? (
           <button className="report-action report-action-primary" type="button" onClick={() => openReportForm()}>
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
             Tạo đợt báo cáo
           </button>
+          ) : null}
           {isFormOpen && (
             <form className="data-form" onSubmit={handleReportSave}>
               <h2>{editingReport ? 'Chỉnh sửa đợt báo cáo' : 'Tạo đợt báo cáo'}</h2>
@@ -430,7 +477,11 @@ function ReportsPage() {
                 onClick={() => setSubmissionFilter(value)}>{label}</button>
             ))}
           </div>
-          <span className="muted reports-filter-note">Trạng thái nộp của nhóm</span>
+          <div className="reports-filters reports-view-toggle" role="group" aria-label="Chế độ xem báo cáo">
+            {[['calendar', 'Lịch'], ['list', 'Danh sách']].map(([value, label]) => (
+              <button key={value} type="button" aria-pressed={view === value} onClick={() => setView(value)}>{label}</button>
+            ))}
+          </div>
         </div>
       )}
       {isLoading ? (
@@ -438,8 +489,13 @@ function ReportsPage() {
       ) : reports.length === 0 ? (
         <section className="workspace-panel">Chưa có đợt báo cáo.</section>
       ) : (
-        <div className="reports-layout">
-          <section className="report-list" aria-label="Các đợt báo cáo">
+        <div className={view === 'list' ? 'reports-layout' : `reports-calendar-view${reportId ? ' has-detail' : ''}`}>
+        {view === 'calendar' && (
+          <ReportsCalendar key={focusDeadline?.revision || 0} reports={visibleReports} selectedId={reportId} onSelect={selectCalendarReport}
+            onShowList={() => setView('list')} onCreate={canManageReports ? createCalendarReport : undefined}
+            disabled={isSubmitting} focusDeadline={focusDeadline} />
+        )}
+          {view === 'list' && <section className="report-list" aria-label="Các đợt báo cáo">
             {visibleReports.length === 0 && <p className="muted">Không tìm thấy đợt báo cáo phù hợp.</p>}
             {visibleReports.map((entry) => (
               <article
@@ -465,8 +521,8 @@ function ReportsPage() {
                 </button>
               </article>
             ))}
-          </section>
-          <section className="workspace-panel report-details">
+          </section>}
+          {(view === 'list' || reportId) && <section className="workspace-panel report-details" ref={detailRef}>
             {!reportId ? (
               <p className="muted">Chọn “Xem chi tiết” để xem nội dung báo cáo.</p>
             ) : !isSelectedReportVisible ? (
@@ -544,6 +600,15 @@ function ReportsPage() {
                             {version.note ? ` · ${version.note}` : ''}
                           </p>
                         </div>
+                        <div>
+                          <button className="report-action report-action-secondary" type="button"
+                            disabled={downloadingVersionId !== null} onClick={() => handleDownload(version)}>
+                            {downloadingVersionId === version.id ? 'Đang tải...' : 'Tải báo cáo'}
+                          </button>
+                          {downloadError?.versionId === version.id && (
+                            <p className="alert-error" role="alert">{downloadError.message}</p>
+                          )}
+                        </div>
                         {version.feedback?.map((feedback) => (
                           <div className="feedback-note report-feedback" key={feedback.id}>
                             <div>
@@ -609,7 +674,7 @@ function ReportsPage() {
             ) : (
               <p className="muted">{selectedReport?.title || 'Không tìm thấy báo cáo.'}</p>
             )}
-          </section>
+          </section>}
         </div>
       )}
     </section>

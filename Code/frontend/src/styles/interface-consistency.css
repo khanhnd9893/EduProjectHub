@@ -78,7 +78,7 @@
   flex-shrink: 0;
 }
 
-.app-shell button:not(.team-option):not(.button-secondary):not(.report-action-secondary):not(.chat-message-action):not(.chat-session-list button):not(.faq-list button):not(.chat-suggestions button):not(.reports-filters button) {
+.app-shell button:not(.team-option):not(.button-secondary):not(.report-action-secondary):not(.chat-message-action):not(.chat-session-list button):not(.faq-list button):not(.chat-suggestions button):not(.reports-filters button):not(.calendar-content button) {
   align-items: center;
   background: var(--accent);
   border: 1px solid var(--accent);
@@ -128,7 +128,7 @@
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.app-shell button:not(.team-option):not(.button-secondary):not(.report-action-secondary):not(.chat-message-action):not(.chat-session-list button):not(.faq-list button):not(.chat-suggestions button):not(.reports-filters button):hover:not(:disabled) {
+.app-shell button:not(.team-option):not(.button-secondary):not(.report-action-secondary):not(.chat-message-action):not(.chat-session-list button):not(.faq-list button):not(.chat-suggestions button):not(.reports-filters button):not(.calendar-content button):hover:not(:disabled) {
   background: var(--accent-dark);
   border-color: var(--accent-dark);
 }

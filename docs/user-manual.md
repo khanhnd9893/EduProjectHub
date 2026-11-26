@@ -74,9 +74,9 @@ Dashboard hiện là phần tổng quan các chỉ số trên, không phải bá
 3. Xem thông tin đồ án và thành viên.
 4. Khi tạo nhóm thành công, tài khoản tự chuyển sang vai trò Trưởng nhóm; quyền quản lý chỉ áp dụng cho nhóm vừa tạo.
 5. Mở danh sách nhiệm vụ để xem trạng thái và hạn nộp.
-6. Vào Báo cáo, tìm hoặc lọc đợt theo trạng thái nộp của nhóm, rồi chọn **Xem chi tiết**. Với đợt đang mở, chọn hoặc kéo thả tệp PDF, DOC, DOCX (tối đa 10 MB) để nộp.
+6. Vào Báo cáo để xem lịch hạn nộp theo ngày, tuần hoặc tháng; lịch ngày/tuần có đủ 24 giờ và có thể cuộn. Tìm hoặc lọc đợt theo trạng thái nộp của nhóm, rồi chọn một hạn để xem chi tiết. Chọn **Danh sách** để xem các đợt, bao gồm cả báo cáo không có hạn. Với đợt đang mở, chọn hoặc kéo thả tệp PDF, DOC, DOCX (tối đa 10 MB) để nộp.
 7. Ghi chú cho lần nộp nếu cần.
-8. Xem lịch sử nộp và nhận xét của giảng viên.
+8. Xem lịch sử nộp và nhận xét của giảng viên; chọn **Tải báo cáo** tại từng phiên bản để tải tệp đã nộp.
 9. Dùng chatbot để hỏi về quy trình, hướng dẫn và dữ liệu mà mình có quyền xem.
 
 ## 5. Giảng viên
@@ -84,7 +84,7 @@ Dashboard hiện là phần tổng quan các chỉ số trên, không phải bá
    [Ảnh: danh sách và chi tiết đề tài]
 2. Mở danh sách đồ án được phân công.
 3. Xem tiến độ và nhiệm vụ.
-4. Mở bài nộp để kiểm tra.
+4. Mở bài nộp để kiểm tra và chọn **Tải báo cáo** tại phiên bản cần xem.
 5. Gửi nhận xét và điểm nếu được áp dụng.
 6. Theo dõi các lần nộp lại.
 

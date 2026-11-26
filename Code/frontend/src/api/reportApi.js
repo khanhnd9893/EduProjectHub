@@ -176,6 +176,35 @@ const reportApi = {
     )
   },
 
+  async downloadVersion(versionId) {
+    if (useMock) {
+      const version = findOrThrow(mockReportVersions, versionId, 'Không tìm thấy phiên bản báo cáo')
+      if (!version.file) {
+        throw new Error('Tệp mẫu không có sẵn để tải xuống.')
+      }
+      return version.file
+    }
+
+    const response = await apiClient.get('/reports.php', {
+      params: { action: 'download', version_id: versionId },
+      responseType: 'blob',
+      validateStatus: () => true,
+    })
+    if (response.status < 200 || response.status >= 300) {
+      let message = `Không thể tải tệp báo cáo (HTTP ${response.status}).`
+      if (response.data.type.includes('application/json')) {
+        try {
+          const body = JSON.parse(await response.data.text())
+          message = body.error || body.message || message
+        } catch (error) {
+          throw new Error(message, { cause: error })
+        }
+      }
+      throw new Error(message)
+    }
+    return response.data
+  },
+
   async submitVersion(reportId, { file, note }) {
     if (useMock) {
       const report = findOrThrow(
@@ -202,6 +231,7 @@ const reportApi = {
         storedFilename: `report-${report.id}-v${versionNo}`,
         mimeType: file.type,
         fileSize: file.size,
+        file,
         note,
         submittedAt: nowIso(),
       }
