@@ -418,7 +418,9 @@ BEGIN
     IF (NEW.group_id <> OLD.group_id OR NEW.status <> 'active' OR NEW.member_role <> 'leader')
        AND EXISTS (
            SELECT 1 FROM student_groups
-           WHERE id = OLD.group_id AND leader_user_id = OLD.user_id
+           WHERE id = OLD.group_id
+             AND leader_user_id = OLD.user_id
+             AND status IN ('forming', 'active')
        )
        AND NOT EXISTS (
            SELECT 1 FROM group_members
@@ -746,21 +748,6 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     INDEX idx_chat_messages_session (session_id, created_at),
     CONSTRAINT fk_chat_messages_session FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
-
--- ===== seed-reports.sql =====
--- Du lieu mau bao cao; import sau file examp.sql va schema-reports.sql.
-USE eduprojecthub;
-SET NAMES utf8mb4;
-
-INSERT IGNORE INTO reports
-(id, group_id, title, report_type, description, deadline, status, created_by)
-VALUES
-(1, 1, 'Báo cáo giữa kỳ', 'midterm',
- 'Tổng kết tiến độ, kết quả và kế hoạch thực hiện tiếp theo.',
- '2026-11-20 23:59:00', 'open', 2),
-(2, 1, 'Báo cáo cuối kỳ', 'final',
- 'Báo cáo hoàn chỉnh kèm phụ lục minh chứng.',
- '2027-01-10 23:59:00', 'open', 2);
 
 -- ===== seed-defense-grades.sql =====
 -- Du lieu mau bao ve va diem; import sau file examp.sql va schema-defense-grades.sql.

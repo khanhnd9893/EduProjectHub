@@ -144,6 +144,38 @@ function TeamsPage() {
     }
   }
 
+  async function handleLeaveGroup() {
+    if (!window.confirm('Bạn có chắc chắn muốn rời khỏi nhóm này?')) {
+      return
+    }
+    setError('')
+    try {
+      await teamApi.leaveGroup(selectedTeamId)
+      const remainingTeams = await refreshTeams()
+      setSelectedTeamId(remainingTeams[0]?.id ?? null)
+      setSelectedTeam(null)
+      await refreshCurrentUser()
+    } catch (leaveError) {
+      setError(leaveError.message || 'Không thể rời khỏi nhóm.')
+    }
+  }
+
+  async function handleDissolveTeam() {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa nhóm này? Thao tác này không thể hoàn tác.')) {
+      return
+    }
+    setError('')
+    try {
+      await teamApi.dissolveTeam(selectedTeamId)
+      const remainingTeams = await refreshTeams()
+      setSelectedTeamId(remainingTeams[0]?.id ?? null)
+      setSelectedTeam(null)
+      await refreshCurrentUser()
+    } catch (dissolveError) {
+      setError(dissolveError.message || 'Không thể xóa nhóm.')
+    }
+  }
+
   async function handleMemberAdded() {
     setSelectedTeam(await teamApi.getTeam(selectedTeamId))
     await refreshTeams()
@@ -291,6 +323,16 @@ function TeamsPage() {
                     <dd>{selectedTeam.members?.length ?? 0}</dd>
                   </div>
                 </dl>
+                {canManageSelectedTeam &&
+                  ['forming', 'active'].includes(selectedTeam.status) && (
+                    <button
+                      className="button-secondary"
+                      onClick={handleDissolveTeam}
+                      type="button"
+                    >
+                      Xóa nhóm
+                    </button>
+                  )}
                 <h3>Thành viên</h3>
                 {canManageSelectedTeam &&
                   ['forming', 'active'].includes(selectedTeam.status) && (
@@ -344,6 +386,18 @@ function TeamsPage() {
                               type="button"
                             >
                               Xóa
+                            </button>
+                          )}
+                        {!canManageSelectedTeam &&
+                          member.userId === user?.id &&
+                          member.memberRole !== 'leader' &&
+                          ['forming', 'active'].includes(selectedTeam.status) && (
+                            <button
+                              className="button-secondary"
+                              onClick={handleLeaveGroup}
+                              type="button"
+                            >
+                              Rời nhóm
                             </button>
                           )}
                       </li>

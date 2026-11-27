@@ -60,6 +60,7 @@ function mapReport(report) {
     createdBy: Number(report.created_by),
     createdAt: report.created_at,
     updatedAt: report.updated_at,
+    hasSubmission: Number(report.has_submission) === 1,
     versions: report.versions?.map(mapVersion),
   }
 }
@@ -79,13 +80,63 @@ function mapGrade(grade) {
 }
 
 const reportApi = {
+  async createReport(values) {
+    if (useMock) {
+      if (getMockUser().role !== 'TRAINING_MANAGER') {
+        throw new Error('Chỉ người đào tạo mới được quản lý đợt báo cáo.')
+      }
+      const report = {
+        id: nextId(mockReports),
+        ...values,
+        groupId: Number(values.groupId),
+        createdBy: getMockUser().id,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      }
+      mockReports.push(report)
+      return { id: report.id }
+    }
+
+    return unwrap(apiClient.post('/reports.php?action=create', {
+      group_id: Number(values.groupId),
+      title: values.title,
+      report_type: values.reportType,
+      description: values.description || null,
+      deadline: values.deadline || null,
+      status: values.status,
+    }))
+  },
+
+  async updateReport(id, values) {
+    if (useMock) {
+      if (getMockUser().role !== 'TRAINING_MANAGER') {
+        throw new Error('Chỉ người đào tạo mới được quản lý đợt báo cáo.')
+      }
+      const report = findOrThrow(mockReports, id, 'Không tìm thấy đợt báo cáo')
+      Object.assign(report, values, { updatedAt: nowIso() })
+      return
+    }
+
+    await unwrap(apiClient.patch('/reports.php?action=update', {
+      id: Number(id),
+      title: values.title,
+      report_type: values.reportType,
+      description: values.description || null,
+      deadline: values.deadline || null,
+      status: values.status,
+    }))
+  },
+
   async listReports({ groupId } = {}) {
     if (useMock) {
       return mockResolve(
         mockReports.filter(
           (report) =>
             groupId === undefined || report.groupId === Number(groupId),
-        ),
+        ).map((report) => ({
+          ...report,
+          hasSubmission: mockReportVersions.some((version) => version.reportId === report.id),
+        })),
       )
     }
 
@@ -125,6 +176,35 @@ const reportApi = {
     )
   },
 
+  async downloadVersion(versionId) {
+    if (useMock) {
+      const version = findOrThrow(mockReportVersions, versionId, 'Không tìm thấy phiên bản báo cáo')
+      if (!version.file) {
+        throw new Error('Tệp mẫu không có sẵn để tải xuống.')
+      }
+      return version.file
+    }
+
+    const response = await apiClient.get('/reports.php', {
+      params: { action: 'download', version_id: versionId },
+      responseType: 'blob',
+      validateStatus: () => true,
+    })
+    if (response.status < 200 || response.status >= 300) {
+      let message = `Không thể tải tệp báo cáo (HTTP ${response.status}).`
+      if (response.data.type.includes('application/json')) {
+        try {
+          const body = JSON.parse(await response.data.text())
+          message = body.error || body.message || message
+        } catch (error) {
+          throw new Error(message, { cause: error })
+        }
+      }
+      throw new Error(message)
+    }
+    return response.data
+  },
+
   async submitVersion(reportId, { file, note }) {
     if (useMock) {
       const report = findOrThrow(
@@ -151,6 +231,7 @@ const reportApi = {
         storedFilename: `report-${report.id}-v${versionNo}`,
         mimeType: file.type,
         fileSize: file.size,
+        file,
         note,
         submittedAt: nowIso(),
       }

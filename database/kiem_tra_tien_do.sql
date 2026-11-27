@@ -150,7 +150,9 @@ BEGIN
     IF (NEW.group_id <> OLD.group_id OR NEW.status <> 'active' OR NEW.member_role <> 'leader')
        AND EXISTS (
            SELECT 1 FROM student_groups
-           WHERE id = OLD.group_id AND leader_user_id = OLD.user_id
+           WHERE id = OLD.group_id
+             AND leader_user_id = OLD.user_id
+             AND status IN ('forming', 'active')
        )
        AND NOT EXISTS (
            SELECT 1 FROM group_members
@@ -169,6 +171,7 @@ BEGIN
     IF EXISTS (
         SELECT 1 FROM student_groups
         WHERE id = OLD.group_id AND leader_user_id = OLD.user_id
+          AND status IN ('forming', 'active')
     ) THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Khong the xoa thanh vien dang la truong nhom';
@@ -187,7 +190,8 @@ CREATE TRIGGER trg_student_groups_guard_leader_update
 BEFORE UPDATE ON student_groups
 FOR EACH ROW
 BEGIN
-    IF NEW.leader_user_id <> OLD.leader_user_id
+    IF NEW.status <> 'dissolved'
+       AND NEW.leader_user_id <> OLD.leader_user_id
        AND NOT EXISTS (
            SELECT 1 FROM group_members
            WHERE group_id = NEW.id AND user_id = NEW.leader_user_id

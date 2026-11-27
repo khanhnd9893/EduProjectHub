@@ -755,8 +755,43 @@ try {
         requireValue($statement->rowCount() === 1, 409, 'Không thể cập nhật trưởng nhóm.');
         $statement = queryStatement($pdo, "UPDATE group_members SET member_role = 'member'
              WHERE group_id = ? AND user_id = ? AND member_role = 'leader' AND status = 'active'", [$groupId, $group['leader_user_id']]);
+        $statement = queryStatement($pdo, "UPDATE student_groups SET leader_user_id = ? WHERE id = ?", [$newLeaderId, $groupId]);
+        $statement = queryStatement($pdo, "UPDATE users SET role = 'team_leader' WHERE id = ? AND role = 'student' AND account_status = 'active'", [$newLeaderId]);
+        $statement = queryStatement($pdo, "SELECT 1 FROM student_groups WHERE leader_user_id = ? AND status IN ('forming', 'active') LIMIT 1", [$group['leader_user_id']]);
+        if ($statement->fetchColumn() === false) {
+            $statement = queryStatement($pdo, "UPDATE users SET role = 'student'
+                 WHERE id = ? AND role = 'team_leader' AND account_status = 'active'", [$group['leader_user_id']]);
+        }
         $pdo->commit();
         respond(200, ['message' => 'Chuyển trưởng nhóm thành công.']);
+    }
+
+    if ($method === 'DELETE' && $action === 'leave_group') {
+        $groupId = positiveId($body['group_id'] ?? null, 'group_id');
+
+        $pdo->beginTransaction();
+        $group = getGroup($pdo, $groupId, true);
+        requireValue(in_array($group['status'], ['forming', 'active'], true), 409, 'Không thể rời nhóm đã kết thúc hoặc giải tán.');
+        requireValue(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới được rời khỏi nhóm.');
+        requireValue((int) $group['leader_user_id'] !== (int) $actor['id'], 409, 'Trưởng nhóm không thể rời nhóm; hãy chuyển trưởng nhóm hoặc xóa nhóm.');
+
+        $statement = queryStatement($pdo, "SELECT id FROM group_members
+             WHERE group_id = ? AND user_id = ? AND status = 'active' FOR UPDATE", [$groupId, (int) $actor['id']]);
+        $membership = $statement->fetch();
+        requireValue($membership !== false, 404, 'Bạn không phải là thành viên đang hoạt động của nhóm.');
+
+        $statement = queryStatement($pdo, "UPDATE group_members
+             SET status = 'removed', left_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND status = 'active'", [$membership['id']]);
+        requireValue($statement->rowCount() === 1, 409, 'Không thể rời khỏi nhóm.');
+
+        $statement = queryStatement($pdo, "SELECT 1 FROM student_groups WHERE leader_user_id = ? AND status IN ('forming', 'active') LIMIT 1", [(int) $actor['id']]);
+        if ($statement->fetchColumn() === false) {
+            $statement = queryStatement($pdo, "UPDATE users SET role = 'student'
+                 WHERE id = ? AND role = 'team_leader' AND account_status = 'active'", [(int) $actor['id']]);
+        }
+        $pdo->commit();
+        respond(200, ['message' => 'Bạn đã rời khỏi nhóm.']);
     }
 
     if ($method === 'POST' && $action === 'activate') {
@@ -798,6 +833,9 @@ try {
              WHERE group_id = ? AND status = 'pending'", [$groupId]);
         $statement = queryStatement($pdo, "UPDATE group_requests SET status = 'cancelled', reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP
              WHERE group_id = ? AND status = 'pending'", [$actor['id'], $groupId]);
+        $statement = queryStatement($pdo, "UPDATE users SET role = 'student'
+             WHERE id = ? AND role = 'team_leader' AND account_status = 'active'",
+            [(int) $group['leader_user_id']]);
         $pdo->commit();
         respond(200, ['message' => 'Giải tán nhóm thành công.']);
     }
@@ -827,6 +865,9 @@ try {
             'Nhom da dat so luong thanh vien toi da' => 'Nhóm đã đạt số lượng thành viên tối đa.',
             'Sinh vien da thuoc mot nhom khac trong dot do an nay' => 'Bạn đã thuộc một nhóm khác trong đợt đồ án này.',
             'Nhom khong ton tai hoac khong con nhan thanh vien' => 'Nhóm không tồn tại hoặc không còn nhận thành viên.',
+            'Khong the roi hoac ha quyen truong nhom truoc khi chuyen quyen' => 'Không thể rời hoặc hạ quyền trưởng nhóm trước khi chuyển quyền cho thành viên khác.',
+            'Khong the xoa thanh vien dang la truong nhom' => 'Không thể xóa thành viên đang là trưởng nhóm. Hãy chuyển quyền trưởng nhóm trước.',
+            'Truong nhom phai la thanh vien dang hoat dong' => 'Trưởng nhóm phải là thành viên đang hoạt động.',
         ];
         $triggerMessage = $exception->errorInfo[2] ?? '';
         respond(409, [

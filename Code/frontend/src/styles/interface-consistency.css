@@ -1,0 +1,151 @@
+.dashboard-stats-grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-shell .muted {
+  color: #46545d;
+  font-weight: 400;
+}
+
+.app-shell .stat-card {
+  align-content: start;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.app-shell .stat-icon {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 10px;
+  color: var(--accent-dark);
+  display: inline-flex;
+  grid-row: span 3;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.app-shell .stat-icon svg {
+  height: 21px;
+  width: 21px;
+}
+
+.app-shell .stat-label,
+.app-shell .stat-detail {
+  color: #46545d;
+  font-weight: 400;
+}
+
+.app-shell .stat-value {
+  font-weight: 700;
+}
+
+.app-shell .stat-detail--warning {
+  color: #a34b00;
+  font-weight: 600;
+}
+
+.app-shell .stat-detail--danger {
+  color: #b42318;
+  font-weight: 600;
+}
+
+.student-login__brand,
+.admin-login__brand {
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .dashboard-stats-grid--four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-stats-grid--four {
+    grid-template-columns: 1fr;
+  }
+}
+
+.app-shell .main-nav {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+
+.app-shell .main-nav a {
+  flex-shrink: 0;
+}
+
+.app-shell button:not(.team-option):not(.button-secondary):not(.report-action-secondary):not(.chat-message-action):not(.chat-session-list button):not(.faq-list button):not(.chat-suggestions button):not(.reports-filters button):not(.calendar-content button) {
+  align-items: center;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: white;
+  display: inline-flex;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 40px;
+  padding: 9px 14px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-shell .team-option-heading {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.app-shell .team-option-heading strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.app-shell button.team-option > .muted:nth-child(2) {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent-dark);
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  width: fit-content;
+}
+
+.app-shell button.button-secondary,
+.app-shell button.report-action-secondary {
+  align-items: center;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--accent-dark);
+  display: inline-flex;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 40px;
+  padding: 9px 14px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-shell button:not(.team-option):not(.button-secondary):not(.report-action-secondary):not(.chat-message-action):not(.chat-session-list button):not(.faq-list button):not(.chat-suggestions button):not(.reports-filters button):not(.calendar-content button):hover:not(:disabled) {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.app-shell button.button-secondary:hover:not(:disabled),
+.app-shell button.report-action-secondary:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.app-shell button:not(.team-option):not(.chat-message-action):not(.chat-session-list button):not(.faq-list button):not(.chat-suggestions button):not(.reports-filters button):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--warm) 65%, transparent);
+  outline-offset: 2px;
+}
+
+.app-shell button:not(.team-option):not(.chat-message-action):not(.chat-session-list button):not(.faq-list button):not(.chat-suggestions button):not(.reports-filters button):disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+

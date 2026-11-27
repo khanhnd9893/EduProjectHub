@@ -678,6 +678,457 @@ h2 {
   font-size: 2rem;
 }
 
+.report-action {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.report-action svg {
+  flex-shrink: 0;
+  height: 18px;
+  width: 18px;
+}
+
+.report-action:focus-visible {
+  outline: 3px solid var(--warm);
+  outline-offset: 3px;
+}
+
+.report-action-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.report-action-primary:hover {
+  background: var(--accent-dark);
+}
+
+.report-action-secondary {
+  background: white;
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.report-action-secondary:hover {
+  background: var(--accent-soft);
+}
+
+.reports-page .page-heading h1 {
+  font-size: 2.25rem;
+  margin-bottom: 8px;
+}
+
+.reports-page .page-heading p {
+  margin-bottom: 0;
+}
+
+.reports-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.reports-search {
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+
+.reports-search-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.reports-search input {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.reports-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.reports-filters button {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink);
+  font-weight: 700;
+  padding: 10px 12px;
+}
+
+.reports-filters button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.reports-view-toggle {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  gap: 0;
+  margin-left: auto;
+  padding: 3px;
+}
+
+.reports-view-toggle button[aria-pressed='true'] {
+  background: var(--accent);
+  color: white;
+}
+
+.calendar-content {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  margin-top: 20px;
+}
+
+.calendar-main,
+.calendar-mini,
+.calendar-upcoming {
+  min-width: 0;
+  padding: 18px;
+}
+
+.calendar-heading,
+.calendar-mini-heading,
+.calendar-navigation {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.calendar-heading h2,
+.calendar-mini-heading h2 {
+  color: var(--ink);
+  font-size: 1.2rem;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.calendar-mini-heading h2 {
+  flex: 1;
+  font-size: 1rem;
+}
+
+.calendar-navigation button,
+.calendar-mini-heading > button:not(.calendar-text-button) {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  padding: 7px 10px;
+}
+
+.calendar-navigation button:hover,
+.calendar-mini-heading > button:not(.calendar-text-button):hover {
+  background: var(--accent-soft);
+}
+
+.calendar-create {
+  background: var(--accent);
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  font-weight: 700;
+  margin-left: auto;
+  padding: 10px 14px;
+}
+
+.calendar-create:hover {
+  background: var(--accent-dark);
+}
+
+.calendar-subheading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.calendar-modes {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  gap: 0;
+  margin: 14px 0 12px;
+  overflow: hidden;
+}
+
+.calendar-modes button {
+  border-radius: 6px;
+  padding: 8px 14px;
+}
+
+.calendar-modes button[aria-pressed='true'] {
+  background: var(--accent);
+  color: white;
+}
+
+.calendar-range {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.calendar-grid-scroll {
+  max-height: 65vh;
+  overflow: auto;
+}
+
+.calendar-time-grid {
+  display: grid;
+  grid-template-columns: 58px repeat(var(--calendar-days), minmax(75px, 1fr));
+  min-width: 100%;
+  width: 100%;
+}
+
+.calendar-hour-row {
+  display: contents;
+}
+
+.calendar-time-header {
+  background: #f7faf8;
+  border: 1px solid var(--line);
+  display: grid;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 10px 6px;
+  position: sticky;
+  text-align: center;
+  top: 0;
+  z-index: 1;
+}
+
+.calendar-time-header.is-today {
+  background: var(--accent-soft);
+}
+
+.calendar-hour-label,
+.calendar-hour-cell {
+  border: 1px solid var(--line);
+  min-height: 48px;
+  padding: 5px;
+}
+
+.calendar-hour-cell.is-today {
+  background: #e7f6f1;
+}
+
+.calendar-hour-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.calendar-event {
+  background: #c9e8dd;
+  border: 0;
+  border-left: 3px solid var(--accent);
+  border-radius: 5px;
+  color: var(--accent-dark);
+  display: grid;
+  font-size: 0.75rem;
+  gap: 3px;
+  margin-bottom: 4px;
+  overflow-wrap: anywhere;
+  padding: 7px;
+  text-align: left;
+  width: 100%;
+}
+
+.calendar-event:hover {
+  background: #b6dfcf;
+}
+
+.calendar-event.is-selected {
+  outline: 2px solid var(--accent);
+}
+
+.calendar-month-scroll {
+  overflow-x: auto;
+}
+
+.calendar-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
+}
+
+.calendar-weekday {
+  padding: 8px;
+  text-align: center;
+}
+
+.calendar-month-day {
+  border: 1px solid var(--line);
+  min-height: 110px;
+  padding: 5px;
+}
+
+.calendar-month-day.is-outside,
+.calendar-mini-grid .is-outside {
+  color: var(--muted);
+  opacity: 0.65;
+}
+
+.calendar-day-number,
+.calendar-mini-grid button {
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  min-height: 32px;
+  min-width: 32px;
+}
+
+.calendar-mini-grid {
+  display: grid;
+  font-size: 0.8rem;
+  grid-template-columns: repeat(7, 1fr);
+  margin-top: 16px;
+  text-align: center;
+}
+
+.calendar-mini-grid strong {
+  padding: 8px 0;
+}
+
+.calendar-mini-grid button[aria-pressed='true'] {
+  background: var(--accent);
+  color: white;
+}
+
+.calendar-mini-grid button:hover:not([aria-pressed='true']) {
+  background: var(--accent-soft);
+}
+
+.calendar-mini-grid button {
+  justify-self: center;
+  width: 32px;
+}
+
+.calendar-mini-grid button.has-deadline::after {
+  background: currentColor;
+  border-radius: 50%;
+  content: '';
+  display: block;
+  height: 4px;
+  margin: 0 auto;
+  width: 4px;
+}
+
+.calendar-sidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.calendar-upcoming-item {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+  text-align: left;
+  width: 100%;
+}
+
+.calendar-upcoming-item:hover {
+  color: var(--accent-dark);
+}
+
+.calendar-upcoming-item span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.calendar-text-button {
+  background: transparent;
+  border: 0;
+  color: var(--accent-dark);
+  font-weight: 700;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.calendar-no-deadline {
+  font-size: 0.85rem;
+  margin-bottom: 0;
+}
+
+.calendar-scroll-hint {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin: 10px 0 0;
+}
+
+.reports-calendar-view.has-detail {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+}
+
+.reports-calendar-view.has-detail .calendar-content {
+  grid-template-columns: 1fr;
+}
+
+.reports-calendar-view.has-detail .report-details {
+  margin-top: 28px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: sticky;
+  top: 16px;
+}
+
+@media (max-width: 1050px) {
+  .calendar-content {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reports-calendar-view.has-detail .calendar-sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .calendar-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-calendar-view.has-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-calendar-view.has-detail .report-details {
+    margin-top: 0;
+    max-height: none;
+    position: static;
+  }
+}
+
 .reports-layout {
   align-items: start;
   display: grid;
@@ -689,6 +1140,9 @@ h2 {
 .report-list {
   display: grid;
   gap: 12px;
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: 2px;
 }
 
 .report-option {
@@ -703,8 +1157,86 @@ h2 {
 }
 
 .report-option.is-selected {
+  background: var(--accent-soft);
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.report-option-heading {
+  align-items: start;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.report-type-badge,
+.report-submission-badge {
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  width: fit-content;
+}
+
+.report-type-badge {
+  background: #e8eeeb;
+  color: var(--muted);
+}
+
+.report-submission-badge.is-submitted {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.report-submission-badge.is-missing {
+  background: #fce8dd;
+  color: #983d20;
+}
+
+.report-upload {
+  align-items: center;
+  border: 1px dashed #b6c6bf;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.report-upload svg {
+  color: var(--muted);
+  height: 36px;
+  width: 36px;
+}
+
+.report-upload p {
+  margin: 0;
+}
+
+.report-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.report-file-label {
+  color: var(--accent-dark);
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.report-file-input:focus-visible + p .report-file-label {
+  outline: 3px solid var(--warm);
+  outline-offset: 3px;
+}
+
+.report-option .report-action {
+  justify-self: start;
+  margin-top: 4px;
 }
 
 .report-details h2 {
@@ -842,33 +1374,6 @@ h2 {
 }
 
 /* M2: báo cáo theo wireframe FR06.1–FR06.3 */
-.report-upcoming {
-  align-items: center;
-  border-color: var(--accent);
-  display: flex;
-  gap: 20px;
-  justify-content: space-between;
-  margin-top: 28px;
-}
-
-.report-upcoming h2 {
-  margin-bottom: 6px;
-}
-
-.report-upcoming .muted {
-  margin: 0;
-}
-
-.report-upcoming button {
-  background: var(--accent);
-  border: 0;
-  border-radius: 7px;
-  color: white;
-  flex-shrink: 0;
-  font-weight: 700;
-  padding: 10px 16px;
-}
-
 .report-version-chip {
   font-size: 0.7rem;
   padding: 4px 8px;
@@ -891,13 +1396,6 @@ h2 {
   flex-shrink: 0;
   font-size: 1.4rem;
   font-weight: 800;
-}
-
-@media (max-width: 700px) {
-  .report-upcoming {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 }
 
 /* M2: khung chat theo wireframe FR07.1–FR07.2 */

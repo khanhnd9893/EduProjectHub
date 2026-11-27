@@ -2,34 +2,36 @@
 
 **Student Project Management System with Chatbot**
 
-Hệ thống quản lý đồ án sinh viên là ứng dụng web hỗ trợ quản lý toàn bộ quá trình thực hiện đồ án, từ đăng ký đề tài, phân công giảng viên hướng dẫn, quản lý tiến độ, nộp báo cáo đến đánh giá kết quả. Hệ thống tích hợp chatbot nhằm hỗ trợ sinh viên tra cứu thông tin, giải đáp các câu hỏi thường gặp và hướng dẫn sử dụng hệ thống.
+Hệ thống quản lý đồ án sinh viên là ứng dụng web có giao diện React và backend PHP/MySQL. Phần giao diện hiện có các cổng đăng nhập theo vai trò, hồ sơ cá nhân, quản lý tài khoản cho quản trị viên, tra cứu/đăng ký đề tài, quản lý đợt đồ án theo quyền và dashboard hiển thị số liệu phù hợp với vai trò. Các chức năng nhóm, nhiệm vụ, báo cáo, điểm số và chatbot được mô tả ở các mục tương ứng bên dưới; mức độ hỗ trợ cụ thể cần đối chiếu với giao diện/API hiện có.
 
 ---
 
- 📌 MỤC LỤC
+## 📌 MỤC LỤC
 
-- [1. Giới thiệu dự án](#-1-giới-thiệu-dự-án)
-- [2. Lý do chọn đề tài](#-2-lý-do-chọn-đề-tài)
-- [3. Mục tiêu dự án](#-3-mục-tiêu-dự-án)
-- [4. Phạm vi dự án](#-4-phạm-vi-dự-án)
-- [5. Đối tượng sử dụng](#-5-đối-tượng-sử-dụng)
-- [6. Chức năng hệ thống](#-6-chức-năng-hệ-thống)
-- [7. Công nghệ sử dụng](#-7-công-nghệ-sử-dụng)
-- [8. Kiến trúc hệ thống](#-8-kiến-trúc-hệ-thống)
-- [9. Cấu trúc thư mục](#-9-cấu-trúc-thư-mục)
-- [10. Thiết kế cơ sở dữ liệu](#-10-thiết-kế-cơ-sở-dữ-liệu)
-- [11. Quy trình nghiệp vụ](#-11-quy-trình-nghiệp-vụ)
-- [12. Bảo mật hệ thống](#-12-bảo-mật-hệ-thống)
-- [13. Cài đặt và chạy dự án](#-13-cài-đặt-và-chạy-dự-án)
-- [14. Kiểm thử](#-14-kiểm-thử)
-- [15. Kế hoạch phát triển](#-15-kế-hoạch-phát-triển)
-- [16. Hướng dẫn đóng góp](#-16-hướng-dẫn-đóng-góp)
-- [17. Tác giả](#-17-tác-giả)
-- [18. Giấy phép](#-18-giấy-phép)
+- [1. Giới thiệu dự án](#muc-1)
+- [2. Lý do chọn đề tài](#muc-2)
+- [3. Mục tiêu dự án](#muc-3)
+- [4. Phạm vi dự án](#muc-4)
+- [5. Đối tượng sử dụng](#muc-5)
+- [6. Chức năng hệ thống](#muc-6)
+- [7. Công nghệ sử dụng](#muc-7)
+- [8. Kiến trúc hệ thống](#muc-8)
+- [9. Cấu trúc thư mục](#muc-9)
+- [10. Thiết kế cơ sở dữ liệu](#muc-10)
+- [11. Quy trình nghiệp vụ](#muc-11)
+- [12. Bảo mật hệ thống](#muc-12)
+- [13. Cài đặt và chạy dự án](#muc-13)
+- [14. Kiểm thử](#muc-14)
+- [15. Kế hoạch phát triển](#muc-15)
+- [16. Hướng dẫn đóng góp](#muc-16)
+- [17. Tác giả](#muc-17)
+- [18. Giấy phép](#muc-18)
 
 ---
 
- 📖 1. GIỚI THIỆU DỰ ÁN
+<a id="muc-1"></a>
+
+## 📖 1. GIỚI THIỆU DỰ ÁN
 
 Trong quá trình đào tạo tại các trường đại học, việc quản lý đồ án sinh viên thường liên quan đến nhiều công việc như đăng ký đề tài, phân công giảng viên hướng dẫn, theo dõi tiến độ, trao đổi tài liệu và đánh giá kết quả.
 
@@ -39,7 +41,7 @@ Dự án **Student Project Management System with Chatbot** được xây dựng
 
 Hệ thống có năm vai trò nghiệp vụ: quản trị viên, sinh viên, trưởng nhóm, giảng viên và người đào tạo. Các quyền được kiểm tra ở backend; trưởng nhóm chỉ có quyền quản lý trong nhóm mình phụ trách. Chatbot hiện hỗ trợ tra cứu FAQ theo phạm vi vai trò.
 
- Thông tin dự án
+### Thông tin dự án
 
 | Thuộc tính | Nội dung |
 |---|---|
@@ -48,7 +50,7 @@ Hệ thống có năm vai trò nghiệp vụ: quản trị viên, sinh viên, tr
 | Loại dự án | Ứng dụng web |
 | Lĩnh vực | Giáo dục, quản lý đào tạo |
 | Backend | PHP 8.x |
-| Frontend | React, JavaScript/JSX, CSS, Vite |
+| Frontend | React 19, JavaScript/JSX, CSS, Vite |
 | Cơ sở dữ liệu | MySQL |
 | Môi trường phát triển | Visual Studio Code, XAMPP |
 | Quản lý mã nguồn | Git và GitHub |
@@ -57,7 +59,9 @@ Hệ thống có năm vai trò nghiệp vụ: quản trị viên, sinh viên, tr
 
 ---
 
- 🎯 2. LÝ DO CHỌN ĐỀ TÀI
+<a id="muc-2"></a>
+
+## 🎯 2. LÝ DO CHỌN ĐỀ TÀI
 
 Đề tài được lựa chọn dựa trên nhu cầu số hóa quy trình quản lý đồ án tại các cơ sở đào tạo.
 
@@ -76,15 +80,22 @@ Chatbot được tích hợp nhằm giảm thời gian tra cứu những thông 
 
 ---
 
- 🚀 3. MỤC TIÊU DỰ ÁN
+<a id="muc-3"></a>
 
- 3.1. Mục tiêu tổng quát
+## 🚀 3. MỤC TIÊU DỰ ÁN
+
+### 3.1. Mục tiêu tổng quát
 
 Xây dựng một hệ thống web hỗ trợ quản lý đồ án sinh viên xuyên suốt vòng đời thực hiện đồ án, đồng thời tích hợp chatbot để hỗ trợ tra cứu thông tin và hướng dẫn người dùng.
 
- 3.2. Mục tiêu cụ thể
+### 3.2. Mục tiêu cụ thể
 
-- Quản lý tài khoản và phân quyền người dùng.
+- Đăng nhập bằng username qua ba cổng: sinh viên/trưởng nhóm, giảng viên, quản trị viên/người đào tạo; từ chối tài khoản dùng sai cổng.
+- Xem và cập nhật hồ sơ cá nhân, đổi mật khẩu; mã sinh viên chỉ đọc.
+- Quản trị viên tạo, tìm kiếm, cập nhật, khóa/mở khóa tài khoản và đặt lại mật khẩu tạm thời.
+- Dashboard hiển thị số liệu khác nhau theo vai trò, không dùng số liệu nhóm/nhiệm vụ cho dashboard quản trị.
+- Quản lý đợt đồ án theo quyền người đào tạo; quản trị viên chỉ xem.
+- Tra cứu, tìm kiếm, xem chi tiết và đăng ký đề tài theo quyền vai trò.
 - Quản lý danh sách đề tài đồ án.
 - Hỗ trợ đăng ký và phân công đề tài.
 - Quản lý nhóm sinh viên thực hiện đồ án.
@@ -100,9 +111,11 @@ Xây dựng một hệ thống web hỗ trợ quản lý đồ án sinh viên xu
 
 ---
 
- 📋 4. PHẠM VI DỰ ÁN
+<a id="muc-4"></a>
 
- 4.1. Phạm vi chức năng mục tiêu
+## 📋 4. PHẠM VI DỰ ÁN
+
+### 4.1. Phạm vi chức năng mục tiêu
 
 Dự án hướng đến các nghiệp vụ dưới đây. Mức độ đã triển khai được mô tả riêng tại mục 6:
 
@@ -117,13 +130,13 @@ Dự án hướng đến các nghiệp vụ dưới đây. Mức độ đã tri�
 9. Chatbot hỏi đáp thông tin.
 10. Thống kê và báo cáo phục vụ quản lý.
 
- 4.2. Phạm vi triển khai ban đầu
+### 4.2. Phạm vi triển khai ban đầu
 
 Phiên bản đầu tiên hướng đến một ứng dụng web chạy trong môi trường phát triển cục bộ, sử dụng PHP và MySQL.
 
 Chatbot có thể bắt đầu bằng cơ chế câu hỏi thường gặp được lưu trữ trong hệ thống. Sau khi chức năng cơ bản hoạt động ổn định, dự án có thể được mở rộng để tích hợp dịch vụ AI thông qua API.
 
- 4.3. Ngoài phạm vi phiên bản đầu tiên
+### 4.3. Ngoài phạm vi phiên bản đầu tiên
 
 Các chức năng sau có thể được cân nhắc trong những phiên bản tiếp theo:
 
@@ -136,11 +149,13 @@ Các chức năng sau có thể được cân nhắc trong những phiên bản 
 
 ---
 
- 👥 5. ĐỐI TƯỢNG SỬ DỤNG VÀ PHÂN QUYỀN
+<a id="muc-5"></a>
+
+## 👥 5. ĐỐI TƯỢNG SỬ DỤNG VÀ PHÂN QUYỀN
 
 Hệ thống có năm vai trò tài khoản. Các quyền dưới đây mô tả phạm vi nghiệp vụ; chức năng chỉ được xem là đã có khi được nêu trong mục 6. Vai trò trưởng nhóm kế thừa các quyền sinh viên, nhưng quyền điều phối luôn bị giới hạn ở nhóm mà tài khoản đang là trưởng nhóm.
 
-5.1. Quản trị viên — Admin
+### 5.1. Quản trị viên — Admin
 
 Quản trị viên phụ trách kiểm soát hệ thống và có phạm vi xem dữ liệu rộng nhất.
 
@@ -148,7 +163,7 @@ Quản trị viên phụ trách kiểm soát hệ thống và có phạm vi xem 
 - Tạo/cập nhật tài khoản, nhập thông tin thật, gán một trong năm vai trò và khóa/mở tài khoản. Mật khẩu được băm và không hiển thị lại.
 - Cấu hình hệ thống, nhật ký hoạt động và sao lưu/khôi phục là các yêu cầu mở rộng, chưa có API quản trị tương ứng.
 
-5.2. Sinh viên — Student
+### 5.2. Sinh viên — Student
 
 Sinh viên tham gia nhóm, thực hiện nhiệm vụ và nộp báo cáo.
 
@@ -159,7 +174,7 @@ Sinh viên tham gia nhóm, thực hiện nhiệm vụ và nộp báo cáo.
 - Nộp phiên bản báo cáo; xem phản hồi, thông báo, lịch bảo vệ và điểm đã công bố.
 - Sử dụng chatbot FAQ và xem lịch sử hội thoại cá nhân.
 
-5.3. Trưởng nhóm — Team Leader
+### 5.3. Trưởng nhóm — Team Leader
 
 Trưởng nhóm là tài khoản sinh viên được giao vai trò trưởng của một nhóm cụ thể. Ngoài chức năng sinh viên, trưởng nhóm có thể:
 
@@ -171,7 +186,7 @@ Trưởng nhóm là tài khoản sinh viên được giao vai trò trưởng c�
 
 Trưởng nhóm không tự động có quyền quản lý nhóm khác. Backend đối chiếu ID người dùng với trưởng nhóm được ghi nhận trong dữ liệu thành viên/nhóm.
 
-5.4. Giảng viên — Lecturer
+### 5.4. Giảng viên — Lecturer
 
 Giảng viên hướng dẫn và đánh giá các nhóm trong phạm vi được phân công.
 
@@ -182,7 +197,7 @@ Giảng viên hướng dẫn và đánh giá các nhóm trong phạm vi được
 - Gửi nhận xét, điểm phản hồi báo cáo; tham gia hội đồng và chấm điểm bảo vệ nếu là thành viên hội đồng.
 - Quản lý FAQ chatbot.
 
-5.5. Người đào tạo — Training Manager
+### 5.5. Người đào tạo — Training Manager
 
 Người đào tạo điều phối nghiệp vụ đồ án, không quản trị kỹ thuật tài khoản.
 
@@ -193,25 +208,27 @@ Người đào tạo điều phối nghiệp vụ đồ án, không quản trị
 
 Cấu hình thời hạn đăng ký/nộp báo cáo, xuất báo cáo tổng kết và thống kê chuyên biệt cần được triển khai thêm nếu cần.
 
-⚙️ 6. CHỨC NĂNG HỆ THỐNG
+<a id="muc-6"></a>
+
+## ⚙️ 6. CHỨC NĂNG HỆ THỐNG
 
 Mục này ghi rõ chức năng đang được hỗ trợ bởi API/giao diện hiện có và những phần chưa nên xem là hoàn tất.
 
-6.1. Xác thực và hồ sơ
+### 6.1. Xác thực và hồ sơ
 
 - Đăng nhập bằng tài khoản và mật khẩu đã băm; phiên PHP dùng để xác thực yêu cầu.
 - Đăng xuất và bảo vệ thao tác thay đổi dữ liệu bằng CSRF token.
 - Lấy thông tin người dùng hiện tại và hiển thị hồ sơ cơ bản.
 - Quản trị viên có thể tạo, tìm kiếm, cập nhật tài khoản, gán vai trò, khóa/mở khóa và đặt mật khẩu khởi tạo; mật khẩu chỉ lưu dưới dạng hash.
-- Người dùng tự cập nhật hồ sơ/đổi mật khẩu và khôi phục mật khẩu chưa được triển khai.
+- Người dùng có thể cập nhật hồ sơ cá nhân và đổi mật khẩu (mật khẩu mới tối thiểu 8 ký tự); mã sinh viên chỉ đọc trên giao diện hồ sơ. Khôi phục mật khẩu chưa được triển khai.
 
-6.2. Đợt đồ án
+### 6.2. Đợt đồ án
 
 - Người đào tạo được tạo và cập nhật đợt đồ án; quản trị viên được xem toàn bộ đợt ở chế độ chỉ đọc; giảng viên được xem danh sách đợt.
 - Sinh viên chỉ xem các đợt đang mở hoặc đang diễn ra.
 - Có thể cập nhật trạng thái đợt; cấu hình riêng hạn đăng ký, hạn nộp báo cáo và lịch bảo vệ chưa có API hoàn chỉnh.
 
-6.3. Đề tài và đăng ký
+### 6.3. Đề tài và đăng ký
 
 - Quản lý/hiển thị đề tài theo vai trò; người đào tạo và giảng viên có thể tạo/cập nhật, quản trị viên được xem toàn bộ đề tài và đăng ký ở chế độ chỉ đọc.
 - Trưởng nhóm đăng ký đề tài cho nhóm thuộc cùng đợt; người có quyền xử lý đăng ký có thể duyệt hoặc từ chối.
@@ -219,7 +236,7 @@ Mục này ghi rõ chức năng đang được hỗ trợ bởi API/giao diện 
 - Trạng thái đề tài hiện dùng `draft`, `open`, `closed`; đăng ký dùng `pending`, `approved`, `rejected`, `cancelled`.
 - Xóa đề tài và bộ lọc/tìm kiếm nâng cao chưa được triển khai.
 
-6.4. Nhóm và phân công giảng viên
+### 6.4. Nhóm và phân công giảng viên
 
 - Tạo nhóm; khi sinh viên tạo nhóm thành công, hệ thống cập nhật vai trò tài khoản thành Trưởng nhóm. Xem nhóm và thành viên trong phạm vi quyền.
 - Gửi/duyệt yêu cầu tham gia, gửi/nhận lời mời và quản lý thành viên.
@@ -228,7 +245,7 @@ Mục này ghi rõ chức năng đang được hỗ trợ bởi API/giao diện 
 - Chỉ trưởng nhóm của nhóm tương ứng mới được quản lý thành viên; quản trị viên không thêm, xóa hoặc đổi trưởng nhóm.
 - Quyền nhóm trưởng được xác thực theo từng nhóm, không chỉ dựa vào giá trị vai trò tài khoản.
 
-6.5. Nhiệm vụ và tiến độ
+### 6.5. Nhiệm vụ và tiến độ
 
 - Trưởng nhóm và giảng viên được phân công tạo/sửa nhiệm vụ theo quyền; trưởng nhóm có thể xóa hoặc hủy nhiệm vụ. Quản trị viên chỉ xem dữ liệu nhiệm vụ.
 - Sinh viên được giao nhiệm vụ cập nhật trạng thái của mình; quản trị viên không thay đổi trạng thái nhiệm vụ.
@@ -236,52 +253,49 @@ Mục này ghi rõ chức năng đang được hỗ trợ bởi API/giao diện 
 - Trạng thái nhiệm vụ hiện dùng `todo`, `in_progress`, `completed`, `cancelled`.
 - Nhật ký tiến độ tự do và xuất báo cáo tiến độ chưa được triển khai như một chức năng riêng.
 
-6.6. Báo cáo, phản hồi và điểm
+### 6.6. Báo cáo, phản hồi và điểm
 
 - Sinh viên/trưởng nhóm nộp báo cáo dạng tệp; hệ thống lưu các phiên bản và cho phép xem lịch sử nộp.
 - Giảng viên có quyền nhận xét và chấm điểm phản hồi trong thang 0–10.
 - Người học xem phản hồi và điểm tổng kết sau khi được công bố.
 - Quy trình xác nhận đủ điều kiện bảo vệ và thông báo yêu cầu chỉnh sửa riêng chưa có luồng nghiệp vụ hoàn chỉnh.
 
-6.7. Hội đồng và lịch bảo vệ
+### 6.7. Hội đồng và lịch bảo vệ
 
 - Người đào tạo quản lý hội đồng, thành viên hội đồng và lịch bảo vệ; quản trị viên được xem dữ liệu hội đồng, lịch và điểm ở chế độ chỉ đọc.
 - Thành viên hội đồng có thể chấm điểm bảo vệ; người học xem lịch và kết quả được công bố.
 - Tự động xếp lịch tối ưu và xuất biên bản/tổng kết chưa được triển khai.
 
-6.8. Thông báo
+### 6.8. Thông báo
 
 - Người dùng xem thông báo riêng của mình và đánh dấu một hoặc tất cả là đã đọc.
 - Database phát thông báo cho các sự kiện hiện được cấu hình như giao/cập nhật nhiệm vụ, nhận xét báo cáo và thay đổi lịch bảo vệ.
 - Nhắc hạn qua email hoặc thông báo đẩy chưa được hỗ trợ.
 
-6.9. Chatbot FAQ
+### 6.9. Chatbot FAQ
 
 - Người dùng gửi câu hỏi, xem các phiên và tin nhắn hội thoại của chính mình.
 - Chatbot tìm câu trả lời trong FAQ đã công bố; nội dung được lọc theo quyền hiển thị.
 - Giảng viên quản lý FAQ; quản trị viên được xem FAQ ở mọi phạm vi hiển thị nhưng không chỉnh sửa. Người đào tạo và trưởng nhóm có phạm vi FAQ riêng, trưởng nhóm cũng xem được FAQ dành cho sinh viên.
 - Kết nối mô hình AI bên ngoài, tra cứu dữ liệu đồ án trực tiếp và cấu hình kết nối chatbot chưa được triển khai.
 
-6.10. Chức năng quản trị chưa triển khai
+### 6.10. Chức năng quản trị chưa triển khai
 
 Các yêu cầu sau cần bổ sung API và giao diện trước khi giới thiệu là chức năng đang hoạt động:
 
 - Nhật ký đăng nhập/hoạt động, cấu hình trạng thái hệ thống và sao lưu/khôi phục.
-- Dashboard thống kê tổng quan và báo cáo xuất theo đợt.
+- Thống kê chuyên sâu theo đợt và xuất báo cáo tổng kết.
 - Cấu hình riêng hạn đăng ký/nộp báo cáo theo từng đợt.
 
-6.11. Thống kê và báo cáo
+### 6.11. Thống kê và báo cáo
 
-Dashboard thống kê tổng quan, thống kê theo đợt và xuất báo cáo chưa có giao diện/API hoàn chỉnh. Các chỉ số dự kiến gồm:
-
-- Tổng số sinh viên, giảng viên, nhóm và đề tài.
-- Nhóm đang thực hiện, đã hoàn thành hoặc cần chỉnh sửa.
-- Nhiệm vụ quá hạn và tình trạng nộp báo cáo.
-- Tiến độ theo đợt đồ án.
+Dashboard cơ bản theo vai trò đã có trong giao diện. Sinh viên/giảng viên thấy số nhóm và nhiệm vụ trong phạm vi được trả về; quản trị viên thấy tổng tài khoản, đề tài đang mở, đợt đang hoạt động và tổng số đề tài; người đào tạo thấy các chỉ số đề tài và đợt. Thống kê chuyên sâu theo đợt và xuất báo cáo chưa có giao diện/API hoàn chỉnh.
 
 ---
 
- 🛠️ 7. CÔNG NGHỆ SỬ DỤNG
+<a id="muc-7"></a>
+
+## 🛠️ 7. CÔNG NGHỆ SỬ DỤNG
 
 | Công nghệ | Vai trò |
 |---|---|
@@ -297,24 +311,26 @@ Dashboard thống kê tổng quan, thống kê theo đợt và xuất báo cáo 
 | Git | Quản lý phiên bản |
 | GitHub | Lưu trữ mã nguồn và theo dõi công việc |
 
- Công cụ phát triển
+### Công cụ phát triển
 
 - Hệ điều hành: Windows hoặc hệ điều hành tương thích.
 - Trình duyệt: Google Chrome, Microsoft Edge hoặc Firefox.
 - Công cụ quản lý cơ sở dữ liệu: phpMyAdmin hoặc MySQL client.
 - Công cụ quản lý mã nguồn: GitHub.
 
- Nguyên tắc lựa chọn công nghệ
+### Nguyên tắc lựa chọn công nghệ
 
 Dự án sử dụng PHP và MySQL nhằm tạo ra một hệ thống có cấu trúc tương đối đơn giản, thuận tiện cho việc học tập, triển khai trên máy cá nhân và phát triển theo từng giai đoạn.
 
 ---
 
- 🏗️ 8. KIẾN TRÚC HỆ THỐNG
+<a id="muc-8"></a>
+
+## 🏗️ 8. KIẾN TRÚC HỆ THỐNG
 
 Hệ thống được định hướng theo mô hình phân tầng để tách biệt giao diện, nghiệp vụ và dữ liệu.
 
- 8.1. Các tầng chính
+### 8.1. Các tầng chính
 
 **Presentation Layer — Tầng giao diện**
 
@@ -322,9 +338,11 @@ Chịu trách nhiệm hiển thị thông tin và tiếp nhận thao tác của 
 
 Frontend hiện tại sử dụng:
 
-- React và JSX.
+- React 19 và JSX.
+- JavaScript ES modules.
 - CSS.
-- Vite.
+- Vite 8 cho môi trường phát triển và build.
+- React Router cho điều hướng giao diện.
 
 **Application Layer — Tầng xử lý nghiệp vụ**
 
@@ -352,7 +370,7 @@ Chịu trách nhiệm tiếp nhận câu hỏi, xử lý nội dung và trả v�
 
 Ban đầu, dịch vụ có thể sử dụng dữ liệu FAQ nội bộ. Việc tích hợp AI là một hướng mở rộng.
 
- 8.2. Luồng xử lý tổng quát
+### 8.2. Luồng xử lý tổng quát
 
 1. Người dùng truy cập hệ thống bằng trình duyệt.
 2. Người dùng gửi yêu cầu thông qua giao diện.
@@ -363,7 +381,7 @@ Ban đầu, dịch vụ có thể sử dụng dữ liệu FAQ nội bộ. Việc
 7. Kết quả được trả về giao diện.
 8. Nếu yêu cầu liên quan đến chatbot, dịch vụ chatbot xử lý câu hỏi và trả về nội dung phù hợp.
 
- 8.3. Nguyên tắc thiết kế
+### 8.3. Nguyên tắc thiết kế
 
 - Phân chia mã nguồn theo trách nhiệm.
 - Hạn chế trộn truy vấn SQL với mã hiển thị giao diện.
@@ -375,7 +393,9 @@ Ban đầu, dịch vụ có thể sử dụng dữ liệu FAQ nội bộ. Việc
 
 ---
 
- 📁 9. CẤU TRÚC THƯ MỤC
+<a id="muc-9"></a>
+
+## 📁 9. CẤU TRÚC THƯ MỤC
 
 Cấu trúc mã nguồn hiện tại:
 
@@ -386,6 +406,7 @@ EduProjectHub/
 │   ├── Backend/       # PHP JSON APIs
 │   └── frontend/      # React/Vite application
 ├── database/
+│   ├── filetong/      # Gói SQL để nạp database demo
 │   ├── Tai_khoan.sql
 │   ├── quan_ly_*.sql
 │   └── schema-*.sql
@@ -394,15 +415,16 @@ EduProjectHub/
 └── README.md
 ```
 
- 🗄️ 10. THIẾT KẾ CƠ SỞ DỮ LIỆU
+<a id="muc-10"></a>
+
+## 🗄️ 10. THIẾT KẾ CƠ SỞ DỮ LIỆU
 
 Cơ sở dữ liệu được thiết kế để quản lý người dùng, đề tài, nhóm thực hiện, nhiệm vụ, tài liệu và hội thoại chatbot.
 
- 10.1. Các bảng dữ liệu dự kiến
+### 10.1. Các bảng dữ liệu dự kiến
 
 | Bảng | Mục đích |
 |---|---|
-| `users` | Lưu thông tin tài khoản và vai trò |
 | `users` | Tài khoản, username và vai trò |
 | `project_rounds` | Học kỳ/đợt đồ án |
 | `student_groups`, `group_members` | Nhóm đồ án và thành viên |
@@ -417,7 +439,7 @@ Cơ sở dữ liệu được thiết kế để quản lý người dùng, đ�
 
 Các tệp SQL tạo toàn bộ bảng trong một database `eduprojecthub`; xem thứ tự cài đặt chính xác tại `database/README.md`.
 
- 10.2. Quan hệ dữ liệu tổng quát
+### 10.2. Quan hệ dữ liệu tổng quát
 
 - `project_rounds` liên kết với nhiều nhóm qua `student_groups.project_round_id`.
 - Nhóm liên kết với tài khoản qua `group_members` và với giảng viên qua `group_lecturers`.
@@ -428,7 +450,7 @@ Các tệp SQL tạo toàn bộ bảng trong một database `eduprojecthub`; xem
 - Một người dùng có thể nhận nhiều thông báo.
 - Một phiên chatbot có thể chứa nhiều tin nhắn.
 
- 10.3. Nguyên tắc thiết kế cơ sở dữ liệu
+### 10.3. Nguyên tắc thiết kế cơ sở dữ liệu
 
 - Xác định khóa chính cho từng bảng.
 - Sử dụng khóa ngoại khi phù hợp.
@@ -441,11 +463,13 @@ Các tệp SQL tạo toàn bộ bảng trong một database `eduprojecthub`; xem
 
 ---
 
- 🔄 11. QUY TRÌNH NGHIỆP VỤ
+<a id="muc-11"></a>
 
- 11.1. Quy trình đăng ký đồ án
+## 🔄 11. QUY TRÌNH NGHIỆP VỤ
 
-1. Người đào tạo hoặc tài khoản được phân quyền chuẩn bị đợt đồ án và thời gian đăng ký. (Hiện API mới hỗ trợ xem danh sách đợt.)
+### 11.1. Quy trình đăng ký đồ án
+
+1. Người đào tạo hoặc tài khoản được phân quyền chuẩn bị đợt đồ án và thời gian đăng ký.
 2. Người đào tạo hoặc giảng viên tạo danh sách đề tài theo quyền hiện có; quản trị viên chỉ tra cứu.
 3. Sinh viên đăng nhập hệ thống.
 4. Sinh viên xem danh sách đề tài có thể đăng ký.
@@ -455,7 +479,7 @@ Các tệp SQL tạo toàn bộ bảng trong một database `eduprojecthub`; xem
 8. Người có thẩm quyền phê duyệt nếu quy trình yêu cầu.
 9. Hệ thống thông báo kết quả cho sinh viên.
 
- 11.2. Quy trình thực hiện đồ án
+### 11.2. Quy trình thực hiện đồ án
 
 1. Đề tài và nhóm sinh viên được xác nhận.
 2. Giảng viên hướng dẫn được phân công.
@@ -467,7 +491,7 @@ Các tệp SQL tạo toàn bộ bảng trong một database `eduprojecthub`; xem
 8. Sinh viên điều chỉnh theo phản hồi.
 9. Hệ thống cập nhật trạng thái hoàn thành theo quy định.
 
- 11.3. Quy trình sử dụng chatbot
+### 11.3. Quy trình sử dụng chatbot
 
 1. Người dùng mở giao diện chatbot.
 2. Người dùng nhập câu hỏi.
@@ -479,11 +503,13 @@ Các tệp SQL tạo toàn bộ bảng trong một database `eduprojecthub`; xem
 
 ---
 
- 🔐 12. BẢO MẬT HỆ THỐNG
+<a id="muc-12"></a>
+
+## 🔐 12. BẢO MẬT HỆ THỐNG
 
 Bảo mật là một yêu cầu quan trọng do hệ thống lưu trữ thông tin tài khoản, dữ liệu học tập và tài liệu đồ án.
 
- 12.1. Xác thực và quản lý mật khẩu
+### 12.1. Xác thực và quản lý mật khẩu
 
 - Không lưu mật khẩu dưới dạng văn bản thuần.
 - Sử dụng `password_hash()` để tạo mã băm mật khẩu trong PHP.
@@ -492,7 +518,7 @@ Bảo mật là một yêu cầu quan trọng do hệ thống lưu trữ thông 
 - Hủy phiên khi người dùng đăng xuất.
 - Có cơ chế giới hạn các lần đăng nhập thất bại khi cần thiết.
 
- 12.2. Phân quyền
+### 12.2. Phân quyền
 
 - Kiểm tra vai trò ở phía máy chủ.
 - Không dựa vào việc ẩn nút trên giao diện để bảo vệ chức năng.
@@ -500,7 +526,7 @@ Bảo mật là một yêu cầu quan trọng do hệ thống lưu trữ thông 
 - Kiểm tra quyền sở hữu đề tài, nhiệm vụ và tài liệu trước khi thao tác.
 - Ngăn chặn việc sửa dữ liệu bằng cách thay đổi ID trên URL hoặc yêu cầu gửi lên máy chủ.
 
- 12.3. Bảo vệ cơ sở dữ liệu
+### 12.3. Bảo vệ cơ sở dữ liệu
 
 - Sử dụng prepared statements thông qua PDO hoặc cơ chế tương đương.
 - Không ghép trực tiếp dữ liệu người dùng vào câu truy vấn SQL.
@@ -508,7 +534,7 @@ Bảo mật là một yêu cầu quan trọng do hệ thống lưu trữ thông 
 - Không công khai thông tin kết nối cơ sở dữ liệu.
 - Sao lưu dữ liệu định kỳ khi triển khai thực tế.
 
- 12.4. Bảo vệ giao diện và yêu cầu HTTP
+### 12.4. Bảo vệ giao diện và yêu cầu HTTP
 
 - Kiểm tra và chuẩn hóa dữ liệu đầu vào.
 - Escape dữ liệu trước khi hiển thị HTML.
@@ -518,7 +544,7 @@ Bảo mật là một yêu cầu quan trọng do hệ thống lưu trữ thông 
 - Không cho phép thực thi trực tiếp các tệp tải lên.
 - Không hiển thị thông tin lỗi nội bộ nhạy cảm cho người dùng cuối.
 
- 12.5. Bảo vệ thông tin chatbot
+### 12.5. Bảo vệ thông tin chatbot
 
 - Không đưa mật khẩu hoặc bí mật hệ thống vào nội dung hội thoại.
 - Không cho chatbot tự ý truy cập dữ liệu ngoài phạm vi được cấp phép.
@@ -529,70 +555,58 @@ Bảo mật là một yêu cầu quan trọng do hệ thống lưu trữ thông 
 
 ---
 
- 💻 13. CÀI ĐẶT VÀ CHẠY DỰ ÁN
+<a id="muc-13"></a>
 
-Phần này mô tả cách chạy mã nguồn hiện có qua XAMPP.
+## 💻 13. CÀI ĐẶT VÀ CHẠY DỰ ÁN
 
- 13.1. Yêu cầu môi trường
+Hướng dẫn dưới đây chạy React/Vite ở chế độ phát triển và PHP/MySQL qua XAMPP trên Windows. Hướng dẫn triển khai build production nằm trong [Code/frontend/README.md](Code/frontend/README.md).
 
-Cần chuẩn bị:
+### 13.1. Yêu cầu môi trường
 
-- PHP 8.x.
-- MySQL.
-- Apache hoặc máy chủ web tương thích.
-- XAMPP hoặc môi trường tương đương.
+- PHP 8.x, MySQL/MariaDB và Apache (có thể dùng XAMPP).
+- Node.js/npm.
 - Trình duyệt web hiện đại.
-- Git nếu muốn tải mã nguồn bằng Git.
 
- 13.2. Lấy mã nguồn
+### 13.2. Đặt mã nguồn dưới Apache
 
-Có thể tải mã nguồn dưới dạng ZIP từ GitHub hoặc sao chép repository bằng Git.
+Đặt repository trong `C:\xampp\htdocs\EduProjectHub`, hoặc tạo directory junction tại đường dẫn đó trỏ đến thư mục repository. Trong XAMPP, bật **Apache** và **MySQL**.
 
-Nếu đã cài Git, chạy lệnh:
+### 13.3. Tạo database demo mới
 
-```bash
-git clone https://github.com/YOUR_USERNAME/student-project-management-chatbot.git
+Với cài đặt mới, nạp `database/filetong/eduprojecthub-xampp.sql` theo hướng dẫn trong [database/README.md](database/README.md). Gói này dành cho database mới; không import vào database đã có dữ liệu. Với database hiện hữu, làm theo mục “Existing databases” trong `database/README.md` thay vì nạp lại gói demo.
+
+Thông tin kết nối mặc định cho local được mô tả trong [database/README.md](database/README.md). Không đưa mật khẩu hoặc cấu hình bí mật vào README.
+
+### 13.4. Cấu hình và chạy frontend
+
+Mở PowerShell tại thư mục repository, rồi chạy:
+
+```powershell
+cd Code/frontend
+Copy-Item .env.example .env
+npm install
+npm run dev
 ```
 
-Thay `YOUR_USERNAME` bằng tên tài khoản GitHub thực tế.
+Mở URL Vite được in ra trong terminal (mặc định `http://localhost:5173`). `.env.example` đặt `VITE_USE_MOCK=false`, tức frontend gọi PHP API thật. Nếu cần UI demo mock, dùng file `.env.local` với `VITE_USE_MOCK=true`; không dùng mock để kiểm tra quyền hoặc dữ liệu backend.
 
-Sau đó truy cập thư mục dự án:
+Cấu hình proxy phát triển trong `vite.config.js` trỏ API tới `http://localhost` trên cổng 80. Nếu Apache chạy cổng khác, proxy mặc định không tự chuyển sang cổng đó. Không đổi proxy chung nếu chưa thống nhất với nhóm; có thể chạy frontend build qua Apache theo [Code/frontend/README.md](Code/frontend/README.md).
 
-```bash
-cd student-project-management-chatbot
-```
+Khi kiểm thử nhiều vai trò, chỉ đăng nhập một tài khoản tại một thời điểm trong cùng trình duyệt vì phiên đăng nhập dùng chung cookie. Dùng cửa sổ ẩn danh hoặc trình duyệt riêng để giữ các phiên độc lập.
 
- 13.3. Cấu hình cơ sở dữ liệu
+### 13.5. Tài khoản demo
 
-1. Khởi động Apache và MySQL trong XAMPP.
-2. Import schema và dữ liệu theo `database/README.md`.
-3. Mặc định PDO kết nối database `eduprojecthub` bằng `root` không mật khẩu trên máy local.
-4. Chạy frontend mock hoặc PHP/MySQL theo hướng dẫn tại `Code/frontend/README.md`.
-
- 13.4. Build frontend
-
-```bash
-npm ci
-npm run build
-```
-
-Trên PowerShell Windows nếu lệnh `npm` bị chặn bởi Execution Policy, dùng `npm.cmd ci` và `npm.cmd run build`.
-
- 13.5. Chạy ứng dụng
-
-Mở `http://localhost/EduProjectHub/Code/frontend/dist/`. Chế độ mock phục vụ demo không cần database; để chạy dữ liệu PHP/MySQL, đặt `VITE_USE_MOCK=false`, import schema, rồi build lại frontend.
-
- 13.6. Lưu ý về trạng thái triển khai
-
-Các tính năng được cung cấp qua PHP JSON APIs; một số nghiệp vụ quản trị nâng cao chưa có giao diện ghi dữ liệu. Không dùng tài khoản demo trong môi trường triển khai.
+Database demo có tài khoản `sv`, `truongnhom`, `gv`, `daotao` và `admin`; mật khẩu demo là `123456` theo [database/README.md](database/README.md). Chỉ dùng trong môi trường demo local; không dùng hoặc công khai các thông tin này trên hệ thống triển khai.
 
 ---
 
- 🧪 14. KIỂM THỬ
+<a id="muc-14"></a>
+
+## 🧪 14. KIỂM THỬ
 
 Dự án cần được kiểm thử theo từng chức năng trước khi phát hành.
 
- 14.1. Kiểm thử xác thực
+### 14.1. Kiểm thử xác thực
 
 | Mã kiểm thử | Trường hợp | Kết quả mong đợi |
 |---|---|---|
@@ -601,7 +615,7 @@ Dự án cần được kiểm thử theo từng chức năng trước khi phát
 | TC-AUTH-03 | Truy cập trang cần đăng nhập khi chưa xác thực | Yêu cầu đăng nhập |
 | TC-AUTH-04 | Sinh viên truy cập chức năng chỉ dành cho quản trị viên | Từ chối truy cập |
 
- 14.2. Kiểm thử quản lý đề tài
+### 14.2. Kiểm thử quản lý đề tài
 
 | Mã kiểm thử | Trường hợp | Kết quả mong đợi |
 |---|---|---|
@@ -610,7 +624,7 @@ Dự án cần được kiểm thử theo từng chức năng trước khi phát
 | TC-PROJ-03 | Tìm kiếm theo từ khóa | Hiển thị kết quả phù hợp |
 | TC-PROJ-04 | Đăng ký đề tài không còn khả dụng | Hệ thống từ chối đăng ký |
 
- 14.3. Kiểm thử tiến độ và tài liệu
+### 14.3. Kiểm thử tiến độ và tài liệu
 
 | Mã kiểm thử | Trường hợp | Kết quả mong đợi |
 |---|---|---|
@@ -620,7 +634,7 @@ Dự án cần được kiểm thử theo từng chức năng trước khi phát
 | TC-SUB-02 | Nộp tệp không được phép | Hệ thống từ chối |
 | TC-SUB-03 | Người không có quyền truy cập tài liệu | Hệ thống từ chối truy cập |
 
- 14.4. Kiểm thử chatbot
+### 14.4. Kiểm thử chatbot
 
 | Mã kiểm thử | Trường hợp | Kết quả mong đợi |
 |---|---|---|
@@ -633,11 +647,13 @@ Các trường hợp trên là danh sách kiểm thử dự kiến. Kết quả 
 
 ---
 
- 🗺️ 15. KẾ HOẠCH PHÁT TRIỂN
+<a id="muc-15"></a>
+
+## 🗺️ 15. KẾ HOẠCH PHÁT TRIỂN
 
 Dự án được chia thành các giai đoạn nhằm dễ theo dõi tiến độ và kiểm soát chất lượng.
 
- Giai đoạn 1: Phân tích và thiết kế
+### Giai đoạn 1: Phân tích và thiết kế
 
 - Thu thập yêu cầu.
 - Xác định vai trò người dùng.
@@ -648,7 +664,7 @@ Dự án được chia thành các giai đoạn nhằm dễ theo dõi tiến đ�
 
 **Kết quả dự kiến:** Tài liệu yêu cầu và thiết kế ban đầu.
 
- Giai đoạn 2: Xây dựng nền tảng
+### Giai đoạn 2: Xây dựng nền tảng
 
 - Khởi tạo cấu trúc dự án.
 - Cấu hình cơ sở dữ liệu.
@@ -658,7 +674,7 @@ Dự án được chia thành các giai đoạn nhằm dễ theo dõi tiến đ�
 
 **Kết quả dự kiến:** Nền tảng xác thực và giao diện cơ bản.
 
- Giai đoạn 3: Phát triển nghiệp vụ
+### Giai đoạn 3: Phát triển nghiệp vụ
 
 - Quản lý tài khoản.
 - Quản lý đề tài.
@@ -670,7 +686,7 @@ Dự án được chia thành các giai đoạn nhằm dễ theo dõi tiến đ�
 
 **Kết quả dự kiến:** Các chức năng quản lý đồ án cốt lõi.
 
- Giai đoạn 4: Tích hợp chatbot
+### Giai đoạn 4: Tích hợp chatbot
 
 - Xây dựng bộ câu hỏi thường gặp.
 - Xây dựng giao diện chatbot.
@@ -681,7 +697,7 @@ Dự án được chia thành các giai đoạn nhằm dễ theo dõi tiến đ�
 
 **Kết quả dự kiến:** Chatbot hỗ trợ các câu hỏi cơ bản.
 
- Giai đoạn 5: Kiểm thử và hoàn thiện
+### Giai đoạn 5: Kiểm thử và hoàn thiện
 
 - Kiểm thử chức năng.
 - Kiểm thử phân quyền.
@@ -692,7 +708,7 @@ Dự án được chia thành các giai đoạn nhằm dễ theo dõi tiến đ�
 
 **Kết quả dự kiến:** Phiên bản có thể trình diễn và đánh giá.
 
- Giai đoạn 6: Triển khai và mở rộng
+### Giai đoạn 6: Triển khai và mở rộng
 
 - Chuẩn bị môi trường triển khai.
 - Cấu hình máy chủ.
@@ -704,11 +720,13 @@ Dự án được chia thành các giai đoạn nhằm dễ theo dõi tiến đ�
 
 ---
 
- 🤝 16. HƯỚNG DẪN ĐÓNG GÓP
+<a id="muc-16"></a>
+
+## 🤝 16. HƯỚNG DẪN ĐÓNG GÓP
 
 Các đóng góp nhằm cải thiện mã nguồn, tài liệu và chất lượng dự án đều được khuyến khích.
 
- Quy trình đóng góp
+### Quy trình đóng góp
 
 1. Tạo bản fork của repository nếu cần.
 2. Tạo nhánh mới cho tính năng hoặc bản sửa lỗi.
@@ -734,7 +752,7 @@ fix: validate login input
 docs: update installation guide
 ```
 
- Nguyên tắc đóng góp
+### Nguyên tắc đóng góp
 
 - Viết mã nguồn rõ ràng và dễ bảo trì.
 - Không đưa mật khẩu hoặc API key vào repository.
@@ -745,7 +763,9 @@ docs: update installation guide
 
 ---
 
- 👨‍💻 17. TÁC GIẢ
+<a id="muc-17"></a>
+
+## 👨‍💻 17. TÁC GIẢ
 
 **Tên dự án:** Hệ thống quản lý đồ án sinh viên kết hợp Chatbot
 
@@ -759,12 +779,15 @@ docs: update installation guide
 
 **Giảng viên hướng dẫn:** Đặng Nhân Cách
 
-*PM phụ trách:** Phạm Văn Phi Long
+**PM phụ trách:** Phạm Văn Phi Long
 
-Repository: `student-project-management-chatbot`
+Repository: `EduProjectHub`
+
 ---
 
- 📄 18. GIẤY PHÉP
+<a id="muc-18"></a>
+
+## 📄 18. GIẤY PHÉP
 
 Dự án có thể sử dụng giấy phép MIT nếu tác giả muốn cho phép người khác sử dụng, sửa đổi và phân phối mã nguồn theo các điều kiện của giấy phép này.
 
@@ -774,7 +797,7 @@ Nếu đây là đồ án học tập có yêu cầu riêng của trường, c�
 
 ---
 
- 📌 TRẠNG THÁI DỰ ÁN
+## 📌 TRẠNG THÁI DỰ ÁN
 
 Các hạng mục sẽ được cập nhật theo tiến độ thực hiện.
 
@@ -783,9 +806,9 @@ Các hạng mục sẽ được cập nhật theo tiến độ thực hiện.
 - [ ] Phân tích yêu cầu chi tiết.
 - [ ] Thiết kế cơ sở dữ liệu.
 - [ ] Xây dựng cấu trúc thư mục.
-- [ ] Xây dựng chức năng đăng nhập.
-- [ ] Xây dựng chức năng phân quyền.
-- [ ] Phát triển quản lý đề tài.
+- [x] Xây dựng chức năng đăng nhập.
+- [x] Xây dựng chức năng phân quyền.
+- [x] Phát triển quản lý đề tài.
 - [ ] Phát triển quản lý nhóm sinh viên.
 - [ ] Phát triển quản lý tiến độ.
 - [ ] Phát triển chức năng nộp báo cáo.
@@ -799,7 +822,7 @@ Các hạng mục sẽ được cập nhật theo tiến độ thực hiện.
 
 ---
 
- ⭐ ĐỊNH HƯỚNG PHÁT TRIỂN
+## ⭐ ĐỊNH HƯỚNG PHÁT TRIỂN
 
 Mục tiêu dài hạn là xây dựng một nền tảng quản lý đồ án có giao diện thân thiện, nghiệp vụ rõ ràng, dữ liệu nhất quán và có khả năng mở rộng.
 
