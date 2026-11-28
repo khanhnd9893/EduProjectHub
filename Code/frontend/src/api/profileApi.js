@@ -66,6 +66,7 @@ const profileApi = {
       email: values.email.trim(),
       phone: values.phone?.trim() || '',
       department: values.department?.trim() || '',
+      avatarUrl: values.avatarUrl?.trim() || '',
     }
 
     const data = await unwrap(apiClient.patch('/auth.php?action=profile', payload))

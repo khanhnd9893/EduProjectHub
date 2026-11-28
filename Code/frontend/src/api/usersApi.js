@@ -73,6 +73,12 @@ function validate(values, id = null) {
   if (!roles.includes(values.role) || !accountStatuses.includes(values.accountStatus)) {
     throw new Error('Vai trò hoặc trạng thái tài khoản không hợp lệ.')
   }
+  if (['STUDENT', 'TEAM_LEADER'].includes(values.role) && !values.studentCode?.trim()) {
+    throw new Error('Sinh viên và trưởng nhóm phải có mã sinh viên.')
+  }
+  if (id === null && (!values.password || values.password.length < 8)) {
+    throw new Error('Mật khẩu phải có ít nhất 8 ký tự.')
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
     throw new Error('Email không hợp lệ.')
   }
@@ -109,11 +115,10 @@ const usersApi = {
 
   async createUser(values) {
     if (!useMock) {
-      const temporaryPassword = generateTemporaryPassword()
       const user = await callRealApi(() =>
-        userApi.createUser({ ...values, password: temporaryPassword }),
+        userApi.createUser(values),
       )
-      return { ...user, temporaryPassword }
+      return user
     }
     assertMockAdmin()
     validate(values)
@@ -123,6 +128,11 @@ const usersApi = {
       username: values.username.trim(),
       fullName: values.fullName.trim(),
       email: values.email.trim(),
+      phone: values.phone?.trim() || '',
+      department: values.department?.trim() || '',
+      studentCode: ['STUDENT', 'TEAM_LEADER'].includes(values.role)
+        ? values.studentCode?.trim() || ''
+        : '',
       accountStatus: 'active',
     }
     mockUsers.push(user)

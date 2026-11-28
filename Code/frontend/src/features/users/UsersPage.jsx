@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import { useAuth } from '../../contexts/useAuth.js'
 import usersApi from '../../api/usersApi.js'
+import { isStudentRole } from '../../utils/roles.js'
 import './users.css'
 
 const roleLabels = {
@@ -25,6 +26,8 @@ const emptyForm = {
   studentCode: '',
   role: 'STUDENT',
   accountStatus: 'active',
+  password: '',
+  confirmPassword: '',
 }
 
 function UsersPage() {
@@ -92,7 +95,12 @@ function UsersPage() {
   }
 
   function handleChange(event) {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+    const { name, value } = event.target
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === 'role' && !isStudentRole(value) ? { studentCode: '' } : {}),
+    }))
   }
 
   async function handleSubmit(event) {
@@ -100,6 +108,18 @@ function UsersPage() {
     setError('')
     setSuccess('')
     setTemporaryPassword('')
+    if (!editingUser && (!form.password || form.password.length < 8)) {
+      setError('Mật khẩu phải có ít nhất 8 ký tự.')
+      return
+    }
+    if (!editingUser && form.password !== form.confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp.')
+      return
+    }
+    if (isStudentRole(form.role) && !form.studentCode?.trim()) {
+      setError('Sinh viên và trưởng nhóm phải có mã sinh viên.')
+      return
+    }
     setIsSaving(true)
     try {
       const saved = editingUser
@@ -184,8 +204,16 @@ function UsersPage() {
             <label className="field-control">Email<input name="email" type="email" value={form.email} onChange={handleChange} required /></label>
             <label className="field-control">Số điện thoại<input name="phone" value={form.phone} onChange={handleChange} /></label>
             <label className="field-control">Khoa / đơn vị<input name="department" value={form.department} onChange={handleChange} /></label>
-            <label className="field-control">Mã sinh viên<input name="studentCode" value={form.studentCode} onChange={handleChange} /></label>
+            {isStudentRole(form.role) && (
+              <label className="field-control">Mã sinh viên<input name="studentCode" value={form.studentCode} onChange={handleChange} required /></label>
+            )}
             <label className="field-control">Vai trò<select name="role" value={form.role} onChange={handleChange}>{Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            {!editingUser && (
+              <>
+                <label className="field-control">Mật khẩu ban đầu<input name="password" type="password" value={form.password} onChange={handleChange} minLength={8} autoComplete="new-password" required /></label>
+                <label className="field-control">Nhập lại mật khẩu<input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} minLength={8} autoComplete="new-password" required /></label>
+              </>
+            )}
             {editingUser && <label className="field-control">Trạng thái<select name="accountStatus" value={form.accountStatus} onChange={handleChange}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>}
           </div>
           <button type="submit" disabled={isSaving}>{isSaving ? 'Đang lưu...' : 'Lưu tài khoản'}</button>

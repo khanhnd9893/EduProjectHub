@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import { useAuth } from '../../contexts/useAuth.js'
 import profileApi, { PASSWORD_MIN_LENGTH } from '../../api/profileApi.js'
+import { isStudentRole } from '../../utils/roles.js'
 import './profile-edit.css'
 
 import { roleLabel } from '../../utils/roles.js'
@@ -14,6 +15,7 @@ function ProfilePage() {
     phone: '',
     department: '',
     studentCode: '',
+    avatarUrl: '',
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -40,6 +42,7 @@ function ProfilePage() {
             phone: profile.phone,
             department: profile.department,
             studentCode: profile.studentCode,
+            avatarUrl: profile.avatarUrl,
           })
         }
       })
@@ -145,9 +148,13 @@ function ProfilePage() {
       {profileSuccess && <p className="success-message" role="status">{profileSuccess}</p>}
       <section className="workspace-panel profile-panel">
         <div className="profile-summary">
-          <div className="profile-avatar" aria-hidden="true">
-            {(user?.fullName || '?').charAt(0).toUpperCase()}
-          </div>
+          {form.avatarUrl ? (
+            <img className="profile-avatar profile-avatar-image" src={form.avatarUrl} alt="Ảnh đại diện" />
+          ) : (
+            <div className="profile-avatar" aria-hidden="true">
+              {(form.fullName || user?.fullName || '?').charAt(0).toUpperCase()}
+            </div>
+          )}
           <div>
             <h2>{user?.fullName || 'Chưa cập nhật họ tên'}</h2>
             <p className="muted">
@@ -181,6 +188,10 @@ function ProfilePage() {
                   <input name="fullName" value={form.fullName} onChange={handleChange} required />
                 </label>
                 <label className="field-control">
+                  URL ảnh đại diện
+                  <input name="avatarUrl" type="url" value={form.avatarUrl} onChange={handleChange} placeholder="https://..." />
+                </label>
+                <label className="field-control">
                   Email
                   <input name="email" type="email" value={form.email} onChange={handleChange} required />
                 </label>
@@ -192,10 +203,12 @@ function ProfilePage() {
                   Khoa / đơn vị
                   <input name="department" value={form.department} onChange={handleChange} />
                 </label>
-                <label className="field-control">
-                  Mã sinh viên
-                  <input name="studentCode" value={form.studentCode} readOnly />
-                </label>
+                {isStudentRole(user?.role) && (
+                  <label className="field-control">
+                    Mã sinh viên
+                    <input name="studentCode" value={form.studentCode} readOnly />
+                  </label>
+                )}
               </div>
               <div className="profile-edit-actions">
                 <button type="submit" disabled={isSaving}>
