@@ -93,11 +93,23 @@ function requireCsrfToken(array $body): void
 /** Lấy thông tin nhóm; có thể khóa bản ghi trong giao dịch. */
 function getGroup(PDO $pdo, int $groupId, bool $forUpdate = false): array
 {
-    $sql = 'SELECT id, group_code, group_name, description, project_round_id,
-                   leader_user_id, created_by, status, created_at, updated_at, dissolved_at
-            FROM student_groups WHERE id = ?';
     if ($forUpdate) {
-        $sql .= ' FOR UPDATE';
+        $sql = 'SELECT id, group_code, group_name, description, project_round_id,
+                       leader_user_id, created_by, status, created_at, updated_at, dissolved_at
+                FROM student_groups WHERE id = ? FOR UPDATE';
+    } else {
+        $sql = 'SELECT sg.id, sg.group_code, sg.group_name, sg.description, sg.project_round_id,
+                       pr.round_name, sg.leader_user_id, leader.full_name AS leader_name,
+                       leader.student_code AS leader_student_code,
+                       sg.created_by, creator.full_name AS creator_name,
+                       creator.student_code AS creator_student_code,
+                       creator.role AS creator_role,
+                       sg.status, sg.created_at, sg.updated_at, sg.dissolved_at
+                FROM student_groups sg
+                JOIN project_rounds pr ON pr.id = sg.project_round_id
+                JOIN users leader ON leader.id = sg.leader_user_id
+                JOIN users creator ON creator.id = sg.created_by
+                WHERE sg.id = ?';
     }
 
     $statement = queryStatement($pdo, $sql, [$groupId]);
@@ -120,35 +132,23 @@ function requireGroupManager(array $group, array $actor): void
 /** Kiểm tra người gọi có quyền xem nhóm theo vai trò của họ. */
 function requireGroupViewer(PDO $pdo, array $group, array $actor): void
 {
-    if (apiCanViewAllData($actor)) {
+    if (apiCanViewAllData($actor) || $actor['role'] === 'lecturer') {
         return;
     }
 
-    if ($actor['role'] === 'lecturer') {
-        $sql = 'SELECT 1 FROM group_lecturers gl
-                WHERE gl.group_id = ? AND gl.lecturer_user_id = ?
-                  AND (
-                    SELECT COUNT(*) FROM group_lecturers workload
-                    WHERE workload.lecturer_user_id = gl.lecturer_user_id
-                  ) >= 2';
-    } else {
-        $sql = "SELECT 1 FROM student_groups sg_access
-                WHERE sg_access.id = ?
-                  AND (
-                    sg_access.leader_user_id = ?
-                    OR EXISTS (
-                        SELECT 1 FROM group_members gm_access
-                        WHERE gm_access.group_id = sg_access.id
-                          AND gm_access.user_id = ?
-                          AND gm_access.status = 'active'
-                    )
-                  )";
-    }
+    $sql = "SELECT 1 FROM student_groups sg_access
+            WHERE sg_access.id = ?
+              AND (
+                sg_access.leader_user_id = ?
+                OR EXISTS (
+                    SELECT 1 FROM group_members gm_access
+                    WHERE gm_access.group_id = sg_access.id
+                      AND gm_access.user_id = ?
+                      AND gm_access.status = 'active'
+                )
+              )";
     $statement = $pdo->prepare($sql);
-    $params = $actor['role'] === 'lecturer'
-        ? [$group['id'], $actor['id']]
-        : [$group['id'], $actor['id'], $actor['id']];
-    $statement->execute($params);
+    $statement->execute([$group['id'], $actor['id'], $actor['id']]);
     requireValue(
         $statement->fetchColumn() !== false,
         403,
@@ -211,6 +211,8 @@ try {
     if ($method === 'GET' && $action === 'groups') {
         $where = [];
         $params = [];
+        $scope = $_GET['scope'] ?? 'all';
+        requireValue(in_array($scope, ['all', 'assigned'], true), 400, 'Phạm vi lọc nhóm không hợp lệ.');
 
         if (apiIsStudentRole($actor)) {
             $where[] = '(sg.leader_user_id = ? OR EXISTS (
@@ -221,7 +223,7 @@ try {
             ))';
             $params[] = $actor['id'];
             $params[] = $actor['id'];
-        } elseif ($actor['role'] === 'lecturer') {
+        } elseif ($actor['role'] === 'lecturer' && $scope === 'assigned') {
             $where[] = 'EXISTS (
                 SELECT 1 FROM group_lecturers gl_access
                 WHERE gl_access.group_id = sg.id
@@ -247,17 +249,25 @@ try {
 
         $sql = 'SELECT sg.id, sg.group_code, sg.group_name, sg.description,
                        sg.project_round_id, pr.round_name, sg.leader_user_id, sg.created_by,
-                       leader.full_name AS leader_name, sg.status,
+                       leader.full_name AS leader_name,
+                       leader.student_code AS leader_student_code,
+                       creator.full_name AS creator_name,
+                       creator.student_code AS creator_student_code,
+                       creator.role AS creator_role,
+                       sg.status,
                        (SELECT COUNT(*) FROM group_members gm
                         WHERE gm.group_id = sg.id AND gm.status = \'active\') AS active_member_count,
+                       (SELECT COUNT(*) FROM group_members gm_hist
+                        WHERE gm_hist.group_id = sg.id AND gm_hist.status IN (\'active\', \'removed\')) AS total_member_count,
                        sg.created_at, sg.updated_at, sg.dissolved_at
                 FROM student_groups sg
                 JOIN project_rounds pr ON pr.id = sg.project_round_id
-                JOIN users leader ON leader.id = sg.leader_user_id';
+                JOIN users leader ON leader.id = sg.leader_user_id
+                JOIN users creator ON creator.id = sg.created_by';
         if ($where !== []) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        $sql .= ' ORDER BY sg.created_at DESC';
+        $sql .= ' ORDER BY sg.created_at DESC, sg.id DESC';
 
         $statement = queryStatement($pdo, $sql, $params);
         respond(200, ['data' => $statement->fetchAll()]);
@@ -267,12 +277,15 @@ try {
         $groupId = positiveId($_GET['id'] ?? null, 'id');
         $group = getGroup($pdo, $groupId);
         requireGroupViewer($pdo, $group, $actor);
+        $memberStatuses = $group['status'] === 'dissolved'
+            ? "('active', 'removed')"
+            : "('active')";
         $statement = queryStatement($pdo, "SELECT gm.id AS group_member_id, u.id AS user_id,
-                    u.full_name, gm.member_role, gm.status,
+                    u.student_code, u.full_name, gm.member_role, gm.status,
                     gm.joined_at, gm.left_at
              FROM group_members gm
              JOIN users u ON u.id = gm.user_id
-             WHERE gm.group_id = ? AND gm.status = 'active'
+             WHERE gm.group_id = ? AND gm.status IN $memberStatuses
              ORDER BY gm.member_role DESC, gm.joined_at ASC", [$groupId]);
         $group['members'] = $statement->fetchAll();
         respond(200, ['data' => $group]);

@@ -40,7 +40,7 @@ function TasksPage() {
   useEffect(() => {
     let active = true
     teamApi
-      .listTeams()
+      .listTeams(role === 'LECTURER' ? { scope: 'assigned' } : undefined)
       .then((result) => {
         if (active) {
           setTeams(result)
@@ -60,7 +60,7 @@ function TasksPage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [role])
 
   useEffect(() => {
     if (!teamId) {

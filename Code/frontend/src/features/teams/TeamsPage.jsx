@@ -1,18 +1,43 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import PageHeading from '../../components/PageHeading.jsx'
 import teamApi from '../../api/teamApi.js'
 import { useAuth } from '../../contexts/useAuth.js'
-import { isStudentRole } from '../../utils/roles.js'
+import { canViewAllGroups, isStudentRole } from '../../utils/roles.js'
 import AddMemberForm from './AddMemberForm.jsx'
 import InviteMemberForm from './InviteMemberForm.jsx'
 import JoinRequestsPanel from './JoinRequestsPanel.jsx'
 import MyInvitationsPanel from './MyInvitationsPanel.jsx'
 
 const groupStatuses = {
-  forming: 'Đang thành lập',
+  forming: 'Mới tạo (Đang thành lập)',
   active: 'Đang hoạt động',
   completed: 'Đã hoàn thành',
-  dissolved: 'Đã giải tán',
+  dissolved: 'Đã xóa (Đã giải tán)',
+}
+
+const statusFilters = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'forming', label: 'Nhóm mới tạo' },
+  { key: 'active', label: 'Đang hoạt động' },
+  { key: 'dissolved', label: 'Nhóm đã xóa' },
+  { key: 'completed', label: 'Đã hoàn thành' },
+]
+
+function formatDateTime(value) {
+  if (!value) {
+    return 'Chưa có thông tin'
+  }
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? 'Chưa có thông tin'
+    : date.toLocaleString('vi-VN')
+}
+
+function formatPerson(name, studentCode) {
+  if (!name) {
+    return 'Chưa có thông tin'
+  }
+  return studentCode ? `${name} (${studentCode})` : name
 }
 
 function TeamsPage() {
@@ -20,6 +45,8 @@ function TeamsPage() {
   const [teams, setTeams] = useState([])
   const [selectedTeamId, setSelectedTeamId] = useState(null)
   const [selectedTeam, setSelectedTeam] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [isLoadingTeams, setIsLoadingTeams] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -29,6 +56,7 @@ function TeamsPage() {
   const [groupName, setGroupName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
+  const canMonitorGroups = canViewAllGroups(role)
 
   async function refreshTeams() {
     const result = await teamApi.listTeams()
@@ -69,14 +97,59 @@ function TeamsPage() {
     }
   }, [])
 
+  const statusCounts = useMemo(() => {
+    const counts = {
+      all: teams.length,
+      forming: 0,
+      active: 0,
+      dissolved: 0,
+      completed: 0,
+    }
+    teams.forEach((team) => {
+      if (Object.hasOwn(counts, team.status)) {
+        counts[team.status] += 1
+      }
+    })
+    return counts
+  }, [teams])
+
+  const filteredTeams = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase()
+    return teams.filter((team) => {
+      if (statusFilter !== 'all' && team.status !== statusFilter) {
+        return false
+      }
+      if (!keyword) {
+        return true
+      }
+      const haystack = [
+        team.groupName,
+        team.groupCode,
+        team.leaderName,
+        team.leaderStudentCode,
+        team.creatorName,
+        team.creatorStudentCode,
+        team.roundName,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(keyword)
+    })
+  }, [searchQuery, statusFilter, teams])
+
+  const activeTeamId = filteredTeams.some((team) => team.id === selectedTeamId)
+    ? selectedTeamId
+    : (filteredTeams[0]?.id ?? null)
+
   useEffect(() => {
-    if (selectedTeamId === null) {
+    if (activeTeamId === null) {
       return undefined
     }
 
     let isCurrent = true
     teamApi
-      .getTeam(selectedTeamId)
+      .getTeam(activeTeamId)
       .then((team) => {
         if (isCurrent) {
           setSelectedTeam(team)
@@ -91,7 +164,7 @@ function TeamsPage() {
     return () => {
       isCurrent = false
     }
-  }, [selectedTeamId])
+  }, [activeTeamId])
 
   const selectedLeader =
     selectedTeam?.members?.find((member) => member.memberRole === 'leader')
@@ -99,7 +172,9 @@ function TeamsPage() {
   const canManageSelectedTeam =
     isStudentRole(role) && selectedTeam?.leaderUserId === user?.id
   const isSelectedTeamLoading =
-    selectedTeamId !== null && selectedTeam?.id !== selectedTeamId && !error
+    activeTeamId !== null && selectedTeam?.id !== activeTeamId && !error
+  const showFilterToolbar =
+    canMonitorGroups || teams.some((team) => team.status === 'dissolved')
 
   async function handleCreateTeam(event) {
     event.preventDefault()
@@ -113,6 +188,7 @@ function TeamsPage() {
         projectRoundId: 1,
       })
       await refreshTeams()
+      setStatusFilter('all')
       setSelectedTeamId(team.id)
       setIsCreating(false)
       setGroupCode('')
@@ -135,8 +211,8 @@ function TeamsPage() {
   async function handleRemoveMember(userId) {
     setError('')
     try {
-      await teamApi.removeMember(selectedTeamId, userId)
-      const updatedTeam = await teamApi.getTeam(selectedTeamId)
+      await teamApi.removeMember(activeTeamId, userId)
+      const updatedTeam = await teamApi.getTeam(activeTeamId)
       setSelectedTeam(updatedTeam)
       await refreshTeams()
     } catch (removeError) {
@@ -150,7 +226,7 @@ function TeamsPage() {
     }
     setError('')
     try {
-      await teamApi.leaveGroup(selectedTeamId)
+      await teamApi.leaveGroup(activeTeamId)
       const remainingTeams = await refreshTeams()
       setSelectedTeamId(remainingTeams[0]?.id ?? null)
       setSelectedTeam(null)
@@ -166,7 +242,7 @@ function TeamsPage() {
     }
     setError('')
     try {
-      await teamApi.dissolveTeam(selectedTeamId)
+      await teamApi.dissolveTeam(activeTeamId)
       const remainingTeams = await refreshTeams()
       setSelectedTeamId(remainingTeams[0]?.id ?? null)
       setSelectedTeam(null)
@@ -177,12 +253,12 @@ function TeamsPage() {
   }
 
   async function handleMemberAdded() {
-    setSelectedTeam(await teamApi.getTeam(selectedTeamId))
+    setSelectedTeam(await teamApi.getTeam(activeTeamId))
     await refreshTeams()
   }
 
   async function handleRequestApproved() {
-    setSelectedTeam(await teamApi.getTeam(selectedTeamId))
+    setSelectedTeam(await teamApi.getTeam(activeTeamId))
     await refreshTeams()
   }
 
@@ -199,8 +275,12 @@ function TeamsPage() {
     <section className="dashboard-page">
       <PageHeading
         title="Nhóm đồ án"
-        description="Danh sách nhóm và thông tin thành viên được tải từ API nhóm."
-        status={isLoadingTeams ? 'Đang tải' : `${teams.length} nhóm`}
+        description={
+          canMonitorGroups
+            ? 'Theo dõi các nhóm mới tạo, nhóm đang hoạt động và nhóm đã xóa của sinh viên, trưởng nhóm.'
+            : 'Danh sách nhóm và thông tin thành viên được tải từ API nhóm.'
+        }
+        status={isLoadingTeams ? 'Đang tải' : `${filteredTeams.length} nhóm`}
       />
       {isStudentRole(role) && (
         <button
@@ -251,6 +331,46 @@ function TeamsPage() {
       {isStudentRole(role) && (
         <MyInvitationsPanel onAccepted={handleInvitationAccepted} />
       )}
+      {!isLoadingTeams && showFilterToolbar && (
+        <div className="teams-toolbar">
+          <div className="teams-filters" role="group" aria-label="Lọc nhóm theo trạng thái">
+            {statusFilters
+              .filter(
+                (item) =>
+                  item.key === 'all' ||
+                  canMonitorGroups ||
+                  statusCounts[item.key] > 0,
+              )
+              .map((item) => (
+                <button
+                  className={`teams-filter-button${statusFilter === item.key ? ' is-active' : ''}`}
+                  key={item.key}
+                  onClick={() => {
+                    setError('')
+                    setShowAddMemberForm(false)
+                    setShowInviteForm(false)
+                    setStatusFilter(item.key)
+                  }}
+                  type="button"
+                >
+                  {item.label} ({statusCounts[item.key]})
+                </button>
+              ))}
+          </div>
+          {canMonitorGroups && (
+            <label className="field-control teams-search">
+              <span className="sr-only">Tìm nhóm theo tên, mã hoặc trưởng nhóm</span>
+              <input
+                aria-label="Tìm nhóm theo tên, mã hoặc trưởng nhóm"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Tìm mã nhóm, tên nhóm, sinh viên..."
+                type="search"
+                value={searchQuery}
+              />
+            </label>
+          )}
+        </div>
+      )}
       {isLoadingTeams ? (
         <p className="teams-message" role="status">
           Đang tải danh sách nhóm...
@@ -259,12 +379,16 @@ function TeamsPage() {
         <section className="workspace-panel teams-message">
           Chưa có nhóm nào để hiển thị.
         </section>
+      ) : filteredTeams.length === 0 ? (
+        <section className="workspace-panel teams-message">
+          Không có nhóm nào phù hợp với bộ lọc hiện tại.
+        </section>
       ) : (
         <div className="teams-layout">
           <section className="teams-list" aria-label="Danh sách nhóm">
-            {teams.map((team) => (
+            {filteredTeams.map((team) => (
               <button
-                className={`team-option${team.id === selectedTeamId ? ' is-selected' : ''}`}
+                className={`team-option${team.id === activeTeamId ? ' is-selected' : ''}${team.status === 'dissolved' ? ' is-dissolved' : ''}`}
                 key={team.id}
                 onClick={() => {
                   setError('')
@@ -276,7 +400,9 @@ function TeamsPage() {
               >
                 <span className="team-option-heading">
                   <strong>{team.groupName}</strong>
-                  <span className="status-chip">
+                  <span
+                    className={`status-chip status-chip--${team.status}`}
+                  >
                     {groupStatuses[team.status] || team.status}
                   </span>
                 </span>
@@ -284,7 +410,15 @@ function TeamsPage() {
                   Mã nhóm: {team.groupCode || 'Chưa có'}
                 </span>
                 <span className="muted">
+                  Trưởng nhóm: {formatPerson(team.leaderName, team.leaderStudentCode)}
+                </span>
+                <span className="muted">
                   {team.roundName || `Đợt đồ án ${team.projectRoundId}`}
+                </span>
+                <span className="muted team-option-meta">
+                  {team.status === 'dissolved'
+                    ? `Đã xóa: ${formatDateTime(team.dissolvedAt || team.updatedAt)}`
+                    : `Ngày tạo: ${formatDateTime(team.createdAt)}`}
                 </span>
               </button>
             ))}
@@ -295,7 +429,7 @@ function TeamsPage() {
               <p className="teams-message" role="status">
                 Đang tải thông tin nhóm...
               </p>
-            ) : selectedTeam?.id !== selectedTeamId ? (
+            ) : selectedTeam?.id !== activeTeamId ? (
               <p className="teams-message" role="alert">
                 Không thể tải thông tin nhóm. Vui lòng chọn lại nhóm.
               </p>
@@ -315,12 +449,52 @@ function TeamsPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt>Trưởng nhóm</dt>
-                    <dd>{selectedLeader || 'Chưa có thông tin'}</dd>
+                    <dt>Đợt đồ án</dt>
+                    <dd>
+                      {selectedTeam.roundName ||
+                        `Đợt đồ án ${selectedTeam.projectRoundId}`}
+                    </dd>
                   </div>
                   <div>
+                    <dt>Trưởng nhóm</dt>
+                    <dd>
+                      {formatPerson(
+                        selectedLeader,
+                        selectedTeam.leaderStudentCode,
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Người tạo nhóm</dt>
+                    <dd>
+                      {formatPerson(
+                        selectedTeam.creatorName || selectedLeader,
+                        selectedTeam.creatorStudentCode,
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Ngày tạo</dt>
+                    <dd>{formatDateTime(selectedTeam.createdAt)}</dd>
+                  </div>
+                  {(selectedTeam.status === 'dissolved' ||
+                    selectedTeam.dissolvedAt) && (
+                    <div>
+                      <dt>Ngày xóa</dt>
+                      <dd>
+                        {formatDateTime(
+                          selectedTeam.dissolvedAt || selectedTeam.updatedAt,
+                        )}
+                      </dd>
+                    </div>
+                  )}
+                  <div>
                     <dt>Số thành viên</dt>
-                    <dd>{selectedTeam.members?.length ?? 0}</dd>
+                    <dd>
+                      {selectedTeam.status === 'dissolved'
+                        ? `${selectedTeam.members?.length ?? selectedTeam.totalMemberCount ?? 0} (trước khi xóa)`
+                        : (selectedTeam.members?.length ?? 0)}
+                    </dd>
                   </div>
                 </dl>
                 {canManageSelectedTeam &&
@@ -333,7 +507,11 @@ function TeamsPage() {
                       Xóa nhóm
                     </button>
                   )}
-                <h3>Thành viên</h3>
+                <h3>
+                  {selectedTeam.status === 'dissolved'
+                    ? 'Thành viên trước khi xóa'
+                    : 'Thành viên'}
+                </h3>
                 {canManageSelectedTeam &&
                   ['forming', 'active'].includes(selectedTeam.status) && (
                     <>
@@ -372,13 +550,18 @@ function TeamsPage() {
                   <ul className="team-members">
                     {selectedTeam.members.map((member) => (
                       <li key={member.userId}>
-                        <span>{member.fullName}</span>
+                        <span>
+                          {formatPerson(member.fullName, member.studentCode)}
+                        </span>
                         <span className="muted">
                           {member.memberRole === 'leader'
                             ? 'Trưởng nhóm'
                             : 'Thành viên'}
+                          {selectedTeam.status === 'dissolved' &&
+                            ` · Đã giải tán${member.leftAt ? ` (${formatDateTime(member.leftAt)})` : ''}`}
                         </span>
                         {canManageSelectedTeam &&
+                          ['forming', 'active'].includes(selectedTeam.status) &&
                           member.userId !== selectedTeam.leaderUserId && (
                             <button
                               className="button-secondary"

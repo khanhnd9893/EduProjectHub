@@ -313,7 +313,53 @@ h2 {
   display: grid;
   gap: 20px;
   grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.5fr);
-  margin-top: 32px;
+  margin-top: 24px;
+}
+
+.teams-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.teams-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.teams-filter-button {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 8px 14px;
+}
+
+.teams-filter-button.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.teams-search {
+  min-width: 240px;
+}
+
+.sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
 }
 
 .teams-list {
@@ -327,9 +373,14 @@ h2 {
   border-radius: 10px;
   color: var(--ink);
   display: grid;
-  gap: 10px;
+  gap: 8px;
   padding: 18px;
   text-align: left;
+}
+
+.team-option.is-dissolved {
+  background: rgba(255, 250, 248, 0.9);
+  border-style: dashed;
 }
 
 .team-option.is-selected {
@@ -345,8 +396,23 @@ h2 {
 }
 
 .team-option-heading .status-chip {
+  flex-shrink: 0;
   font-size: 0.7rem;
   padding: 6px 9px;
+}
+
+.status-chip--forming {
+  background: #fff3e6;
+  color: #9a4a0a;
+}
+
+.status-chip--dissolved {
+  background: #fdecec;
+  color: #9e2222;
+}
+
+.team-option-meta {
+  font-size: 0.85rem;
 }
 
 .team-details h2 {

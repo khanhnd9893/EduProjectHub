@@ -69,7 +69,9 @@ function DashboardPage() {
       setError('')
       try {
         if (isProjectRole) {
-          const teamList = await teamApi.listTeams()
+          const teamList = await teamApi.listTeams(
+            isLecturer ? { scope: 'assigned' } : undefined,
+          )
           const taskLists = await Promise.all(
             teamList.map((team) => taskApi.listTasks({ groupId: team.id })),
           )
@@ -104,7 +106,7 @@ function DashboardPage() {
     return () => {
       active = false
     }
-  }, [isAdmin, isManagementRole, isProjectRole])
+  }, [isAdmin, isLecturer, isManagementRole, isProjectRole])
 
   const openTasks = useMemo(
     () => tasks.filter((task) => openTaskStatuses.includes(task.status)),

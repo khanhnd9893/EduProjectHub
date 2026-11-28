@@ -3,8 +3,10 @@ import PageHeading from '../../components/PageHeading.jsx'
 import StatCard from '../../components/StatCard.jsx'
 import progressApi from '../../api/progressApi.js'
 import teamApi from '../../api/teamApi.js'
+import { useAuth } from '../../contexts/useAuth.js'
 
 function ProgressPage() {
+  const { role } = useAuth()
   const [teams, setTeams] = useState([])
   const [teamId, setTeamId] = useState('')
   const [progress, setProgress] = useState(null)
@@ -14,7 +16,7 @@ function ProgressPage() {
   useEffect(() => {
     let active = true
     teamApi
-      .listTeams()
+      .listTeams(role === 'LECTURER' ? { scope: 'assigned' } : undefined)
       .then((result) => {
         if (active) {
           setTeams(result)
@@ -34,7 +36,7 @@ function ProgressPage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [role])
 
   useEffect(() => {
     if (!teamId) {

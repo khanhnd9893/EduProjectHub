@@ -25,13 +25,23 @@ function mapTeam(team) {
     groupName: team.group_name,
     description: team.description,
     projectRoundId: Number(team.project_round_id),
-    roundName: team.round_name,
+    roundName: team.round_name ?? null,
     leaderUserId: Number(team.leader_user_id),
-    leaderName: team.leader_name,
+    leaderName: team.leader_name ?? null,
+    leaderStudentCode: team.leader_student_code ?? null,
     createdBy: team.created_by == null ? null : Number(team.created_by),
+    creatorName: team.creator_name ?? null,
+    creatorStudentCode: team.creator_student_code ?? null,
+    creatorRole: team.creator_role ?? null,
     status: team.status,
     activeMemberCount: Number(
       team.active_member_count ?? team.members?.length ?? 0,
+    ),
+    totalMemberCount: Number(
+      team.total_member_count ??
+        team.active_member_count ??
+        team.members?.length ??
+        0,
     ),
     createdAt: team.created_at,
     updatedAt: team.updated_at,
@@ -39,6 +49,7 @@ function mapTeam(team) {
     members: team.members?.map((member) => ({
       id: Number(member.group_member_id),
       userId: Number(member.user_id),
+      studentCode: member.student_code ?? null,
       fullName: member.full_name,
       memberRole: member.member_role,
       status: member.status,
@@ -158,21 +169,55 @@ const mockStudents = [
 ]
 
 const teamApi = {
-  async listTeams({ roundId, status } = {}) {
+  async listTeams({ roundId, status, scope } = {}) {
     if (useMock) {
+      const currentUser = getMockUser()
       return mockResolve(
-        mockTeams.filter(
-          (team) =>
-            (roundId === undefined ||
-              team.projectRoundId === Number(roundId)) &&
-            (status === undefined || team.status === status),
-        ),
+        mockTeams
+          .filter((team) => {
+            if (roundId !== undefined && team.projectRoundId !== Number(roundId)) {
+              return false
+            }
+            if (status !== undefined && team.status !== status) {
+              return false
+            }
+            if (isStudentRole(currentUser.role)) {
+              return (
+                team.leaderUserId === currentUser.id ||
+                mockMembers.some(
+                  (member) =>
+                    member.groupId === team.id &&
+                    member.userId === currentUser.id &&
+                    member.status === 'active',
+                )
+              )
+            }
+            if (currentUser.role === 'LECTURER' && scope === 'assigned') {
+              return team.id <= 2
+            }
+            return true
+          })
+          .map((team) => {
+            const activeMembers = mockMembers.filter(
+              (member) => member.groupId === team.id && member.status === 'active',
+            )
+            const totalMembers = mockMembers.filter(
+              (member) =>
+                member.groupId === team.id &&
+                ['active', 'removed'].includes(member.status),
+            )
+            return {
+              ...team,
+              activeMemberCount: activeMembers.length,
+              totalMemberCount: totalMembers.length,
+            }
+          }),
       )
     }
 
     const teams = await unwrap(
       apiClient.get('/groups.php', {
-        params: { action: 'groups', round_id: roundId, status },
+        params: { action: 'groups', round_id: roundId, status, scope },
       }),
     )
     return teams.map(mapTeam)
@@ -181,8 +226,11 @@ const teamApi = {
   async getTeam(teamId) {
     if (useMock) {
       const team = findOrThrow(mockTeams, teamId, 'Không tìm thấy nhóm')
-      const members = mockMembers.filter(
-        (member) => member.groupId === team.id && member.status === 'active',
+      const members = mockMembers.filter((member) =>
+        team.status === 'dissolved'
+          ? member.groupId === team.id &&
+            ['active', 'removed'].includes(member.status)
+          : member.groupId === team.id && member.status === 'active',
       )
       return mockResolve({ ...team, members })
     }

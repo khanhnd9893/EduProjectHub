@@ -1,6 +1,7 @@
 export const studentRoles = ['STUDENT', 'TEAM_LEADER']
 export const academicManagerRoles = ['TRAINING_MANAGER']
 export const systemDataViewerRoles = ['ADMIN', ...academicManagerRoles]
+export const groupSupervisorRoles = ['ADMIN', 'TRAINING_MANAGER', 'LECTURER']
 export const topicManagerRoles = [...academicManagerRoles, 'LECTURER']
 export const reportManagerRoles = academicManagerRoles
 
@@ -34,6 +35,10 @@ export function isAcademicManagerRole(role) {
 
 export function canViewAllData(role) {
   return systemDataViewerRoles.includes(role)
+}
+
+export function canViewAllGroups(role) {
+  return groupSupervisorRoles.includes(role)
 }
 
 export function roleLabel(role) {
