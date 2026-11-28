@@ -2,7 +2,7 @@ export const studentRoles = ['STUDENT', 'TEAM_LEADER']
 export const academicManagerRoles = ['TRAINING_MANAGER']
 export const systemDataViewerRoles = ['ADMIN', ...academicManagerRoles]
 export const groupSupervisorRoles = ['ADMIN', 'TRAINING_MANAGER', 'LECTURER']
-export const topicManagerRoles = [...academicManagerRoles, 'LECTURER']
+export const topicManagerRoles = ['ADMIN', 'LECTURER']
 export const reportManagerRoles = academicManagerRoles
 
 const allRoles = [

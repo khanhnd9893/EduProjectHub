@@ -147,10 +147,51 @@ try {
         apiRequireCsrf($body);
         $id = filter_var($body['id'] ?? ($_GET['id'] ?? null), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         apiRequire($id !== false, 400, 'id phải là số nguyên dương.');
-        $statement = $pdo->prepare('SELECT 1 FROM project_rounds WHERE id = ?');
+        $statement = $pdo->prepare('SELECT id, status FROM project_rounds WHERE id = ?');
         $statement->execute([(int) $id]);
-        apiRequire($statement->fetchColumn() !== false, 404, 'Không tìm thấy đợt đồ án.');
+        $currentRound = $statement->fetch(PDO::FETCH_ASSOC);
+        apiRequire($currentRound !== false, 404, 'Không tìm thấy đợt đồ án.');
         $values = semesterValues($body);
+
+        // Ràng buộc nghiệp vụ khi đóng học kỳ
+        if ($values['status'] === 'closed' && $currentRound['status'] !== 'closed') {
+            apiRequire(
+                in_array($currentRound['status'], ['open', 'in_progress'], true),
+                400,
+                'Chỉ được đóng đợt đồ án khi đang ở trạng thái "Đang mở" hoặc "Đang diễn ra".'
+            );
+
+            // Kiểm tra còn đơn đăng ký đề tài chờ duyệt
+            $stmtCheckPending = $pdo->prepare(
+                "SELECT COUNT(*) FROM topic_registrations tr
+                 JOIN project_topics pt ON pt.id = tr.topic_id
+                 WHERE pt.project_round_id = ? AND tr.status = 'pending'"
+            );
+            $stmtCheckPending->execute([(int) $id]);
+            apiRequire(
+                (int) $stmtCheckPending->fetchColumn() === 0,
+                400,
+                'Không thể đóng đợt đồ án: Còn đơn đăng ký đề tài đang ở trạng thái chờ duyệt.'
+            );
+
+            // Kiểm tra còn nhóm sinh viên đang thực hiện mà chưa có điểm bảo vệ chính thức
+            $stmtCheckGrades = $pdo->prepare(
+                "SELECT COUNT(*) FROM student_groups sg
+                 WHERE sg.project_round_id = ?
+                   AND sg.status IN ('forming', 'active')
+                   AND NOT EXISTS (
+                       SELECT 1 FROM final_grades fg
+                       WHERE fg.group_id = sg.id AND fg.status = 'published'
+                   )"
+            );
+            $stmtCheckGrades->execute([(int) $id]);
+            apiRequire(
+                (int) $stmtCheckGrades->fetchColumn() === 0,
+                400,
+                'Không thể đóng đợt đồ án: Còn nhóm sinh viên chưa hoàn tất đánh giá hoặc chưa có điểm bảo vệ chính thức.'
+            );
+        }
+
         $statement = $pdo->prepare(
             'UPDATE project_rounds
              SET round_code = ?, round_name = ?, semester = ?, academic_year = ?,
@@ -188,17 +229,19 @@ try {
         $statement = $pdo->prepare('SELECT COUNT(*) FROM student_groups WHERE project_round_id = ?');
         $statement->execute([(int) $id]);
         $groupCount = (int) $statement->fetchColumn();
+        apiRequire($groupCount === 0, 400, 'Không thể xóa đợt đồ án: Đang có nhóm sinh viên tham gia.');
 
         // Kiểm tra xem có đề tài nào thuộc đợt này không
         $statement = $pdo->prepare('SELECT COUNT(*) FROM project_topics WHERE project_round_id = ?');
         $statement->execute([(int) $id]);
         $topicCount = (int) $statement->fetchColumn();
+        apiRequire($topicCount === 0, 400, 'Không thể xóa đợt đồ án: Đang có đề tài thuộc đợt đồ án này.');
 
-        apiRequire(
-            $groupCount === 0 && ($round['status'] === 'draft' || $topicCount === 0),
-            409,
-            'Không thể xóa đợt đồ án đang có nhóm sinh viên hoặc đề tài tham gia.'
-        );
+        // Kiểm tra xem có hội đồng bảo vệ nào thuộc đợt này không
+        $statement = $pdo->prepare('SELECT COUNT(*) FROM defense_councils WHERE project_round_id = ?');
+        $statement->execute([(int) $id]);
+        $councilCount = (int) $statement->fetchColumn();
+        apiRequire($councilCount === 0, 400, 'Không thể xóa đợt đồ án: Đang có hội đồng bảo vệ được thiết lập.');
 
         $statement = $pdo->prepare('DELETE FROM project_rounds WHERE id = ?');
         $statement->execute([(int) $id]);

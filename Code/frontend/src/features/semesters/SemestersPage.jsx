@@ -34,6 +34,8 @@ function SemestersPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isStatusSaving, setIsStatusSaving] = useState(false)
   const [statusTarget, setStatusTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [statusFilter, setStatusFilter] = useState(allStatus)
   const [success, setSuccess] = useState('')
 
@@ -170,6 +172,26 @@ function SemestersPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) {
+      return
+    }
+
+    setError('')
+    setSuccess('')
+    setIsDeleting(true)
+    try {
+      await semesterApi.deleteSemester(deleteTarget.id)
+      setSemesters((current) => current.filter((semester) => semester.id !== deleteTarget.id))
+      setSuccess('Đã xóa đợt đồ án thành công.')
+      setDeleteTarget(null)
+    } catch (deleteError) {
+      setError(deleteError.message || 'Không thể xóa đợt đồ án.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const visibleSemesters = semesters.filter(
     (semester) => statusFilter === allStatus || semester.status === statusFilter,
   )
@@ -284,6 +306,20 @@ function SemestersPage() {
                   {semester.status === 'closed' ? 'Mở học kỳ' : 'Đóng học kỳ'}
                 </button>
               )}
+              {canManageSemesters && (
+                <button
+                  className="button-secondary"
+                  type="button"
+                  style={{ color: '#dc2626' }}
+                  onClick={() => {
+                    setError('')
+                    setSuccess('')
+                    setDeleteTarget(semester)
+                  }}
+                >
+                  Xóa
+                </button>
+              )}
               <dl className="semester-metadata">
                 <div>
                   <dt>Năm học</dt>
@@ -334,6 +370,39 @@ function SemestersPage() {
               </button>
               <button type="button" disabled={isStatusSaving} onClick={handleStatusChange}>
                 {isStatusSaving ? 'Đang lưu...' : 'Xác nhận'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {deleteTarget && (
+        <div className="semester-modal-backdrop" role="presentation">
+          <section
+            className="workspace-panel semester-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="semester-delete-dialog-title"
+          >
+            <h2 id="semester-delete-dialog-title">Xóa đợt đồ án?</h2>
+            <p>
+              Bạn có chắc muốn xóa đợt đồ án <strong>{deleteTarget.roundName}</strong> ({deleteTarget.roundCode}) không? Thao tác này không thể hoàn tác.
+            </p>
+            <div className="semester-modal-actions">
+              <button
+                className="button-secondary"
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteTarget(null)}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                style={{ backgroundColor: '#dc2626', borderColor: '#dc2626', color: '#fff' }}
+                onClick={handleDelete}
+              >
+                {isDeleting ? 'Đang xóa...' : 'Xác nhận xóa'}
               </button>
             </div>
           </section>
