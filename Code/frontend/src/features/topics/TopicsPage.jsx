@@ -49,7 +49,7 @@ function TopicsPage() {
     () => Promise.all([
       topicApi.listTopics(),
       teamApi.listTeams(),
-      (topicManagerRoles.includes(role) || role === 'STUDENT' || role === 'TEAM_LEADER')
+      (topicManagerRoles.includes(role) || isStudentRole(role) || role === 'TRAINING_MANAGER')
         ? semesterApi.listSemesters()
         : Promise.resolve([]),
       topicApi.listRegistrations(),
@@ -272,7 +272,7 @@ function TopicsPage() {
                   Hướng dẫn: {topic.supervisorName || 'Chưa phân công'}
                 </p>
                 <p className="muted">
-                  Nhóm đã duyệt: {topic.approvedGroups}/{topic.maxGroups}
+                  Chỉ tiêu: {topic.approvedGroups}/{topic.maxGroups} (còn lại {Math.max(0, topic.maxGroups - topic.approvedGroups)} nhóm)
                 </p>
                 <span className="status-chip">{topicStatuses[topic.status] || topic.status}</span>
                 <details>
@@ -295,38 +295,55 @@ function TopicsPage() {
                     </select>
                   </label>
                 )}
-                {isStudentRole(role) && myGroups.length > 0 && (
+                {isStudentRole(role) && (
                   <div className="topic-register-actions">
-                    {myGroups.map((group) => (
-                      (() => {
+                    {myGroups.length > 0 ? (
+                      myGroups.map((group) => {
+                        const remainingSlots = topic.maxGroups - topic.approvedGroups
                         const existingRegistration = registrations.find(
                           (registration) =>
                             registration.groupId === group.id &&
                             ['pending', 'approved'].includes(registration.status),
                         )
+                        const isThisTopic = existingRegistration?.topicId === topic.id
+
+                        if (existingRegistration) {
+                          return (
+                            <span key={group.id} className="status-chip">
+                              {group.groupName}: {isThisTopic
+                                ? (existingRegistration.status === 'approved' ? 'Đã được duyệt' : 'Đang chờ duyệt')
+                                : `Đã đăng ký đề tài khác (${registrationStatuses[existingRegistration.status] || existingRegistration.status})`}
+                            </span>
+                          )
+                        }
+
                         return (
                           <button
                             className="button-secondary"
                             disabled={
-                              Boolean(existingRegistration) ||
                               topic.status !== 'open' ||
+                              remainingSlots <= 0 ||
                               registeringKey === `${topic.id}-${group.id}`
                             }
                             key={group.id}
                             onClick={() => handleRegister(topic, group.id)}
                             type="button"
                           >
-                            {existingRegistration
-                              ? `${group.groupName}: ${registrationStatuses[existingRegistration.status]}`
-                              : topic.status !== 'open'
-                                ? `${group.groupName}: Đã đóng đăng ký`
+                            {topic.status !== 'open'
+                              ? `${group.groupName}: Đã đóng nhận đăng ký`
+                              : remainingSlots <= 0
+                                ? `${group.groupName}: Đã hết chỉ tiêu`
                                 : registeringKey === `${topic.id}-${group.id}`
                                   ? 'Đang đăng ký...'
-                              : `Đăng ký cho ${group.groupName}`}
+                                  : `Đăng ký đề tài cho ${group.groupName}`}
                           </button>
                         )
-                      })()
-                    ))}
+                      })
+                    ) : (
+                      <p className="muted" style={{ fontSize: '0.875rem', fontStyle: 'italic' }}>
+                        Chỉ trưởng nhóm mới có quyền đăng ký đề tài.
+                      </p>
+                    )}
                   </div>
                 )}
               </article>
@@ -359,7 +376,7 @@ function TopicsPage() {
 
       {canReview && (
         <section className="workspace-panel topic-registrations">
-          <h2>Đăng ký đề tài</h2>
+          <h2>Duyệt đăng ký đề tài</h2>
           {registrations.length === 0 ? (
             <p className="muted">Chưa có đăng ký cần hiển thị.</p>
           ) : (

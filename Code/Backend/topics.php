@@ -138,12 +138,8 @@ try {
             $conditions[] = 'g.leader_user_id = ?';
             $params[] = $actor['id'];
         } elseif ($actor['role'] === 'lecturer') {
-            $conditions[] = 'EXISTS (
-                SELECT 1 FROM group_lecturers gl
-                WHERE gl.group_id = g.id AND gl.lecturer_user_id = ?
-                  AND (SELECT COUNT(*) FROM group_lecturers workload
-                       WHERE workload.lecturer_user_id = gl.lecturer_user_id) >= 2
-            )';
+            $conditions[] = '(t.supervisor_user_id = ? OR t.created_by = ?)';
+            $params[] = $actor['id'];
             $params[] = $actor['id'];
         }
         if ($conditions !== []) {
@@ -159,8 +155,8 @@ try {
     if ($method === 'POST' && $action === 'create') {
         apiRequireRole(
             $actor,
-            ['training_manager', 'lecturer'],
-            'Chỉ người đào tạo hoặc giảng viên mới được tạo đề tài.'
+            ['admin', 'lecturer'],
+            'Chỉ quản trị viên hoặc giảng viên mới được tạo đề tài.'
         );
         $roundId = topicId($body['project_round_id'] ?? null, 'project_round_id');
         $code = topicText($body, 'topic_code', 30);
@@ -195,8 +191,8 @@ try {
     if ($method === 'PATCH' && $action === 'update') {
         apiRequireRole(
             $actor,
-            ['training_manager', 'lecturer'],
-            'Chỉ người đào tạo hoặc giảng viên mới được cập nhật đề tài.'
+            ['admin', 'lecturer'],
+            'Chỉ quản trị viên hoặc giảng viên mới được cập nhật đề tài.'
         );
         $id = topicId($body['id'] ?? ($_GET['id'] ?? null), 'id');
 
@@ -274,8 +270,8 @@ try {
     if (($method === 'DELETE' || $method === 'POST') && $action === 'delete') {
         apiRequireRole(
             $actor,
-            ['training_manager', 'lecturer'],
-            'Chỉ người đào tạo hoặc giảng viên mới được xóa đề tài.'
+            ['admin', 'lecturer'],
+            'Chỉ quản trị viên hoặc giảng viên mới được xóa đề tài.'
         );
         $id = topicId($_GET['id'] ?? ($body['id'] ?? null), 'id');
 
@@ -304,8 +300,9 @@ try {
         apiRespond(200, ['message' => 'Đã xóa đề tài thành công.']);
     }
 
-    // 7. Đăng ký đề tài (kiểm tra đợt đồ án đang mở)
+    // 7. Đăng ký đề tài (kiểm tra trưởng nhóm, đợt đồ án đang mở, chỉ tiêu còn lại)
     if ($method === 'POST' && $action === 'register') {
+        apiRequire(!apiHasRole($actor, ['lecturer']), 403, 'Giảng viên không có quyền đăng ký đề tài.');
         apiRequire(apiIsStudentRole($actor), 403, 'Chỉ sinh viên mới được đăng ký đề tài.');
         $topicId = topicId($body['topic_id'] ?? null, 'topic_id');
         $groupId = topicId($body['group_id'] ?? null, 'group_id');
@@ -317,13 +314,14 @@ try {
         $statement = $pdo->prepare('SELECT * FROM project_topics WHERE id = ? FOR UPDATE');
         $statement->execute([$topicId]);
         $topic = $statement->fetch(PDO::FETCH_ASSOC);
-        apiRequire($topic !== false && $topic['status'] === 'open', 409, 'Đề tài không còn nhận đăng ký.');
+        apiRequire($topic !== false, 404, 'Không tìm thấy đề tài.');
+        apiRequire($topic['status'] === 'open', 409, 'Đề tài không còn nhận đăng ký.');
 
         // Kiểm tra đợt đồ án tương ứng có đang mở hay không
         $statement = $pdo->prepare('SELECT id, status FROM project_rounds WHERE id = ? FOR UPDATE');
         $statement->execute([(int) $topic['project_round_id']]);
         $round = $statement->fetch(PDO::FETCH_ASSOC);
-        apiRequire($round !== false && $round['status'] === 'open', 409, 'Đợt đồ án chưa mở hoặc đã đóng, không thể đăng ký đề tài.');
+        apiRequire($round !== false && $round['status'] === 'open', 409, 'Đợt đồ án chưa mở hoặc đã kết thúc thời gian đăng ký đề tài.');
 
         $statement = $pdo->prepare('SELECT * FROM student_groups WHERE id = ? FOR UPDATE');
         $statement->execute([$groupId]);
@@ -331,22 +329,29 @@ try {
         apiRequire($group !== false, 404, 'Không tìm thấy nhóm.');
         apiRequire((int) $group['leader_user_id'] === (int) $actor['id'], 403, 'Chỉ trưởng nhóm mới được đăng ký đề tài.');
         apiRequire($group['status'] === 'forming' || $group['status'] === 'active', 409, 'Nhóm không thể đăng ký đề tài.');
-        apiRequire((int) $group['project_round_id'] === (int) $topic['project_round_id'], 409, 'Đề tài thuộc đợt đồ án khác.');
+        apiRequire((int) $group['project_round_id'] === (int) $topic['project_round_id'], 409, 'Đề tài thuộc đợt đồ án khác với đợt của nhóm.');
+
+        // Kiểm tra nhóm đã có đăng ký trong cùng đợt đồ án chưa
         $statement = $pdo->prepare(
-            "SELECT id FROM topic_registrations
-             WHERE group_id = ? AND status IN ('pending', 'approved') FOR UPDATE"
+            "SELECT tr.id FROM topic_registrations tr
+             JOIN project_topics pt ON pt.id = tr.topic_id
+             WHERE tr.group_id = ? AND pt.project_round_id = ? AND tr.status IN ('pending', 'approved') FOR UPDATE"
         );
-        $statement->execute([$groupId]);
-        apiRequire($statement->fetchColumn() === false, 409, 'Nhóm đã có đăng ký đề tài đang chờ hoặc được duyệt.');
+        $statement->execute([$groupId, (int) $topic['project_round_id']]);
+        apiRequire($statement->fetchColumn() === false, 409, 'Nhóm đã có đăng ký đề tài đang chờ hoặc được duyệt trong đợt này.');
+
+        // Kiểm tra chỉ tiêu còn lại
         $statement = $pdo->prepare(
             "SELECT COUNT(*) FROM topic_registrations WHERE topic_id = ? AND status = 'approved'"
         );
         $statement->execute([$topicId]);
         apiRequire((int) $statement->fetchColumn() < (int) $topic['max_groups'], 409, 'Đề tài đã đủ số nhóm đăng ký.');
+
         $statement = $pdo->prepare(
             'INSERT INTO topic_registrations (topic_id, group_id, registered_by, note)
              VALUES (?, ?, ?, ?)'
         );
+        $statement->execute([$topicId, $groupId, $actor['id'], $note]);
         $statement->execute([$topicId, $groupId, $actor['id'], $note]);
         $registrationId = (int) $pdo->lastInsertId();
         $pdo->commit();
@@ -357,8 +362,8 @@ try {
     if ($method === 'PATCH' && $action === 'review') {
         apiRequireRole(
             $actor,
-            ['training_manager', 'lecturer'],
-            'Chỉ người đào tạo hoặc giảng viên mới được duyệt đăng ký.'
+            ['admin', 'lecturer'],
+            'Chỉ quản trị viên hoặc giảng viên mới được duyệt đăng ký.'
         );
         $registrationId = topicId($body['registration_id'] ?? null, 'registration_id');
         $status = $body['status'] ?? null;
@@ -371,7 +376,7 @@ try {
         $statement->execute([$registrationId]);
         $registration = $statement->fetch(PDO::FETCH_ASSOC);
         apiRequire($registration !== false, 404, 'Không tìm thấy đăng ký đề tài.');
-        $statement = $pdo->prepare('SELECT id, max_groups, status FROM project_topics WHERE id = ? FOR UPDATE');
+        $statement = $pdo->prepare('SELECT id, supervisor_user_id, created_by, max_groups, status FROM project_topics WHERE id = ? FOR UPDATE');
         $statement->execute([$registration['topic_id']]);
         $topic = $statement->fetch(PDO::FETCH_ASSOC);
         apiRequire($topic !== false, 404, 'Không tìm thấy đề tài.');
@@ -382,7 +387,15 @@ try {
         $statement->execute([$registrationId]);
         $currentStatus = $statement->fetchColumn();
         apiRequire($currentStatus !== false, 404, 'Không tìm thấy đăng ký đề tài.');
-        apiRequireGroupAccess($pdo, (int) $registration['group_id'], $actor);
+
+        if ($actor['role'] === 'lecturer') {
+            apiRequire(
+                (int) $topic['supervisor_user_id'] === $actor['id'] || (int) $topic['created_by'] === $actor['id'],
+                403,
+                'Giảng viên chỉ được duyệt đăng ký cho đề tài do mình tạo hoặc phụ trách.'
+            );
+        }
+
         apiRequire($currentStatus === 'pending', 409, 'Đăng ký này đã được xử lý.');
         if ($status === 'approved') {
             apiRequire($topic['status'] === 'open', 409, 'Đề tài đã đóng đăng ký.');

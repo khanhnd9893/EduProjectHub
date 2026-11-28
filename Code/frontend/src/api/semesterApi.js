@@ -124,6 +124,23 @@ const semesterApi = {
       )
     }
   },
+
+  async deleteSemester(id) {
+    if (useMock) {
+      const index = mockSemesters.findIndex((semester) => semester.id === Number(id))
+      if (index === -1) {
+        throw new Error('Không tìm thấy học kỳ cần xóa.')
+      }
+      mockSemesters.splice(index, 1)
+      return mockResolve({ message: 'Đã xóa đợt đồ án thành công.' })
+    }
+
+    return unwrap(
+      apiClient.delete('/semesters.php', {
+        params: { action: 'delete', id },
+      }),
+    )
+  },
 }
 
 export default semesterApi
